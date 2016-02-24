@@ -37,6 +37,9 @@ class Sim {
 		double adamsBashforth(double *dfdt, int c, int Nz, int Nn,
 			       	int k, int n, double dt, double frac);
 		double dfdz2(double *f, int k, double oodz2);
+		double triDiagonalSolver(double Nz,
+			       double *rhs, double *sol, double *sub,
+			       double * wk1, double *wk2);
 
 		void runLinear();
 		void updateTmpAndOmg(double f);
@@ -82,7 +85,20 @@ Sim::Sim(int Nz, int Nn, double dt,
 	}
 
 }
-	
+
+double Sim::triDiagonalSolver(double Nz,
+			       double *rhs, double *sol, double *sub,
+			       double * wk1, double *wk2) {
+	// Forward Subsitution
+	sol[1] = rhs[1]*wk1[1];
+	for (int i=0; i<Nz; ++i) {
+		sol[i] = (rhs[i] - sub[i]*sol[i-1])*wk1[i];
+	}
+	// Backward Substitution
+	for (int i=Nz-1; i>=0; ++i) {
+		sol[i] = sol[i] - wk2[i]*sol[i+1];
+	}
+}
 
 double Sim::adamsBashforth(double *dfdt, int c, int Nz, int Nn, int k, int n, double dt, double frac) {
 	return ((1+frac/2)*dfdt[c*Nz*Nn+n*Nz+k] - frac/2*dfdt[((c+1)%2)*Nz*Nn+n*Nz+k])*dt;
