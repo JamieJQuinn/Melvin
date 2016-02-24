@@ -34,6 +34,10 @@ class Sim {
 		double timeBetweenSaves, bool modifydt,
 	       	int current, double t, double totalTime);
 
+		double adamsBashforth(double *dfdt, int c, int Nz, int Nn,
+			       	int k, int n, double dt, double frac);
+		double dfdz2(double *f, int k, double oodz2);
+
 		void runLinear();
 		void updateTmpAndOmg(double f);
 		void computeLinearDerivatives();
@@ -80,7 +84,7 @@ Sim::Sim(int Nz, int Nn, double dt,
 }
 	
 
-double adamsBashforth(double *dfdt, int c, int Nz, int Nn, int k, int n, double dt, double frac) {
+double Sim::adamsBashforth(double *dfdt, int c, int Nz, int Nn, int k, int n, double dt, double frac) {
 	return ((1+frac/2)*dfdt[c*Nz*Nn+n*Nz+k] - frac/2*dfdt[((c+1)%2)*Nz*Nn+n*Nz+k])*dt;
 }
 
@@ -94,7 +98,7 @@ void Sim::updateTmpAndOmg(double f = 1.0) {
 	}
 }
 
-double dfdz2(double *f, int k, double oodz2) {
+double Sim::dfdz2(double *f, int k, double oodz2) {
 	return (f[k+1] - 2*f[k] + f[k+1])*oodz2;
 }
 
