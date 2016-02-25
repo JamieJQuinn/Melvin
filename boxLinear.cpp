@@ -63,7 +63,7 @@ class Sim {
 
 		// Simulation functions
 		void updateTmpAndOmg(double f);
-		void computeLinearDerivatives();
+		void computeLinearDerivatives(int linearSim = 1);
 		void solveForPsi();
 
 		// Runs the linear simulation
@@ -277,9 +277,11 @@ bool test_Sim_dfdz2() {
 	return passTotal;
 }
 
-void Sim::computeLinearDerivatives() {
-	// Computes the (linear) derivatives of Tmp and omg for n>0
-	for(int n=1; n<Nn; ++n) {
+void Sim::computeLinearDerivatives(int linearSim) {
+	// Computes the (linear) derivatives of Tmp and omg
+	// If linear sim is 0, we start n from 0 and the advection approximation
+	// in dTmpdt vanishes
+	for(int n=linearSim; n<Nn; ++n) {
 		for(int k=1; k<Nz-1; ++k) {
 			// Setup indices
 			int di = current*Nz*Nn+n*Nz+k;
@@ -287,7 +289,7 @@ void Sim::computeLinearDerivatives() {
 
 			dTmpdt[di] = 
 				dfdz2(tmp, i) - pow(n*M_PI/a, 2)*tmp[i] 
-				+ n*M_PI/a * psi[i];
+				+ n*M_PI/a * psi[i]*linearSim;
 			dOmgdt[di] = 
 				Pr*(
 				dfdz2(omg, i) 
@@ -393,7 +395,7 @@ void Sim::runLinear() {
 			*/
 		}
 		steps++;
-		computeLinearDerivatives();
+		computeLinearDerivatives(1);
 		updateTmpAndOmg();
 		solveForPsi();
 		t+=dt;
