@@ -1,20 +1,20 @@
 CC=g++
 CFLAGS=-c -std=c++11 -g
 LDFLAGS=
-LIN_SOURCES=boxLinear.cpp 
-LIN_OBJECTS=$(LIN_SOURCES:.cpp=.o)
-LIN_EXECUTABLE=boxLinear
+SOURCES=box.cpp 
+OBJECTS=$(SOURCES:.cpp=.o)
+EXECUTABLE=box
 
-all: $(LIN_SOURCES) $(LIN_EXECUTABLE)
+all: $(SOURCES) $(EXECUTABLE)
     
-linear: $(LIN_EXECUTABLE)
+linear: $(EXECUTABLE)
 
-$(LIN_EXECUTABLE): $(LIN_OBJECTS) 
-	$(CC) $(LDFLAGS) $(LIN_OBJECTS) -o $@
+$(EXECUTABLE): $(OBJECTS) 
+	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
 
 .cpp.o:
 	$(CC) $(CFLAGS) $< -o $@
 
 clean:
-	rm *.o $(LIN_EXECUTABLE)
+	rm *.o $(EXECUTABLE)
 
