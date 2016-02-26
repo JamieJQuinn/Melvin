@@ -11,8 +11,8 @@ const double EPSILON = DBL_EPSILON;
 class Sim {
 	public:
 		// Defined constants
-		int Nz;
-		int Nn; 
+		int nZ;
+		int nN; 
 		double dt;
 		double Ra; 
 		double Pr;
@@ -42,7 +42,7 @@ class Sim {
 		double * sub;
 
 		// Constructor
-		Sim(int Nz, int Nn, double dt,
+		Sim(int nZ, int nN, double dt,
 		double Ra, double Pr, int a,
 		double timeBetweenSaves, bool modifydt,
 	       	int current, double t, double totalTime);
@@ -54,10 +54,10 @@ class Sim {
 		double adamsBashforth(double *dfdt,int k, int n, double frac);
 		double inline dfdz(double *f, int k);
 		double inline dfdz2(double *f, int k);
-		double triDiagonalSolver(const int Nz,
+		double triDiagonalSolver(const int nZ,
 			       const double *rhs, double *sol, const double *sub,
 			       const double * wk1, const double *wk2);
-		double formTridiArrays ( const int Nz,
+		double formTridiArrays ( const int nZ,
 			const double *sub, const double *dia, const double *sup,
 			double * wk1, double *wk2);
 		void printMaxOf(double *a, std::string name);
@@ -73,12 +73,12 @@ class Sim {
 		void runNonLinear();
 };
 
-Sim::Sim(int Nz, int Nn, double dt,
+Sim::Sim(int nZ, int nN, double dt,
 		double Ra, double Pr, int a,
 		double timeBetweenSaves, bool modifydt,
 	       	int current, double t, double totalTime) 
-	: Nz {Nz}
-	, Nn {Nn}
+	: nZ {nZ}
+	, nN {nN}
 	, dt {dt}
 	, Ra {Ra}
 	, Pr {Pr}
@@ -90,50 +90,50 @@ Sim::Sim(int Nz, int Nn, double dt,
 	, totalTime {totalTime}
 {
 	// Derived Constants
-	Nx = Nz*a;
-	dz = double(1)/(Nz-1);
+	Nx = nZ*a;
+	dz = double(1)/(nZ-1);
 	dx = double(a)/(Nx-1);
 	oodz2 = pow(1.0/dz, 2);
 
 	// Initialise Arrays
-	psi = new double [Nn*Nz];
-	omg = new double [Nn*Nz];
-	tmp = new double [Nn*Nz];
+	psi = new double [nN*nZ];
+	omg = new double [nN*nZ];
+	tmp = new double [nN*nZ];
 
-	dTmpdt = new double [2*Nn*Nz];
-	dOmgdt = new double [2*Nn*Nz];
+	dTmpdt = new double [2*nN*nZ];
+	dOmgdt = new double [2*nN*nZ];
 
-	wk1 = new double [Nn*Nz];
-	wk2 = new double [Nn*Nz];
-	sub = new double [Nz];
+	wk1 = new double [nN*nZ];
+	wk2 = new double [nN*nZ];
+	sub = new double [nZ];
 
-	for(int i=0; i<Nz*Nn; ++i) {
+	for(int i=0; i<nZ*nN; ++i) {
 		psi[i] = 0.0;
 		omg[i] = 0.0;
 		tmp[i] = 0.0;
 	}
-	for(int i=0; i<Nz*Nn*2; ++i) {
+	for(int i=0; i<nZ*nN*2; ++i) {
 		dTmpdt[i] = 0.0;
 		dOmgdt[i] = 0.0;
 	}
 
 	// Precalculate tridiagonal stuff
-	double * dia = new double [Nz];
-	double * sup = new double [Nz];
-	for(int k=0; k<Nz; ++k) {
+	double * dia = new double [nZ];
+	double * sup = new double [nZ];
+	for(int k=0; k<nZ; ++k) {
 		sub[k] = sup[k] = -oodz2;
 	}
-	for(int n=0; n<Nn; ++n) {
-		for(int k=0; k<Nz; ++k){
+	for(int n=0; n<nN; ++n) {
+		for(int k=0; k<nZ; ++k){
 			dia[k] = pow(M_PI/a*n, 2) + 2*oodz2;
 		}
-		dia[0] = dia[Nz-1] = 1.0;
-		sub[Nz-2] = sup[0] = 0.0;
-		formTridiArrays( Nz,
+		dia[0] = dia[nZ-1] = 1.0;
+		sub[nZ-2] = sup[0] = 0.0;
+		formTridiArrays( nZ,
 		sub, dia, sup,
-		wk1+Nz*n, wk2+n*Nz);
+		wk1+nZ*n, wk2+n*nZ);
 	}
-	for(int i=0; i<Nz*Nn; ++i) {
+	for(int i=0; i<nZ*nN; ++i) {
 		assert(!std::isnan(wk1[i]));
 		assert(!std::isnan(wk2[i]));
 	}
@@ -155,7 +155,7 @@ Sim::~Sim() {
 	delete[] sub;
 }
 
-double Sim::triDiagonalSolver(const int	Nz,
+double Sim::triDiagonalSolver(const int	nZ,
 			       const double *rhs, double *sol, const double *sub,
 			       const double * wk1, const double *wk2) {
 	// Solves the tridiagonal system represented by sub, dia and sup.
@@ -166,7 +166,7 @@ double Sim::triDiagonalSolver(const int	Nz,
 	assert(!isnan(wk1[0]));
 	assert(!isnan(rhs[0]));
 	sol[0] = rhs[0]*wk1[0];
-	for (int i=1; i<Nz; ++i) {
+	for (int i=1; i<nZ; ++i) {
 		sol[i] = (rhs[i] - sub[i-1]*sol[i-1])*wk1[i];
 		assert(!isnan(rhs[i]));
 		assert(!isnan(sub[i-1]));
@@ -175,24 +175,24 @@ double Sim::triDiagonalSolver(const int	Nz,
 		assert(!isnan(sol[i]));
 	}
 	// Backward Substitution
-	for (int i=Nz-2; i>=0; --i) {
+	for (int i=nZ-2; i>=0; --i) {
 		sol[i] -= wk2[i]*sol[i+1];
 	}
 }
 
-double Sim::formTridiArrays ( const int Nz,
+double Sim::formTridiArrays ( const int nZ,
 	       	const double *sub, const double *dia, const double *sup,
 		double * wk1, double *wk2) {
 	assert(dia[0] != 0.0);
 	wk1[0] = 1.0/dia[0];
 	wk2[0] = sup[0]*wk1[0];
-	for (int i=1; i<Nz-1; ++i) {
+	for (int i=1; i<nZ-1; ++i) {
 		assert((dia[i] - sub[i-1] * wk2[i-1]) != 0.0);
 		wk1[i] = 1.0/(dia[i] - sub[i-1] * wk2[i-1]);
 		wk2[i] = sup[i]*wk1[i];
 	}
-	assert((dia[Nz-1] - sub[Nz-2]*wk2[Nz-2]) != 0.0);
-	wk1[Nz-1] = 1.0/(dia[Nz-1] - sub[Nz-2]*wk2[Nz-2]);
+	assert((dia[nZ-1] - sub[nZ-2]*wk2[nZ-2]) != 0.0);
+	wk1[nZ-1] = 1.0/(dia[nZ-1] - sub[nZ-2]*wk2[nZ-2]);
 }
 
 bool test_Sim_triDiagonalSolver() {
@@ -231,30 +231,30 @@ bool test_Sim_triDiagonalSolver() {
 
 double Sim::adamsBashforth(double *dfdt, int k, int n, double frac) {
 	// Calcs X in equation T_{n+1} = T_{n} + X
-	return ((2.0+frac)*dfdt[current*Nz*Nn+n*Nz+k] - frac*dfdt[((current+1)%2)*Nz*Nn+n*Nz+k])*dt/2.0;
+	return ((2.0+frac)*dfdt[current*nZ*nN+n*nZ+k] - frac*dfdt[((current+1)%2)*nZ*nN+n*nZ+k])*dt/2.0;
 }
 
 void Sim::updateTmpAndOmg(double f = 1.0) {
 	// Update variables using Adams-Bashforth Scheme
 	// f is the proportional change between the new dt and old dt
 	// ( if dt changed )
-	for(int n=0; n<Nn; ++n) {
-		for(int k=0; k<Nz; ++k) {
-			tmp[n*Nz+k] += adamsBashforth(dTmpdt, k, n, f);
-			omg[n*Nz+k] += adamsBashforth(dOmgdt, k, n, f);
+	for(int n=0; n<nN; ++n) {
+		for(int k=0; k<nZ; ++k) {
+			tmp[n*nZ+k] += adamsBashforth(dTmpdt, k, n, f);
+			omg[n*nZ+k] += adamsBashforth(dOmgdt, k, n, f);
 
-			assert(!isnan(tmp[n*Nz+k]));
-			assert(!isnan(omg[n*Nz+k]));
+			assert(!isnan(tmp[n*nZ+k]));
+			assert(!isnan(omg[n*nZ+k]));
 		}
 		// check BCs
 		if(n>0) {
-			assert(tmp[n*Nz] < EPSILON);
+			assert(tmp[n*nZ] < EPSILON);
 		} else {
-			assert(tmp[n*Nz] - 1.0 < EPSILON);
+			assert(tmp[n*nZ] - 1.0 < EPSILON);
 		}
-		assert(tmp[n*Nz+Nz-1] < EPSILON);
-		assert(omg[n*Nz] < EPSILON);
-		assert(omg[n*Nz+Nz-1] < EPSILON);
+		assert(tmp[n*nZ+nZ-1] < EPSILON);
+		assert(omg[n*nZ] < EPSILON);
+		assert(omg[n*nZ+nZ-1] < EPSILON);
 	}	
 }
 
@@ -322,12 +322,12 @@ void Sim::computeLinearDerivatives(int linearSim) {
 	// Computes the (linear) derivatives of Tmp and omg
 	// If linear sim is 0, we start n from 0 and the advection approximation
 	// in dTmpdt vanishes
-	for(int n=linearSim; n<Nn; ++n) {
-		for(int k=1; k<Nz-1; ++k) {
+	for(int n=linearSim; n<nN; ++n) {
+		for(int k=1; k<nZ-1; ++k) {
 			// Setup indices
-			int di = current*Nz*Nn+n*Nz+k;;
+			int di = current*nZ*nN+n*nZ+k;;
 
-			int i = k+n*Nz;
+			int i = k+n*nZ;
 
 			dTmpdt[di] = dfdz2(tmp, i) - pow(n*M_PI/a, 2)*tmp[i];
 			if (linearSim == 1) {
@@ -344,40 +344,40 @@ void Sim::computeLinearDerivatives(int linearSim) {
 				- pow(n*M_PI/a, 2)*omg[i] 
 				+ Ra*n*M_PI/a*tmp[i]
 				)));
-			assert(dOmgdt[Nz*0+k] < EPSILON);
+			assert(dOmgdt[nZ*0+k] < EPSILON);
 		}
 	}
 }
 
 void Sim::computeNonLinearDerivatives() {
 	// To compare to the equations, n=n; n'=m and n''=o
-	for(int n=1; n<Nn; ++n) {
-		for(int k=1; k<Nz-1; ++k) {
-			int in = n*Nz + k;
+	for(int n=1; n<nN; ++n) {
+		for(int k=1; k<nZ-1; ++k) {
+			int in = n*nZ + k;
 			// Contribution TO tmp[n=0]
-			dTmpdt[current*Nz*Nn+0*Nn+k] += 
+			dTmpdt[current*nZ*nN+0*nN+k] += 
 				-M_PI/(2*a)*n*(
 					dfdz(psi, in)*tmp[in] +
 					dfdz(tmp, in)*psi[in]
 					);
 			// Contribution FROM tmp[n=0]
-			dTmpdt[current*Nz*Nn + in] += 
-				-n*M_PI/a*psi[in]*dfdz(tmp, 0*Nz+k);
+			dTmpdt[current*nZ*nN + in] += 
+				-n*M_PI/a*psi[in]*dfdz(tmp, 0*nZ+k);
 		}
 		// Contribution FROM tmp[n>0] and omg[n>0]
-		for(int m=1; m<Nn; ++m){
-			for(int k=1; k<Nz-1; ++k) {
-				int im = Nz*m+k;
+		for(int m=1; m<nN; ++m){
+			for(int k=1; k<nZ-1; ++k) {
+				int im = nZ*m+k;
 				// Case n = n' + n''
 				int o = n-m; 
-				int io = Nz*o + k;
-				if(o > 0 && o < Nn) {
-					dTmpdt[current*Nz*Nn+Nz*n+k] += 
+				int io = nZ*o + k;
+				if(o > 0 && o < nN) {
+					dTmpdt[current*nZ*nN+nZ*n+k] += 
 						-M_PI/(2*a)*(
 						-m*dfdz(psi, io)*tmp[im]
 						+o*dfdz(tmp, im)*psi[io]
 						);
-					dOmgdt[current*Nz*Nn+Nz*n+k] += 
+					dOmgdt[current*nZ*nN+nZ*n+k] += 
 						-M_PI/(2*a)*(
 						-m*dfdz(psi, io)*omg[im]
 						+o*dfdz(omg, im)*psi[io]
@@ -385,14 +385,14 @@ void Sim::computeNonLinearDerivatives() {
 				}
 				// Case n = n' - n''
 				o = m-n;
-				io = Nz*o + k;
-				if(o > 0 && o < Nn) {
-					dTmpdt[current*Nz*Nn+Nz*n+k] += 
+				io = nZ*o + k;
+				if(o > 0 && o < nN) {
+					dTmpdt[current*nZ*nN+nZ*n+k] += 
 						-M_PI/(2*a)*(
 						+m*dfdz(psi, io)*tmp[im]
 						+o*dfdz(tmp, im)*psi[io]
 						);
-					dOmgdt[current*Nz*Nn+Nz*n+k] += 
+					dOmgdt[current*nZ*nN+nZ*n+k] += 
 						-M_PI/(2*a)*(
 						+m*dfdz(psi, io)*omg[im]
 						+o*dfdz(omg, im)*psi[io]
@@ -400,14 +400,14 @@ void Sim::computeNonLinearDerivatives() {
 				}
 				// Case n= n'' - n'
 				o = n+m;
-				io = Nz*o + k;
-				if(o > 0 && o < Nn) {
-					dTmpdt[current*Nz*Nn+Nz*n+k] += 
+				io = nZ*o + k;
+				if(o > 0 && o < nN) {
+					dTmpdt[current*nZ*nN+nZ*n+k] += 
 						-M_PI/(2*a)*(
 						+m*dfdz(psi, io)*tmp[im]
 						+o*dfdz(tmp, im)*psi[io]
 						);
-					dOmgdt[current*Nz*Nn+Nz*n+k] += 
+					dOmgdt[current*nZ*nN+nZ*n+k] += 
 						+M_PI/(2*a)*(
 						+m*dfdz(psi, io)*omg[im]
 						+o*dfdz(omg, im)*psi[io]
@@ -420,15 +420,15 @@ void Sim::computeNonLinearDerivatives() {
 
 void Sim::solveForPsi(){
 	// Solve for Psi using Thomas algorithm
-	for(int n=0; n<Nn; ++n) {
-		triDiagonalSolver(Nz, omg+Nz*n, psi+Nz*n, sub, wk1+Nz*n, wk2+Nz*n);
+	for(int n=0; n<nN; ++n) {
+		triDiagonalSolver(nZ, omg+nZ*n, psi+nZ*n, sub, wk1+nZ*n, wk2+nZ*n);
 		// Check Boundary Conditions
-		assert(psi[Nz*n+0] == 0.0);
-		assert(psi[Nz*n+Nz-1] == 0.0);
+		assert(psi[nZ*n+0] == 0.0);
+		assert(psi[nZ*n+nZ-1] == 0.0);
 	}
 	// Check BCs
-	for(int k=0; k<Nz; ++k) {
-		assert(psi[Nz*0+k] < EPSILON);
+	for(int k=0; k<nZ; ++k) {
+		assert(psi[nZ*0+k] < EPSILON);
 	}
 
 }
@@ -436,12 +436,12 @@ void Sim::solveForPsi(){
 void Sim::printMaxOf(double *a, std::string name) {
 	int nStart = 0; // n level to start from
 	// Find max
-	double max = a[nStart*Nz];
+	double max = a[nStart*nZ];
 	int maxLoc[] = {0, nStart};
-	for(int n=nStart; n<Nn; ++n) {
-		for(int k=0; k<Nz; ++k) {
-			if(a[n*Nz+k]>max) {
-				max = a[n*Nz+k];
+	for(int n=nStart; n<nN; ++n) {
+		for(int k=0; k<nZ; ++k) {
+			if(a[n*nZ+k]>max) {
+				max = a[n*nZ+k];
 				maxLoc[0] = k;
 				maxLoc[1] = n;
 			}
@@ -457,10 +457,10 @@ void Sim::runNonLinear() {
 	// Let tmp[n] = 0.01*sin(PI*z) for certain n
 	// and tmp[n=0] = (1-z)/N
 	int nInit [] = {1}; 
-	for(int k=0; k<Nz; ++k) {
-		tmp[Nz*0+k] = 1-k*dz;
+	for(int k=0; k<nZ; ++k) {
+		tmp[nZ*0+k] = 1-k*dz;
 		for(int n:nInit) {
-			tmp[Nz*n+k] = 0.01f*sin(M_PI*k*dz);
+			tmp[nZ*n+k] = 0.01f*sin(M_PI*k*dz);
 		}
 	}
 	current = 0;
@@ -468,12 +468,12 @@ void Sim::runNonLinear() {
 	while (t<totalTime) {
 		//printf("%e\n", t);
 		if(steps%1000 == 0) {
-			for(int n=1; n<Nn; ++n){
+			for(int n=1; n<nN; ++n){
 				/*
 				printf("%d: %e, %e, %e\n", n, 
-						tmp[Nz*n+32],
-						omg[Nz*n+32],
-						psi[Nz*n+32]);
+						tmp[nZ*n+32],
+						omg[nZ*n+32],
+						psi[nZ*n+32]);
 						*/
 
 			}
@@ -483,20 +483,20 @@ void Sim::runNonLinear() {
 			int nSpots [] = {14};
 			for(int n: nSpots) {
 				for(int k:kSpots){
-					printf("%e|", tmp[k+n*Nz]);
+					printf("%e|", tmp[k+n*nZ]);
 				}
 				printf("\n");
 			}
 			*/
 			/*
 			n=9;
-			printf("%e|%e|%e|%e|%e|%e\n", tmp[n*Nz+0],tmp[n*Nz+(Nz-1)/5],tmp[n*Nz+2*(Nz-1)/5],tmp[n*Nz+3*(Nz-1)/5],tmp[n*Nz+4*(Nz-1)/5],tmp[n*Nz+Nz-1]);
+			printf("%e|%e|%e|%e|%e|%e\n", tmp[n*nZ+0],tmp[n*nZ+(nZ-1)/5],tmp[n*nZ+2*(nZ-1)/5],tmp[n*nZ+3*(nZ-1)/5],tmp[n*nZ+4*(nZ-1)/5],tmp[n*nZ+nZ-1]);
 			*/
 			printMaxOf(tmp, "tmp");
 			printMaxOf(omg, "omg");
 			printMaxOf(psi, "psi");
-			//printMaxOf(dOmgdt+current*Nn*Nz, "dOmgdt");
-			//printMaxOf(dTmpdt+current*Nn*Nz, "dOmgdt");
+			//printMaxOf(dOmgdt+current*nN*nZ, "dOmgdt");
+			//printMaxOf(dTmpdt+current*nN*nZ, "dOmgdt");
 			std::printf(" \n");
 		}
 		steps++;
@@ -515,50 +515,50 @@ void Sim::runLinear() {
 	// Let psi = omg = dtmpdt = domgdt = 0
 	// Let tmp[n>0] = sin(PI*z)
 	// and tmp[n=0] = (1-z)/N
-	for(int k=0; k<Nz; ++k) {
-		tmp[Nz*0+k] = 1-k*dz;
-		for(int n=1; n<Nn; ++n) {
-			tmp[Nz*n+k] = sin(M_PI*k*dz);
+	for(int k=0; k<nZ; ++k) {
+		tmp[nZ*0+k] = 1-k*dz;
+		for(int n=1; n<nN; ++n) {
+			tmp[nZ*n+k] = sin(M_PI*k*dz);
 		}
 	}	
 	// Check BCs
-	for(int n=0; n<Nn; ++n){
+	for(int n=0; n<nN; ++n){
 		if(n>0) {
-			assert(tmp[n*Nz] < EPSILON);
+			assert(tmp[n*nZ] < EPSILON);
 		} else {
-			assert(tmp[n*Nz] - 1.0 < EPSILON);
+			assert(tmp[n*nZ] - 1.0 < EPSILON);
 		}
-		assert(tmp[n*Nz+Nz-1] < EPSILON);
-		assert(omg[n*Nz] < EPSILON);
-		assert(omg[n*Nz+Nz-1] < EPSILON);
+		assert(tmp[n*nZ+nZ-1] < EPSILON);
+		assert(omg[n*nZ] < EPSILON);
+		assert(omg[n*nZ+nZ-1] < EPSILON);
 	}
 
 	// Stuff for critical rayleigh check
-	double tmpPrev[Nn];
-	double omgPrev[Nn];
-	double psiPrev[Nn];
-	for(int n=0; n<Nn; ++n){
-		tmpPrev[n] = tmp[32+n*Nz];
-		psiPrev[n] = psi[32+n*Nz];
-		omgPrev[n] = omg[32+n*Nz];
+	double tmpPrev[nN];
+	double omgPrev[nN];
+	double psiPrev[nN];
+	for(int n=0; n<nN; ++n){
+		tmpPrev[n] = tmp[32+n*nZ];
+		psiPrev[n] = psi[32+n*nZ];
+		omgPrev[n] = omg[32+n*nZ];
 	}
 	current = 0;
 	int steps = 0;
 	while (t<totalTime) {
 		if(steps%500 == 0) {
-			for(int n=1; n<Nn; ++n){
+			for(int n=1; n<nN; ++n){
 				printf("%d: %e, %e, %e\n",n,
-						std::log(std::abs(tmp[32+n*Nz])) - std::log(std::abs(tmpPrev[n])),
-						std::log(std::abs(omg[32+n*Nz])) - std::log(std::abs(omgPrev[n])),
-						std::log(std::abs(psi[32+n*Nz])) - std::log(std::abs(psiPrev[n])));
-				tmpPrev[n] = tmp[32+n*Nz];
-				psiPrev[n] = psi[32+n*Nz];
-				omgPrev[n] = omg[32+n*Nz];
+						std::log(std::abs(tmp[32+n*nZ])) - std::log(std::abs(tmpPrev[n])),
+						std::log(std::abs(omg[32+n*nZ])) - std::log(std::abs(omgPrev[n])),
+						std::log(std::abs(psi[32+n*nZ])) - std::log(std::abs(psiPrev[n])));
+				tmpPrev[n] = tmp[32+n*nZ];
+				psiPrev[n] = psi[32+n*nZ];
+				omgPrev[n] = omg[32+n*nZ];
 				/*
 				printf("%d: %e, %e, %e\n", n, 
-						tmp[Nz*n+32],
-						omg[Nz*n+32],
-						psi[Nz*n+32]);
+						tmp[nZ*n+32],
+						omg[nZ*n+32],
+						psi[nZ*n+32]);
 						*/
 
 			}
@@ -566,7 +566,7 @@ void Sim::runLinear() {
 			printMaxOf(tmp, "tmp");
 			printMaxOf(omg, "omg");
 			printMaxOf(psi, "psi");
-			//printMaxOf(dOmgdt+current*Nn*Nz, "dOmgdt");
+			//printMaxOf(dOmgdt+current*nN*nZ, "dOmgdt");
 			std::printf(" \n");
 			*/
 		}
@@ -580,7 +580,7 @@ void Sim::runLinear() {
 }
 
 int main() {
-// Sim::Sim(int Nz, int Nn, double dt, double Ra, double Pr, int a ,double timeBetweenSaves, bool modifydt, int current, double t, double totalTime
+// Sim::Sim(int nZ, int nN, double dt, double Ra, double Pr, int a ,double timeBetweenSaves, bool modifydt, int current, double t, double totalTime
 	Sim simulation = Sim(100, 15, 3.0e-6, 1e6, 0.5, 3, 1.5e-3, false, 0, 0, 3e1);
 	simulation.runNonLinear();
 	//simulation.runLinear();
