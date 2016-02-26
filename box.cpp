@@ -6,7 +6,7 @@
 #include <cassert>
 
 const double EPSILON = DBL_EPSILON;
-#define DEBUG
+#define NDEBUG
 
 class Sim {
 	public:
@@ -61,6 +61,7 @@ class Sim {
 			const double *sub, const double *dia, const double *sup,
 			double * wk1, double *wk2);
 		void printMaxOf(double *a, std::string name);
+		void printBenchmarkData();
 
 		// Simulation functions
 		void updateTmpAndOmg(double f);
@@ -451,6 +452,12 @@ void Sim::printMaxOf(double *a, std::string name) {
 	printf("%e @ (%d, %d)", max, maxLoc[0], maxLoc[1]);
 }
 
+void Sim::printBenchmarkData() {
+	for(int n=0; n<21; ++n) {
+		printf("%d | %e | %e | %e\n", n, tmp[n*nZ+33], omg[n*nZ+33], psi[n*nZ+33]);
+	}
+}
+
 void Sim::runNonLinear() {
 	// Initial Conditions
 	// Let psi = omg = dtmpdt = domgdt = 0
@@ -492,12 +499,16 @@ void Sim::runNonLinear() {
 			n=9;
 			printf("%e|%e|%e|%e|%e|%e\n", tmp[n*nZ+0],tmp[n*nZ+(nZ-1)/5],tmp[n*nZ+2*(nZ-1)/5],tmp[n*nZ+3*(nZ-1)/5],tmp[n*nZ+4*(nZ-1)/5],tmp[n*nZ+nZ-1]);
 			*/
+			/*
 			printMaxOf(tmp, "tmp");
 			printMaxOf(omg, "omg");
 			printMaxOf(psi, "psi");
 			//printMaxOf(dOmgdt+current*nN*nZ, "dOmgdt");
 			//printMaxOf(dTmpdt+current*nN*nZ, "dOmgdt");
 			std::printf(" \n");
+			*/
+			printBenchmarkData();
+			std::cout << std::endl;
 		}
 		steps++;
 		computeLinearDerivatives(0);
@@ -507,6 +518,7 @@ void Sim::runNonLinear() {
 		t+=dt;
 		++current%=2;
 	}	
+	printBenchmarkData();
 
 }
 
@@ -581,7 +593,7 @@ void Sim::runLinear() {
 
 int main() {
 // Sim::Sim(int nZ, int nN, double dt, double Ra, double Pr, int a ,double timeBetweenSaves, bool modifydt, int current, double t, double totalTime
-	Sim simulation = Sim(100, 15, 3.0e-6, 1e6, 0.5, 3, 1.5e-3, false, 0, 0, 3e1);
+	Sim simulation = Sim(101, 51, 3.0e-6, 1e6, 0.5, 3, 1.5e-3, false, 0, 0, 3e1);
 	simulation.runNonLinear();
 	//simulation.runLinear();
 
