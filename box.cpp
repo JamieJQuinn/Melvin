@@ -53,10 +53,10 @@ class Sim {
 		double adamsBashforth(double *dfdt,int k, int n, double frac);
 		inline double dfdz(double *f, int k);
 		inline double dfdz2(double *f, int k);
-		double triDiagonalSolver(const int nZ,
+		void triDiagonalSolver(const int nZ,
 			       const double *rhs, double *sol, const double *sub,
 			       const double * wk1, const double *wk2);
-		double formTridiArrays ( const int nZ,
+		void formTridiArrays ( const int nZ,
 			const double *sub, const double *dia, const double *sup,
 			double * wk1, double *wk2);
 		void printMaxOf(double *a, std::string name);
@@ -156,7 +156,7 @@ Sim::~Sim() {
 	delete[] sub;
 }
 
-double Sim::triDiagonalSolver(const int	nZ,
+void Sim::triDiagonalSolver(const int	nZ,
 			       const double *rhs, double *sol, const double *sub,
 			       const double * wk1, const double *wk2) {
 	// Solves the tridiagonal system represented by sub, dia and sup.
@@ -181,7 +181,7 @@ double Sim::triDiagonalSolver(const int	nZ,
 	}
 }
 
-double Sim::formTridiArrays ( const int nZ,
+void Sim::formTridiArrays ( const int nZ,
 	       	const double *sub, const double *dia, const double *sup,
 		double * wk1, double *wk2) {
 	assert(dia[0] != 0.0);
@@ -457,6 +457,7 @@ void Sim::printMaxOf(double *a, std::string name) {
 }
 
 void Sim::printBenchmarkData() {
+	printf("%e of %e (%.2f%%)\n", t, totalTime, t/totalTime*100);
 	for(int n=0; n<21; ++n) {
 		printf("%d | %e | %e | %e\n", n, tmp[n*nZ+33], omg[n*nZ+33], psi[n*nZ+33]);
 	}
@@ -472,6 +473,7 @@ void Sim::runNonLinear() {
 		tmp[nZ*1+k] = 0.01f*sin(M_PI*k*dz);
 		//tmp[nZ*8+k] = 0.01f*sin(M_PI*k*dz);
 	}
+	printf("START SIMULATION\n");
 	current = 0;
 	int steps = 0;
 	while (t<totalTime) {
