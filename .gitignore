@@ -2,3 +2,4 @@ box
 *.o
 *.swp
 log
+core
