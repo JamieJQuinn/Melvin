@@ -6,8 +6,6 @@
 #include <cassert>
 
 const double EPSILON = DBL_EPSILON;
-const int THREAD_COUNT = 8;
-#define NDEBUG
 
 class Sim {
 	public:
@@ -53,8 +51,8 @@ class Sim {
 
 		// Helper functions
 		double adamsBashforth(double *dfdt,int k, int n, double frac);
-		double inline dfdz(double *f, int k);
-		double inline dfdz2(double *f, int k);
+		inline double dfdz(double *f, int k);
+		inline double dfdz2(double *f, int k);
 		double triDiagonalSolver(const int nZ,
 			       const double *rhs, double *sol, const double *sub,
 			       const double * wk1, const double *wk2);

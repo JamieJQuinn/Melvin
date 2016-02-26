@@ -3,3 +3,4 @@ box
 *.swp
 log
 core
+gmon.out
