@@ -6,6 +6,7 @@
 #include <cassert>
 
 const double EPSILON = DBL_EPSILON;
+const int THREAD_COUNT = 8;
 #define NDEBUG
 
 class Sim {
@@ -67,6 +68,7 @@ class Sim {
 		void updateTmpAndOmg(double f);
 		void computeLinearDerivatives(int linearSim = 1);
 		void computeNonLinearDerivatives();
+		void computeNonLinearDerivativesFor(int n);
 		void solveForPsi();
 
 		// Runs the linear simulation
@@ -350,9 +352,7 @@ void Sim::computeLinearDerivatives(int linearSim) {
 	}
 }
 
-void Sim::computeNonLinearDerivatives() {
-	// To compare to the equations, n=n; n'=m and n''=o
-	for(int n=1; n<nN; ++n) {
+void Sim::computeNonLinearDerivativesFor(int n){
 		for(int k=1; k<nZ-1; ++k) {
 			int in = n*nZ + k;
 			// Contribution TO tmp[n=0]
@@ -416,6 +416,12 @@ void Sim::computeNonLinearDerivatives() {
 				}
 			}
 		}
+}
+
+void Sim::computeNonLinearDerivatives() { 
+	#pragma omp parallel for
+	for(int n=1; n<nN; ++n) {
+		computeNonLinearDerivativesFor(n);
 	}
 }
 
@@ -593,7 +599,7 @@ void Sim::runLinear() {
 
 int main() {
 // Sim::Sim(int nZ, int nN, double dt, double Ra, double Pr, int a ,double timeBetweenSaves, bool modifydt, int current, double t, double totalTime
-	Sim simulation = Sim(101, 51, 3.0e-6, 1e6, 0.5, 3, 1.5e-3, false, 0, 0, 3e1);
+	Sim simulation = Sim(101, 51, 3.0e-6, 1e6, 0.5, 3, 1.5e-3, false, 0, 0, 3e-3);
 	simulation.runNonLinear();
 	//simulation.runLinear();
 

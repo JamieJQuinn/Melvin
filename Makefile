@@ -1,6 +1,6 @@
 CC=g++
-CFLAGS=-c -std=c++11 -g
-LDFLAGS=
+CFLAGS=-c -Wall -std=c++0x -g -fopenmp
+LDFLAGS=-fopenmp
 SOURCES=box.cpp 
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=box
