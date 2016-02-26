@@ -469,12 +469,10 @@ void Sim::runNonLinear() {
 	// Let psi = omg = dtmpdt = domgdt = 0
 	// Let tmp[n] = 0.01*sin(PI*z) for certain n
 	// and tmp[n=0] = (1-z)/N
-	int nInit [] = {1}; 
 	for(int k=0; k<nZ; ++k) {
 		tmp[nZ*0+k] = 1-k*dz;
-		for(int n:nInit) {
-			tmp[nZ*n+k] = 0.01f*sin(M_PI*k*dz);
-		}
+		tmp[nZ*1+k] = 0.01f*sin(M_PI*k*dz);
+		//tmp[nZ*8+k] = 0.01f*sin(M_PI*k*dz);
 	}
 	current = 0;
 	int steps = 0;
