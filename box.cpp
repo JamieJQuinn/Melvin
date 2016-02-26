@@ -595,7 +595,7 @@ void Sim::runLinear() {
 
 int main() {
 // Sim::Sim(int nZ, int nN, double dt, double Ra, double Pr, int a ,double timeBetweenSaves, bool modifydt, int current, double t, double totalTime
-	Sim simulation = Sim(101, 51, 3.0e-6, 1e6, 0.5, 3, 1.5e-3, false, 0, 0, 3e-3);
+	Sim simulation = Sim(101, 51, 3.0e-6, 1e6, 0.5, 3, 1.5e-3, false, 0, 0, 3e1);
 	simulation.runNonLinear();
 	//simulation.runLinear();
 
