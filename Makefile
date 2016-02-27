@@ -1,7 +1,7 @@
 CC=g++
 CFLAGS=-c -std=c++0x -fopenmp
 DEBUG_CFLAGS= -DDEBUG -g -pg -Wall
-BUILD_CFLAGS= -DNDEBUG -O3
+BUILD_CFLAGS= -DNDEBUG -O2 
 LDFLAGS=-fopenmp
 DEBUG_LDFLAGS=-pg
 SOURCES=box.cpp 
@@ -9,6 +9,10 @@ OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=box
 
 all: $(SOURCES) debug
+
+test: CFLAGS += -DNDEBUG -pg
+test: LDFLAGS += -pg 
+test: $(EXECUTABLE)
 
 build: CFLAGS += $(BUILD_CFLAGS)
 build: $(EXECUTABLE)
