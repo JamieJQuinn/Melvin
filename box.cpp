@@ -66,7 +66,6 @@ class Sim {
 		void updateTmpAndOmg(double f);
 		void computeLinearDerivatives(int linearSim = 1);
 		void computeNonLinearDerivatives();
-		void computeNonLinearDerivativesFor(int n);
 		void solveForPsi();
 
 		// Runs the linear simulation
@@ -350,7 +349,9 @@ void Sim::computeLinearDerivatives(int linearSim) {
 	}
 }
 
-void Sim::computeNonLinearDerivativesFor(int n){
+void Sim::computeNonLinearDerivatives() { 
+	#pragma omp parallel for
+	for(int n=1; n<nN; ++n) {
 		for(int k=1; k<nZ-1; ++k) {
 			int in = n*nZ + k;
 			// Contribution TO tmp[n=0]
@@ -365,11 +366,12 @@ void Sim::computeNonLinearDerivativesFor(int n){
 		}
 		// Contribution FROM tmp[n>0] and omg[n>0]
 		for(int m=1; m<nN; ++m){
+			int im, io, o;
+			// Case n = n' + n''
 			for(int k=1; k<nZ-1; ++k) {
-				int im = nZ*m+k;
-				// Case n = n' + n''
-				int o = n-m; 
-				int io = nZ*o + k;
+				im = nZ*m+k;
+				o = n-m; 
+				io = nZ*o + k;
 				if(o > 0 && o < nN) {
 					dTmpdt[current*nZ*nN+nZ*n+k] += 
 						-M_PI/(2*a)*(
@@ -382,7 +384,10 @@ void Sim::computeNonLinearDerivativesFor(int n){
 						+o*dfdz(omg, im)*psi[io]
 						);
 				}
-				// Case n = n' - n''
+			}
+			// Case n = n' - n''
+			for(int k=1; k<nZ-1; ++k) {
+				im = nZ*m+k;
 				o = m-n;
 				io = nZ*o + k;
 				if(o > 0 && o < nN) {
@@ -397,7 +402,10 @@ void Sim::computeNonLinearDerivativesFor(int n){
 						+o*dfdz(omg, im)*psi[io]
 						);
 				}
-				// Case n= n'' - n'
+			}
+			// Case n= n'' - n'
+			for(int k=1; k<nZ-1; ++k) {
+				im = nZ*m+k;
 				o = n+m;
 				io = nZ*o + k;
 				if(o > 0 && o < nN) {
@@ -414,12 +422,6 @@ void Sim::computeNonLinearDerivativesFor(int n){
 				}
 			}
 		}
-}
-
-void Sim::computeNonLinearDerivatives() { 
-	#pragma omp parallel for
-	for(int n=1; n<nN; ++n) {
-		computeNonLinearDerivativesFor(n);
 	}
 }
 
@@ -473,12 +475,13 @@ void Sim::runNonLinear() {
 		tmp[nZ*1+k] = 0.01f*sin(M_PI*k*dz);
 		//tmp[nZ*8+k] = 0.01f*sin(M_PI*k*dz);
 	}
-	printf("START SIMULATION\n");
+	printBenchmarkData();
 	current = 0;
-	int steps = 0;
+	double saveTime = 0;
 	while (t<totalTime) {
 		//printf("%e\n", t);
-		if(steps%1000 == 0) {
+		if(t>saveTime) {
+			saveTime+=timeBetweenSaves;
 			for(int n=1; n<nN; ++n){
 				/*
 				printf("%d: %e, %e, %e\n", n, 
@@ -514,7 +517,6 @@ void Sim::runNonLinear() {
 			printBenchmarkData();
 			std::cout << std::endl;
 		}
-		steps++;
 		computeLinearDerivatives(0);
 		computeNonLinearDerivatives();
 		updateTmpAndOmg();
@@ -595,14 +597,48 @@ void Sim::runLinear() {
 	}	
 }
 
-int main() {
+int main(int argc, char** argv) {
 // Sim::Sim(int nZ, int nN, double dt, double Ra, double Pr, int a ,double timeBetweenSaves, bool modifydt, int current, double t, double totalTime
-	Sim simulation = Sim(101, 51, 3.0e-6, 1e6, 0.5, 3, 1.5e-3, false, 0, 0, 3e1);
+	if(argc < 8) {
+		printf("Usage: %s nZ nN dt Ra Pr a totalTime\n", argv[0]);
+		return 0;
+	} 
+
+	int nZ = atoi(argv[1]);
+	int nN = atoi(argv[2]);
+	int a  = atoi(argv[6]);
+	double dt = atof(argv[3]);
+	double Ra = atof(argv[4]);
+	double Pr = atof(argv[5]);
+	double totalTime = atof(argv[7]);
+
+	if(nZ == 0 or nN == 0 or a == 0) {
+		printf("nZ (%s), nN (%s), a (%s) should be integers. Aborting.\n", argv[1], argv[2], argv[6]);
+		return 0;
+	}
+	if(dt == 0.0f or Ra == 0.0f or 
+			Pr == 0.0f or totalTime == 0.0f ) {
+		printf("dt (%s), Ra (%s), Pr (%s), totalTime (%s) should be floats. Aborting.\n", argv[3], argv[4], argv[5], argv[7]);
+		return 0;
+	}
+
+	Sim simulation = Sim(nZ, nN, dt, Ra, Pr, a, 1.5e-3, false, 0, 0, totalTime);
+	printf("STARTING SIMULATION\n");
+	printf("Parameters:\n\
+nZ: %d\n\
+nN: %d\n\
+a: %d\n\
+Ra: %e\n\
+Pr: %e\n\
+dt: %e\n\
+totalTime: %e\n", nZ, nN, a, Ra, Pr, dt, totalTime);
+			
 	simulation.runNonLinear();
 	//simulation.runLinear();
 
 	// test_Sim_triDiagonalSolver();
 	// test_Sim_dfdz2();
 	// std::cout << test_Sim_dfdz() << std::endl;
+	return 0;
 }
 
