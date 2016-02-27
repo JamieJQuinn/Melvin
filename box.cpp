@@ -365,61 +365,65 @@ void Sim::computeNonLinearDerivatives() {
 				-n*M_PI/a*psi[in]*dfdz(tmp, 0*nZ+k);
 		}
 		// Contribution FROM tmp[n>0] and omg[n>0]
-		for(int m=1; m<nN; ++m){
-			int im, io, o;
+		int im, io, o;
+		for(int m=1; m<n; ++m){
 			// Case n = n' + n''
+			o = n-m; 
+			assert(o>0 and o<nN);
+			assert(m>0 and m<nN);
 			for(int k=1; k<nZ-1; ++k) {
 				im = nZ*m+k;
-				o = n-m; 
 				io = nZ*o + k;
-				if(o > 0 && o < nN) {
-					dTmpdt[current*nZ*nN+nZ*n+k] += 
-						-M_PI/(2*a)*(
-						-m*dfdz(psi, io)*tmp[im]
-						+o*dfdz(tmp, im)*psi[io]
-						);
-					dOmgdt[current*nZ*nN+nZ*n+k] += 
-						-M_PI/(2*a)*(
-						-m*dfdz(psi, io)*omg[im]
-						+o*dfdz(omg, im)*psi[io]
-						);
-				}
+				dTmpdt[current*nZ*nN+nZ*n+k] += 
+					-M_PI/(2*a)*(
+					-m*dfdz(psi, io)*tmp[im]
+					+o*dfdz(tmp, im)*psi[io]
+					);
+				dOmgdt[current*nZ*nN+nZ*n+k] += 
+					-M_PI/(2*a)*(
+					-m*dfdz(psi, io)*omg[im]
+					+o*dfdz(omg, im)*psi[io]
+					);
 			}
+		}
+		for(int m=n+1; m-n<nN and m<nN; ++m){
 			// Case n = n' - n''
+			o = m-n; 
+			assert(o>0 and o<nN);
+			assert(m>0 and m<nN);
 			for(int k=1; k<nZ-1; ++k) {
 				im = nZ*m+k;
-				o = m-n;
 				io = nZ*o + k;
-				if(o > 0 && o < nN) {
-					dTmpdt[current*nZ*nN+nZ*n+k] += 
-						-M_PI/(2*a)*(
-						+m*dfdz(psi, io)*tmp[im]
-						+o*dfdz(tmp, im)*psi[io]
-						);
-					dOmgdt[current*nZ*nN+nZ*n+k] += 
-						-M_PI/(2*a)*(
-						+m*dfdz(psi, io)*omg[im]
-						+o*dfdz(omg, im)*psi[io]
-						);
-				}
+				dTmpdt[current*nZ*nN+nZ*n+k] += 
+					-M_PI/(2*a)*(
+					+m*dfdz(psi, io)*tmp[im]
+					+o*dfdz(tmp, im)*psi[io]
+					);
+				dOmgdt[current*nZ*nN+nZ*n+k] += 
+					-M_PI/(2*a)*(
+					+m*dfdz(psi, io)*omg[im]
+					+o*dfdz(omg, im)*psi[io]
+					);
 			}
+		}
+		for(int m=n+1; m+n<nN; ++m){
 			// Case n= n'' - n'
+			o = n+m; 
+			assert(o>0 and o<nN);
+			assert(m>0 and m<nN);
 			for(int k=1; k<nZ-1; ++k) {
 				im = nZ*m+k;
-				o = n+m;
 				io = nZ*o + k;
-				if(o > 0 && o < nN) {
-					dTmpdt[current*nZ*nN+nZ*n+k] += 
-						-M_PI/(2*a)*(
-						+m*dfdz(psi, io)*tmp[im]
-						+o*dfdz(tmp, im)*psi[io]
-						);
-					dOmgdt[current*nZ*nN+nZ*n+k] += 
-						+M_PI/(2*a)*(
-						+m*dfdz(psi, io)*omg[im]
-						+o*dfdz(omg, im)*psi[io]
-						);
-				}
+				dTmpdt[current*nZ*nN+nZ*n+k] += 
+					-M_PI/(2*a)*(
+					+m*dfdz(psi, io)*tmp[im]
+					+o*dfdz(tmp, im)*psi[io]
+					);
+				dOmgdt[current*nZ*nN+nZ*n+k] += 
+					+M_PI/(2*a)*(
+					+m*dfdz(psi, io)*omg[im]
+					+o*dfdz(omg, im)*psi[io]
+					);
 			}
 		}
 	}
@@ -631,7 +635,7 @@ Ra: %e\n\
 Pr: %e\n\
 dt: %e\n\
 totalTime: %e\n", nZ, nN, a, Ra, Pr, dt, totalTime);
-			
+
 	simulation.runNonLinear();
 	//simulation.runLinear();
 
