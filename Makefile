@@ -10,7 +10,7 @@ EXECUTABLE=box
 
 all: $(SOURCES) debug
 
-build: CFLAGS += $(BUILD_CLFAGS)
+build: CFLAGS += $(BUILD_CFLAGS)
 build: $(EXECUTABLE)
 
 debug: CFLAGS += $(DEBUG_CFLAGS) 
