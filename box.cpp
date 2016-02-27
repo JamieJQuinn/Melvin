@@ -475,7 +475,6 @@ void Sim::runNonLinear() {
 		tmp[nZ*1+k] = 0.01f*sin(M_PI*k*dz);
 		//tmp[nZ*8+k] = 0.01f*sin(M_PI*k*dz);
 	}
-	printBenchmarkData();
 	current = 0;
 	double saveTime = 0;
 	while (t<totalTime) {
@@ -639,6 +638,7 @@ totalTime: %e\n", nZ, nN, a, Ra, Pr, dt, totalTime);
 	// test_Sim_triDiagonalSolver();
 	// test_Sim_dfdz2();
 	// std::cout << test_Sim_dfdz() << std::endl;
+	printf("ENDING SIMULATION");
 	return 0;
 }
 
