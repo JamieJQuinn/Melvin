@@ -4,3 +4,4 @@ box
 log
 core
 gmon.out
+.nfs*
