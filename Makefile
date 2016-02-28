@@ -1,7 +1,7 @@
 CC=g++
 CFLAGS=-c -std=c++0x -fopenmp
 DEBUG_CFLAGS= -DDEBUG -g -pg -Wall
-BUILD_CFLAGS= -DNDEBUG -O2 
+BUILD_CFLAGS= -DNDEBUG -O2
 LDFLAGS=-fopenmp
 DEBUG_LDFLAGS=-pg
 SOURCES=box.cpp 

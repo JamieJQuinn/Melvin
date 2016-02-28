@@ -350,7 +350,6 @@ void Sim::computeLinearDerivatives(int linearSim) {
 }
 
 void Sim::computeNonLinearDerivatives() { 
-	#pragma omp parallel for
 	for(int n=1; n<nN; ++n) {
 		for(int k=1; k<nZ-1; ++k) {
 			int in = n*nZ + k;
@@ -360,7 +359,13 @@ void Sim::computeNonLinearDerivatives() {
 					dfdz(psi, in)*tmp[in] +
 					dfdz(tmp, in)*psi[in]
 					);
-			// Contribution FROM tmp[n=0]
+		}
+	}
+	#pragma omp parallel for schedule(dynamic)
+	for(int n=1; n<nN; ++n) {
+		// Contribution FROM tmp[n=0]
+		for(int k=1; k<nZ-1; ++k) {
+			int in = n*nZ+k;
 			dTmpdt[current*nZ*nN + in] += 
 				-n*M_PI/a*psi[in]*dfdz(tmp, 0*nZ+k);
 		}
@@ -386,7 +391,7 @@ void Sim::computeNonLinearDerivatives() {
 					);
 			}
 		}
-		for(int m=n+1; m-n<nN and m<nN; ++m){
+		for(int m=n+1; m<nN; ++m){
 			// Case n = n' - n''
 			o = m-n; 
 			assert(o>0 and o<nN);
@@ -406,7 +411,7 @@ void Sim::computeNonLinearDerivatives() {
 					);
 			}
 		}
-		for(int m=n+1; m+n<nN; ++m){
+		for(int m=1; m+n<nN; ++m){
 			// Case n= n'' - n'
 			o = n+m; 
 			assert(o>0 and o<nN);
@@ -465,7 +470,7 @@ void Sim::printMaxOf(double *a, std::string name) {
 void Sim::printBenchmarkData() {
 	printf("%e of %e (%.2f%%)\n", t, totalTime, t/totalTime*100);
 	for(int n=0; n<21; ++n) {
-		printf("%d | %e | %e | %e\n", n, tmp[n*nZ+33], omg[n*nZ+33], psi[n*nZ+33]);
+		printf("%d | %e | %e | %e\n", n, tmp[n*nZ+31], omg[n*nZ+31], psi[n*nZ+31]);
 	}
 }
 
