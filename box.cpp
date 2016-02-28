@@ -1,9 +1,13 @@
 #include <iostream>
+#include <sstream>
+#include <fstream>
 #include <cmath>
 #include <cfloat>
 #include <algorithm>
 #include <string>
 #include <cassert>
+
+#define strVar(variable) #variable
 
 const double EPSILON = DBL_EPSILON;
 
@@ -27,6 +31,7 @@ class Sim {
 		double dx;
 		int Nx;
 		double oodz2;
+		int saveNumber;
 
 		// Variable arrays
 		double * psi; // Stream function (Psi)
@@ -61,6 +66,7 @@ class Sim {
 			double * wk1, double *wk2);
 		void printMaxOf(double *a, std::string name);
 		void printBenchmarkData();
+		void save(std::string folder);
 
 		// Simulation functions
 		void updateTmpAndOmg(double f);
@@ -73,9 +79,9 @@ class Sim {
 		void runNonLinear();
 };
 
-Sim::Sim(int nZ, int nN, double dt,
-		double Ra, double Pr, int a,
-		double timeBetweenSaves, bool modifydt,
+Sim::Sim(int nZ, int nN, double dt, double Ra, double Pr, int a,
+		double timeBetweenSaves,
+		bool modifydt,
 	       	int current, double t, double totalTime) 
 	: nZ {nZ}
 	, nN {nN}
@@ -94,6 +100,7 @@ Sim::Sim(int nZ, int nN, double dt,
 	dz = double(1)/(nZ-1);
 	dx = double(a)/(Nx-1);
 	oodz2 = pow(1.0/dz, 2);
+	saveNumber=0;
 
 	// Initialise Arrays
 	psi = new double [nN*nZ];
@@ -153,6 +160,26 @@ Sim::~Sim() {
 	delete[] wk1  ;
 	delete[] wk2  ;
 	delete[] sub;
+}
+
+template <typename T>
+std::string strFromNumber(T n) {
+	std::string result;
+	std::ostringstream convert;
+	convert << n;
+	result = convert.str(); 
+	return result;
+}
+
+void Sim::save(std::string folder) {
+	std::ofstream file (folder+ "-" +strFromNumber(saveNumber++)+std::string(".dat"), std::ios::out | std::ios::app | std::ios::binary); 
+	if(file.is_open()) {
+		file.write(reinterpret_cast<char*>(tmp), sizeof(tmp[0])*nN*nZ);
+		file.write(reinterpret_cast<char*>(omg), sizeof(omg[0])*nN*nZ);
+		file.write(reinterpret_cast<char*>(psi), sizeof(psi[0])*nN*nZ);
+		file << nZ << nN << dt << Ra << Pr << a << timeBetweenSaves << modifydt << current << t << totalTime;
+	}
+	file.close();
 }
 
 void Sim::triDiagonalSolver(const int	nZ,
@@ -486,20 +513,21 @@ void Sim::runNonLinear() {
 	}
 	current = 0;
 	double saveTime = 0;
-	while (t<totalTime) {
+	while (totalTime-t>EPSILON) {
 		//printf("%e\n", t);
-		if(t>saveTime) {
+		if(saveTime-t < EPSILON) {
+			printf("%e of %e (%.2f%%)\n", t, totalTime, t/totalTime*100);
 			saveTime+=timeBetweenSaves;
+			std::string folder = "Ra" + strFromNumber(Ra) + "Pr" + strFromNumber(Pr) + "a" + strFromNumber(a);
+			save(folder);
+			/*
 			for(int n=1; n<nN; ++n){
-				/*
 				printf("%d: %e, %e, %e\n", n, 
 						tmp[nZ*n+32],
 						omg[nZ*n+32],
 						psi[nZ*n+32]);
-						*/
 
 			}
-			/*
 			int points = 5;
 			int kSpots [] = {17, 33, 50, 66, 84};
 			int nSpots [] = {14};
@@ -509,21 +537,16 @@ void Sim::runNonLinear() {
 				}
 				printf("\n");
 			}
-			*/
-			/*
-			n=9;
-			printf("%e|%e|%e|%e|%e|%e\n", tmp[n*nZ+0],tmp[n*nZ+(nZ-1)/5],tmp[n*nZ+2*(nZ-1)/5],tmp[n*nZ+3*(nZ-1)/5],tmp[n*nZ+4*(nZ-1)/5],tmp[n*nZ+nZ-1]);
-			*/
-			/*
 			printMaxOf(tmp, "tmp");
 			printMaxOf(omg, "omg");
 			printMaxOf(psi, "psi");
 			//printMaxOf(dOmgdt+current*nN*nZ, "dOmgdt");
 			//printMaxOf(dTmpdt+current*nN*nZ, "dOmgdt");
 			std::printf(" \n");
+			//printBenchmarkData();
+			//std::cout << std::endl;
+			//
 			*/
-			printBenchmarkData();
-			std::cout << std::endl;
 		}
 		computeLinearDerivatives(0);
 		computeNonLinearDerivatives();
@@ -532,7 +555,10 @@ void Sim::runNonLinear() {
 		t+=dt;
 		++current%=2;
 	}	
-	printBenchmarkData();
+	printf("%e of %e (%.2f%%)\n", t, totalTime, t/totalTime*100);
+	std::string folder = "Ra" + strFromNumber(Ra) + "Pr" + strFromNumber(Pr) + "a" + strFromNumber(a);
+	save(folder);
+	//printBenchmarkData();
 
 }
 
