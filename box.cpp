@@ -470,7 +470,7 @@ void Sim::printMaxOf(double *a, std::string name) {
 void Sim::printBenchmarkData() {
 	printf("%e of %e (%.2f%%)\n", t, totalTime, t/totalTime*100);
 	for(int n=0; n<21; ++n) {
-		printf("%d | %e | %e | %e\n", n, tmp[n*nZ+32], omg[n*nZ+32], psi[n*nZ+31]);
+		printf("%d | %e | %e | %e\n", n, tmp[n*nZ+32], omg[n*nZ+32], psi[n*nZ+32]);
 	}
 }
 
