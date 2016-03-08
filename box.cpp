@@ -32,6 +32,11 @@ class Sim {
 		int Nx;
 		double oodz2;
 		int saveNumber;
+		int KEsaveNumber;
+		double timeBetweenKESaves;
+
+		// Save Folder
+		std::string saveFolder;
 
 		// Variable arrays
 		double * psi; // Stream function (Psi)
@@ -49,7 +54,8 @@ class Sim {
 		Sim(int nZ, int nN, double dt,
 		double Ra, double Pr, int a,
 		double timeBetweenSaves, bool modifydt,
-	       	int current, double t, double totalTime);
+	       	int current, double t, double totalTime,
+		std::string saveFolder);
 
 		// Destructor
 		~Sim();
@@ -66,7 +72,9 @@ class Sim {
 			double * wk1, double *wk2);
 		void printMaxOf(double *a, std::string name);
 		void printBenchmarkData();
-		void save(std::string folder);
+		void save();
+		double calcKineticEnergy(); 
+		void saveKineticEnergy();
 
 		// Simulation functions
 		void updateTmpAndOmg(double f);
@@ -82,7 +90,8 @@ class Sim {
 Sim::Sim(int nZ, int nN, double dt, double Ra, double Pr, int a,
 		double timeBetweenSaves,
 		bool modifydt,
-	       	int current, double t, double totalTime) 
+	       	int current, double t, double totalTime,
+		std::string saveFolder) 
 	: nZ {nZ}
 	, nN {nN}
 	, dt {dt}
@@ -94,6 +103,7 @@ Sim::Sim(int nZ, int nN, double dt, double Ra, double Pr, int a,
 	, current {current}
 	, t {t}
 	, totalTime {totalTime}
+	, saveFolder {saveFolder}
 {
 	// Derived Constants
 	Nx = nZ*a;
@@ -101,6 +111,7 @@ Sim::Sim(int nZ, int nN, double dt, double Ra, double Pr, int a,
 	dx = double(a)/(Nx-1);
 	oodz2 = pow(1.0/dz, 2);
 	saveNumber=0;
+	KEsaveNumber=0;
 
 	// Initialise Arrays
 	psi = new double [nN*nZ];
@@ -171,8 +182,8 @@ std::string strFromNumber(T n) {
 	return result;
 }
 
-void Sim::save(std::string folder) {
-	std::ofstream file (folder+ "-" +strFromNumber(saveNumber++)+std::string(".dat"), std::ios::out | std::ios::app | std::ios::binary); 
+void Sim::save() {
+	std::ofstream file (saveFolder+strFromNumber(saveNumber++)+std::string(".dat"), std::ios::out | std::ios::app | std::ios::binary); 
 	if(file.is_open()) {
 		file.write(reinterpret_cast<char*>(tmp), sizeof(tmp[0])*nN*nZ);
 		file.write(reinterpret_cast<char*>(omg), sizeof(omg[0])*nN*nZ);
@@ -180,6 +191,13 @@ void Sim::save(std::string folder) {
 		file << nZ << nN << dt << Ra << Pr << a << timeBetweenSaves << modifydt << current << t << totalTime;
 	}
 	file.close();
+}
+
+void Sim::saveKineticEnergy() {
+	std::ofstream file (saveFolder+"KineticEnergy"+std::string(".dat"), std::ios::out | std::ios::app | std::ios::binary); 
+	double ke = calcKineticEnergy();
+	std::cout << ke << std::endl;
+	file.write(reinterpret_cast<char*>(&ke), sizeof(double));
 }
 
 void Sim::triDiagonalSolver(const int	nZ,
@@ -223,7 +241,7 @@ void Sim::formTridiArrays ( const int nZ,
 }
 
 bool test_Sim_triDiagonalSolver() {
-	Sim sim = Sim(101, 51, 1.0e-6, 1e6, 0.5, 3, 1.5e-3, true, 0, 0, 1);
+	Sim sim = Sim(101, 51, 1.0e-6, 1e6, 0.5, 3, 1.5e-3, true, 0, 0, 1, "./");
 	// Test 1
 	double rhs[] = {3.0, 5.0, 3.0};
 	double sol[3];
@@ -300,7 +318,7 @@ bool test_Sim_dfdz() {
 		pass[i] = true;
 	}
 
-	Sim sim = Sim(101, 51, 1.0e-6, 1e6, 0.5, 3, 1.5e-3, true, 0, 0, 1);
+	Sim sim = Sim(101, 51, 1.0e-6, 1e6, 0.5, 3, 1.5e-3, true, 0, 0, 1, "./");
 	double T [] = {3.0, 2.0, 3.0};
 	
 	if (sim.dfdz(T, 1)*(2*sim.dz) - 0.0 > EPSILON) {
@@ -331,7 +349,7 @@ bool test_Sim_dfdz2() {
 	for(int i = 0; i<NTests; ++i){
 		pass[i] = true;
 	}
-	Sim sim = Sim(101, 51, 1.0e-6, 1e6, 0.5, 3, 1.5e-3, true, 0, 0, 1);
+	Sim sim = Sim(101, 51, 1.0e-6, 1e6, 0.5, 3, 1.5e-3, true, 0, 0, 1, "./");
 	double T [] = {3.0, 2.0, 3.0};
 	
 	if (sim.dfdz2(T, 1)/sim.oodz2 - 2.0 > EPSILON) {
@@ -501,6 +519,24 @@ void Sim::printBenchmarkData() {
 	}
 }
 
+double Sim::calcKineticEnergy() {
+	// Uses trapezeoid rule to calc kinetic energy for each mode
+	double z0 = 0.0; // limits of integration
+	double z1 = 1.0;
+	double ke = 0; // Kinetic energy
+	for(int n=0; n<nN; ++n) {
+		ke += pow(n*M_PI/a*psi[n*nZ+0], 2)/2.0; // f(0)/2
+		ke += pow(n*M_PI/a*psi[n*nZ+(nZ-1)], 2)/2.0; // f(1)/2
+		for(int k=1; k<nZ-1; ++k) {
+			int in = nZ*n+k;
+			// f(k)
+			ke += pow(dfdz(psi, in), 2) + pow(n*M_PI/a*psi[in], 2);
+		}
+	}
+	ke *= (z1-z0)*a/(4*(nZ-1));
+	return ke;
+}
+
 void Sim::runNonLinear() {
 	// Initial Conditions
 	// Let psi = omg = dtmpdt = domgdt = 0
@@ -513,13 +549,16 @@ void Sim::runNonLinear() {
 	}
 	current = 0;
 	double saveTime = 0;
+	double KEsaveTime = 0;
 	while (totalTime-t>EPSILON) {
-		//printf("%e\n", t);
+		if(KEsaveTime-t < EPSILON) {
+			saveKineticEnergy();
+			KEsaveTime += 1e-4;
+		}
 		if(saveTime-t < EPSILON) {
 			printf("%e of %e (%.2f%%)\n", t, totalTime, t/totalTime*100);
 			saveTime+=timeBetweenSaves;
-			std::string folder = "Ra" + strFromNumber(Ra) + "Pr" + strFromNumber(Pr) + "a" + strFromNumber(a);
-			save(folder);
+			save();
 			/*
 			for(int n=1; n<nN; ++n){
 				printf("%d: %e, %e, %e\n", n, 
@@ -557,9 +596,8 @@ void Sim::runNonLinear() {
 	}	
 	printf("%e of %e (%.2f%%)\n", t, totalTime, t/totalTime*100);
 	std::string folder = "Ra" + strFromNumber(Ra) + "Pr" + strFromNumber(Pr) + "a" + strFromNumber(a);
-	save(folder);
+	save();
 	//printBenchmarkData();
-
 }
 
 void Sim::runLinear() {
@@ -633,8 +671,8 @@ void Sim::runLinear() {
 
 int main(int argc, char** argv) {
 // Sim::Sim(int nZ, int nN, double dt, double Ra, double Pr, int a ,double timeBetweenSaves, bool modifydt, int current, double t, double totalTime
-	if(argc < 8) {
-		printf("Usage: %s nZ nN dt Ra Pr a totalTime\n", argv[0]);
+	if(argc < 9) {
+		printf("Usage: %s [nZ] [nN] [dt] [Ra] [Pr] [a] [totalTime] [saveFolder]\n", argv[0]);
 		return 0;
 	} 
 
@@ -645,6 +683,7 @@ int main(int argc, char** argv) {
 	double Ra = atof(argv[4]);
 	double Pr = atof(argv[5]);
 	double totalTime = atof(argv[7]);
+	std::string saveFolder = std::string(argv[8]);
 
 	if(nZ == 0 or nN == 0 or a == 0) {
 		printf("nZ (%s), nN (%s), a (%s) should be integers. Aborting.\n", argv[1], argv[2], argv[6]);
@@ -656,7 +695,7 @@ int main(int argc, char** argv) {
 		return 0;
 	}
 
-	Sim simulation = Sim(nZ, nN, dt, Ra, Pr, a, 1.5e-3, false, 0, 0, totalTime);
+	Sim simulation = Sim(nZ, nN, dt, Ra, Pr, a, 1e-1, false, 0, 0, totalTime, saveFolder);
 	printf("STARTING SIMULATION\n");
 	printf("Parameters:\n\
 nZ: %d\n\
@@ -665,7 +704,8 @@ a: %d\n\
 Ra: %e\n\
 Pr: %e\n\
 dt: %e\n\
-totalTime: %e\n", nZ, nN, a, Ra, Pr, dt, totalTime);
+totalTime: %e\n\
+saveFolder: %s\n", nZ, nN, a, Ra, Pr, dt, totalTime, saveFolder.c_str());
 
 	simulation.runNonLinear();
 	//simulation.runLinear();
