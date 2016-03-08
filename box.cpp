@@ -9,6 +9,9 @@
 
 #define strVar(variable) #variable
 
+using std::cout;
+using std::endl;
+
 const double EPSILON = DBL_EPSILON;
 
 class Sim {
@@ -29,7 +32,7 @@ class Sim {
 		// Derived constants
 		double dz;
 		double dx;
-		int Nx;
+		int nX;
 		double oodz2;
 		int saveNumber;
 		int KEsaveNumber;
@@ -75,6 +78,7 @@ class Sim {
 		void save();
 		double calcKineticEnergy(); 
 		void saveKineticEnergy();
+		bool checkCFL();
 
 		// Simulation functions
 		void updateTmpAndOmg(double f);
@@ -106,9 +110,9 @@ Sim::Sim(int nZ, int nN, double dt, double Ra, double Pr, int a,
 	, saveFolder {saveFolder}
 {
 	// Derived Constants
-	Nx = nZ*a;
+	nX = nZ*a;
 	dz = double(1)/(nZ-1);
-	dx = double(a)/(Nx-1);
+	dx = double(a)/(nX-1);
 	oodz2 = pow(1.0/dz, 2);
 	saveNumber=0;
 	KEsaveNumber=0;
@@ -197,6 +201,8 @@ void Sim::saveKineticEnergy() {
 	std::ofstream file (saveFolder+"KineticEnergy"+std::string(".dat"), std::ios::out | std::ios::app | std::ios::binary); 
 	double ke = calcKineticEnergy();
 	file.write(reinterpret_cast<char*>(&ke), sizeof(double));
+	file.flush();
+	file.close();
 }
 
 void Sim::triDiagonalSolver(const int	nZ,
@@ -362,6 +368,66 @@ bool test_Sim_dfdz2() {
 	return passTotal;
 }
 
+bool Sim::checkCFL() {
+	double vxMax = 0.0f;
+	double vzMax = 0.0f;
+	for(int j=1; j<nX-1; ++j) {
+		for(int k=1; k<nZ-1; ++k) {
+			double vx = 0.0;
+			double vz = 0.0;
+			for(int n=0; n<nN; ++n) {
+				vx += dfdz(psi, n*nZ+k)*sin(n*M_PI*j*dx/a);
+				vz += n*M_PI/a*psi[n*nZ+k]*cos(n*M_PI*j*dx/a);
+			}
+			if( vx > vxMax ) {
+				vxMax = vx;
+			}
+			if( vz > vzMax ) {
+				vzMax = vx;
+			}
+		}
+	}
+	if(vzMax > dz/dt or vxMax > dx/dt){
+		cout << vzMax << vxMax << endl;
+		return false;
+	} else {
+		return true;
+	}
+	/*		
+	double * psiActual = new double [nX*nZ];
+	for(int j=0; j<nX*nZ; ++j) {
+		psiActual[j] = 0.0f;
+	}
+	for(int n=0; n<nN; ++n) {
+		for(int j=0; j<nX; ++j) {
+			for(int k=0; k<nZ; ++k) {
+				psiActual[j*nZ + k] += psi[n*nZ + k]*sin(n*M_PI*j*dx/a);
+			}
+		}
+	}
+	double vzMax = 0.0;
+	double vxMax = 0.0;
+	for(int j=1; j<nX-1; ++j) {
+		for(int k=1; k<nZ-1; ++k) {
+			double vx = std::abs(psiActual[j*nZ+k+1] - psiActual[j*nZ+k-1]);
+			if(vx>vxMax){
+				vxMax = vx;
+			}
+			double vz = std::abs(psiActual[(j+1)*nZ+k] - psiActual[(j-1)*nZ+k]);
+			if(vz>vzMax){
+				vzMax = vz;
+			}
+		}
+	}
+	delete [] psiActual;
+	if(vzMax < 2*dz*dx/dt or vxMax < 2*dz*dx/dt){
+		return false;
+	} else {
+		return true;
+	}
+	*/
+}
+
 void Sim::computeLinearDerivatives(int linearSim) {
 	// Computes the (linear) derivatives of Tmp and omg
 	// If linear sim is 0, we start n from 0 and the advection approximation
@@ -508,11 +574,11 @@ void Sim::printMaxOf(double *a, std::string name) {
 		}
 	}
 	// print max
-	printf("%e @ (%d, %d)", max, maxLoc[0], maxLoc[1]);
+	cout << max << " @ " << "(" << maxLoc[0] << ", " << maxLoc[1] << ")" << endl;
 }
 
 void Sim::printBenchmarkData() {
-	printf("%e of %e (%.2f%%)\n", t, totalTime, t/totalTime*100);
+	cout << t << " of " << totalTime << "(" << t/totalTime*100 << ")" << endl;
 	for(int n=0; n<21; ++n) {
 		printf("%d | %e | %e | %e\n", n, tmp[n*nZ+32], omg[n*nZ+32], psi[n*nZ+32]);
 	}
@@ -555,7 +621,12 @@ void Sim::runNonLinear() {
 			KEsaveTime += 1e-4;
 		}
 		if(saveTime-t < EPSILON) {
-			printf("%e of %e (%.2f%%)\n", t, totalTime, t/totalTime*100);
+			// Check CFL condition is holding
+			if(!checkCFL()) {
+				cout << "CFL condition breached at " << t << endl;
+			}
+			printf("%e of %e (%.2f%%)", t, totalTime, t/totalTime*100);
+			cout << endl;
 			saveTime+=timeBetweenSaves;
 			save();
 			/*
@@ -582,7 +653,7 @@ void Sim::runNonLinear() {
 			//printMaxOf(dTmpdt+current*nN*nZ, "dOmgdt");
 			std::printf(" \n");
 			//printBenchmarkData();
-			//std::cout << std::endl;
+			//cout << endl;
 			//
 			*/
 		}
@@ -705,6 +776,7 @@ Pr: %e\n\
 dt: %e\n\
 totalTime: %e\n\
 saveFolder: %s\n", nZ, nN, a, Ra, Pr, dt, totalTime, saveFolder.c_str());
+	cout << endl;
 
 #ifdef NONLINEAR
 	simulation.runNonLinear();
@@ -715,8 +787,8 @@ saveFolder: %s\n", nZ, nN, a, Ra, Pr, dt, totalTime, saveFolder.c_str());
 
 	// test_Sim_triDiagonalSolver();
 	// test_Sim_dfdz2();
-	// std::cout << test_Sim_dfdz() << std::endl;
-	printf("ENDING SIMULATION");
+	// cout << test_Sim_dfdz() << endl;
+	cout << "ENDING SIMULATION" << endl;
 	return 0;
 }
 
