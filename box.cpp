@@ -707,8 +707,12 @@ dt: %e\n\
 totalTime: %e\n\
 saveFolder: %s\n", nZ, nN, a, Ra, Pr, dt, totalTime, saveFolder.c_str());
 
+#ifdef NONLINEAR
 	simulation.runNonLinear();
-	//simulation.runLinear();
+#endif
+#ifdef LINEAR
+	simulation.runLinear();
+#endif
 
 	// test_Sim_triDiagonalSolver();
 	// test_Sim_dfdz2();
