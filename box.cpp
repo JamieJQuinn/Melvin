@@ -196,7 +196,6 @@ void Sim::save() {
 void Sim::saveKineticEnergy() {
 	std::ofstream file (saveFolder+"KineticEnergy"+std::string(".dat"), std::ios::out | std::ios::app | std::ios::binary); 
 	double ke = calcKineticEnergy();
-	std::cout << ke << std::endl;
 	file.write(reinterpret_cast<char*>(&ke), sizeof(double));
 }
 
