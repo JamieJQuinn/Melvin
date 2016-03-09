@@ -621,6 +621,7 @@ void Sim::runNonLinear() {
 			saveKineticEnergy();
 			KEsaveTime += 1e-4;
 		}
+		/*
 		if(CFLCheckTime-t < EPSILON) {
 			CFLCheckTime += 10*dt;
 			if(!checkCFL()) {
@@ -630,6 +631,7 @@ void Sim::runNonLinear() {
 				cout << "New time step: " << dt << endl;
 			}
 		}
+		*/
 		if(saveTime-t < EPSILON) {
 			// Check CFL condition is holding
 			printf("%e of %e (%.2f%%)", t, totalTime, t/totalTime*100);
