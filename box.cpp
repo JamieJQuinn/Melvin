@@ -379,16 +379,15 @@ bool Sim::checkCFL() {
 				vx += dfdz(psi, n*nZ+k)*sin(n*M_PI*j*dx/a);
 				vz += n*M_PI/a*psi[n*nZ+k]*cos(n*M_PI*j*dx/a);
 			}
-			if( vx > vxMax ) {
-				vxMax = vx;
+			if( std::abs(vx) > vxMax ) {
+				vxMax = std::abs(vx);
 			}
-			if( vz > vzMax ) {
-				vzMax = vx;
+			if( std::abs(vz) > vzMax ) {
+				vzMax = std::abs(vz);
 			}
 		}
 	}
-	if(vzMax > dz/dt or vxMax > dx/dt){
-		cout << vzMax << vxMax << endl;
+	if(vzMax > 1.2*dz/dt or vxMax > 1.2*dx/dt){
 		return false;
 	} else {
 		return true;
@@ -615,16 +614,24 @@ void Sim::runNonLinear() {
 	current = 0;
 	double saveTime = 0;
 	double KEsaveTime = 0;
+	double CFLCheckTime = 0;
+	double f = 1.0f; // Fractional change in dt (if CFL condition being breached)
 	while (totalTime-t>EPSILON) {
 		if(KEsaveTime-t < EPSILON) {
 			saveKineticEnergy();
 			KEsaveTime += 1e-4;
 		}
+		if(CFLCheckTime-t < EPSILON) {
+			CFLCheckTime += 10*dt;
+			if(!checkCFL()) {
+				cout << "CFL condition almost breached at " << t << endl;
+				f = 0.9;
+				dt*=f;
+				cout << "New time step: " << dt << endl;
+			}
+		}
 		if(saveTime-t < EPSILON) {
 			// Check CFL condition is holding
-			if(!checkCFL()) {
-				cout << "CFL condition breached at " << t << endl;
-			}
 			printf("%e of %e (%.2f%%)", t, totalTime, t/totalTime*100);
 			cout << endl;
 			saveTime+=timeBetweenSaves;
@@ -659,7 +666,8 @@ void Sim::runNonLinear() {
 		}
 		computeLinearDerivatives(0);
 		computeNonLinearDerivatives();
-		updateTmpAndOmg();
+		updateTmpAndOmg(f);
+		f=1.0f;
 		solveForPsi();
 		t+=dt;
 		++current%=2;
