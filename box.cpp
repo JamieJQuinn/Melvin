@@ -379,6 +379,9 @@ bool Sim::checkCFL() {
 				vx += dfdz(psi, n*nZ+k)*sin(n*M_PI*j*dx/a);
 				vz += n*M_PI/a*psi[n*nZ+k]*cos(n*M_PI*j*dx/a);
 			}
+			if(isnan(vx) or isnan(vz)){
+				return false;
+			}
 			if( std::abs(vx) > vxMax ) {
 				vxMax = std::abs(vx);
 			}
@@ -387,7 +390,7 @@ bool Sim::checkCFL() {
 			}
 		}
 	}
-	if(vzMax > 1.2*dz/dt or vxMax > 1.2*dx/dt){
+	if(vzMax > dz/dt or vxMax > dx/dt){
 		return false;
 	} else {
 		return true;
@@ -621,17 +624,15 @@ void Sim::runNonLinear() {
 			saveKineticEnergy();
 			KEsaveTime += 1e-4;
 		}
-		/*
 		if(CFLCheckTime-t < EPSILON) {
-			CFLCheckTime += 10*dt;
+			CFLCheckTime += 1000*dt;
 			if(!checkCFL()) {
-				cout << "CFL condition almost breached at " << t << endl;
-				f = 0.9;
-				dt*=f;
-				cout << "New time step: " << dt << endl;
+				cout << "CFL condition breached at " << t << endl;
+				//f = 0.9;
+				//dt*=f;
+				//cout << "New time step: " << dt << endl;
 			}
 		}
-		*/
 		if(saveTime-t < EPSILON) {
 			// Check CFL condition is holding
 			printf("%e of %e (%.2f%%)", t, totalTime, t/totalTime*100);
