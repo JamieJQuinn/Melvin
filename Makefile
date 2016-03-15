@@ -24,8 +24,14 @@ debug: $(EXECUTABLE)
 linear: CFLAGS += -DLINEAR
 linear: build
 
+linearDebug: CFLAGS += -DLINEAR
+linearDebug: debug
+
 nonlinear: CFLAGS += -DNONLINEAR
 nonlinear: build
+
+nonlinearDebug: CFLAGS += -DNONLINEAR
+nonlinearDebug: debug
 
 $(EXECUTABLE): $(OBJECTS) 
 	$(CC) $(LDFLAGS) $(OBJECTS) -o $@

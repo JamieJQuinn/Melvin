@@ -7,3 +7,6 @@ gmon.out
 .nfs*
 *.dat
 testStuff
+n1InitData/
+n1_8InitData/
+
