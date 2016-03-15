@@ -187,7 +187,7 @@ std::string strFromNumber(T n) {
 }
 
 void Sim::save() {
-	std::ofstream file (saveFolder+strFromNumber(saveNumber++)+std::string(".dat"), std::ios::out | std::ios::app | std::ios::binary); 
+	std::ofstream file (saveFolder+strFromNumber(saveNumber++)+std::string(".dat"), std::ios::out | std::ios::binary); 
 	if(file.is_open()) {
 		file.write(reinterpret_cast<char*>(tmp), sizeof(tmp[0])*nN*nZ);
 		file.write(reinterpret_cast<char*>(omg), sizeof(omg[0])*nN*nZ);
@@ -612,7 +612,7 @@ void Sim::runNonLinear() {
 	for(int k=0; k<nZ; ++k) {
 		tmp[nZ*0+k] = 1-k*dz;
 		tmp[nZ*1+k] = 0.01f*sin(M_PI*k*dz);
-		//tmp[nZ*8+k] = 0.01f*sin(M_PI*k*dz);
+		tmp[nZ*8+k] = 0.01f*sin(M_PI*k*dz);
 	}
 	current = 0;
 	double saveTime = 0;
