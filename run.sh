@@ -1,14 +1,14 @@
 #/bin/bash
 nZ=101
 nN=51
-dt=3e-6
-Ra=1e5
+dt=1e-7
+Ra=1e7
 Pr=0.5
 a=3
-T=0.5
-S=0.01
-folder=n1/
-ICs=ICn1
+T=3
+S=0.1
+folder=n1Turb/
+ICs=n1StablenN101nZ101
 mkdir -p $folder
 rm -f $folder/*
 echo "Starting program"
