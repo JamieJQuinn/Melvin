@@ -8,4 +8,6 @@ a=3
 T=0.4
 S=0.002
 folder=n1_8InitData/
-./box "-nZ" $nZ "-nN" $nN "-dt" $dt "-Ra" $Ra "-Pr" $Pr "-a" $a "-T" $T "-S" $S "-o" $folder
+mkdir -p $folder
+rm -f $folder/*
+./box "-nZ" $nZ "-nN" $nN "-dt" $dt "-Ra" $Ra "-Pr" $Pr "-a" $a "-T" $T "-S" $S "-o" $folder/ >> $folder/log
