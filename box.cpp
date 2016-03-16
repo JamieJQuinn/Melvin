@@ -10,6 +10,7 @@
 #define strVar(variable) #variable
 
 using std::cout;
+using std::cerr;
 using std::endl;
 
 const double EPSILON = DBL_EPSILON;
@@ -58,7 +59,7 @@ class Sim {
 		double Ra, double Pr, int a,
 		double timeBetweenSaves, bool modifydt,
 	       	int current, double t, double totalTime,
-		std::string saveFolder);
+		std::string saveFolder, std::string icFile);
 
 		// Destructor
 		~Sim();
@@ -76,6 +77,7 @@ class Sim {
 		void printMaxOf(double *a, std::string name);
 		void printBenchmarkData();
 		void save();
+		void load(double* tmp, double* omg, double* psi, std::string icFile);
 		double calcKineticEnergy(); 
 		void saveKineticEnergy();
 		bool checkCFL();
@@ -95,7 +97,7 @@ Sim::Sim(int nZ, int nN, double dt, double Ra, double Pr, int a,
 		double timeBetweenSaves,
 		bool modifydt,
 	       	int current, double t, double totalTime,
-		std::string saveFolder) 
+		std::string saveFolder, std::string icFile) 
 	: nZ {nZ}
 	, nN {nN}
 	, dt {dt}
@@ -138,6 +140,7 @@ Sim::Sim(int nZ, int nN, double dt, double Ra, double Pr, int a,
 		dTmpdt[i] = 0.0;
 		dOmgdt[i] = 0.0;
 	}
+	load(tmp, omg, psi, icFile);
 
 	// Precalculate tridiagonal stuff
 	double * dia = new double [nZ];
@@ -192,8 +195,21 @@ void Sim::save() {
 		file.write(reinterpret_cast<char*>(tmp), sizeof(tmp[0])*nN*nZ);
 		file.write(reinterpret_cast<char*>(omg), sizeof(omg[0])*nN*nZ);
 		file.write(reinterpret_cast<char*>(psi), sizeof(psi[0])*nN*nZ);
+	} else {
+		cerr << "Couldn't open " << saveFolder << " for writing. Aborting." << endl;
 	}
 	file.close();
+}
+
+void Sim::load( double* tmp, double* omg, double* psi, std::string icFile) {
+	std::ifstream file (icFile, std::ios::in | std::ios::binary); 
+	if(file.is_open()) {
+		file.read(reinterpret_cast<char*>(tmp), sizeof(tmp[0])*nN*nZ);
+		file.read(reinterpret_cast<char*>(omg), sizeof(omg[0])*nN*nZ);
+		file.read(reinterpret_cast<char*>(psi), sizeof(psi[0])*nN*nZ);
+	} else {
+		cerr << "Couldn't open " << icFile << " for writing. Aborting." << endl;
+	}
 }
 
 void Sim::saveKineticEnergy() {
@@ -244,40 +260,6 @@ void Sim::formTridiArrays ( const int nZ,
 	wk1[nZ-1] = 1.0/(dia[nZ-1] - sub[nZ-2]*wk2[nZ-2]);
 }
 
-bool test_Sim_triDiagonalSolver() {
-	Sim sim = Sim(101, 51, 1.0e-6, 1e6, 0.5, 3, 1.5e-3, true, 0, 0, 1, "./");
-	// Test 1
-	double rhs[] = {3.0, 5.0, 3.0};
-	double sol[3];
-	double sub[] = {2.0, 2.0};
-	double dia[] = {1.0, 1.0, 1.0};
-	double wk1[3];
-	double wk2[3];
-	sim.formTridiArrays(3, sub, dia, sub, wk1, wk2);
-	sim.triDiagonalSolver(3, rhs, sol, sub, wk1, wk2);
-	bool pass1 = true;
-	for(int i=0; i<3; ++i) {
-		if(sol[i] - 1.0 > EPSILON) {
-			pass1 = false;
-		}
-	}
-	// Test 2
-	rhs[0] = rhs[2] = -1.0;
-	rhs[1] = 0.0;
-	sub[0] = sub[1] = 1.0;
-	dia[0] = dia[1] = dia[2] = -2.0;
-	sim.formTridiArrays(3, sub, dia, sub, wk1, wk2);
-	sim.triDiagonalSolver(3, rhs, sol, sub, wk1, wk2);
-	bool pass2 = true;
-	for(int i=0; i<3; ++i) {
-		if(sol[i] - 1.0 > EPSILON) {
-			pass2 = false;
-		}
-	}
-
-	return pass1 and pass2;
-}
-
 double Sim::adamsBashforth(double *dfdt, int k, int n, double frac) {
 	// Calcs X in equation T_{n+1} = T_{n} + X
 	return ((2.0+frac)*dfdt[current*nZ*nN+n*nZ+k] - frac*dfdt[((current+1)%2)*nZ*nN+n*nZ+k])*dt/2.0;
@@ -315,56 +297,10 @@ double Sim::dfdz(double *f, int k) {
 	return (f[k+1]-f[k-1])/(2*dz);
 }
 
-bool test_Sim_dfdz() {
-	int NTests = 2;
-	bool pass [NTests];
-	for(int i = 0; i<NTests; ++i){
-		pass[i] = true;
-	}
-
-	Sim sim = Sim(101, 51, 1.0e-6, 1e6, 0.5, 3, 1.5e-3, true, 0, 0, 1, "./");
-	double T [] = {3.0, 2.0, 3.0};
-	
-	if (sim.dfdz(T, 1)*(2*sim.dz) - 0.0 > EPSILON) {
-		pass[0] = false;
-	}
-
-	T[2] = 1.0;
-	if (sim.dfdz(T, 1)*(2*sim.dz) - (-2) > EPSILON) {
-		pass[1] = false;
-	}
-
-	bool passTotal = true;
-	for(int i=0; i<NTests; ++i) {
-		passTotal &= pass[i];
-	}
-	return passTotal;
-}
-
 double Sim::dfdz2(double *f, int k) {
 	assert(!isnan((f[k+1] - 2*f[k] + f[k-1])*oodz2));
 	// Calculates d/dz of f
 	return (f[k+1] - 2*f[k] + f[k-1])*oodz2;
-}
-
-bool test_Sim_dfdz2() {
-	int NTests = 1;
-	bool pass [NTests];
-	for(int i = 0; i<NTests; ++i){
-		pass[i] = true;
-	}
-	Sim sim = Sim(101, 51, 1.0e-6, 1e6, 0.5, 3, 1.5e-3, true, 0, 0, 1, "./");
-	double T [] = {3.0, 2.0, 3.0};
-	
-	if (sim.dfdz2(T, 1)/sim.oodz2 - 2.0 > EPSILON) {
-		pass[0] = false;
-	}
-
-	bool passTotal = true;
-	for(int i=0; i<NTests; ++i) {
-		passTotal &= pass[i];
-	}
-	return passTotal;
 }
 
 bool Sim::checkCFL() {
@@ -608,11 +544,6 @@ void Sim::runNonLinear() {
 	// Let psi = omg = dtmpdt = domgdt = 0
 	// Let tmp[n] = 0.01*sin(PI*z) for certain n
 	// and tmp[n=0] = (1-z)/N
-	for(int k=0; k<nZ; ++k) {
-		tmp[nZ*0+k] = 1-k*dz;
-		tmp[nZ*1+k] = 0.01f*sin(M_PI*k*dz);
-		//tmp[nZ*8+k] = 0.01f*sin(M_PI*k*dz);
-	}
 	current = 0;
 	double saveTime = 0;
 	double KEsaveTime = 0;
@@ -626,7 +557,7 @@ void Sim::runNonLinear() {
 		if(CFLCheckTime-t < EPSILON) {
 			CFLCheckTime += 1000*dt;
 			if(!checkCFL()) {
-				cout << "CFL condition breached at " << t << endl;
+				cerr << "CFL condition breached at " << t << endl;
 				//f = 0.9;
 				//dt*=f;
 				//cout << "New time step: " << dt << endl;
@@ -760,7 +691,7 @@ int main(int argc, char** argv) {
 	double totalTime = -1;
 	double saveTime = -1.;
 	std::string saveFolder = "";
-	std::string initialConditions = "";
+	std::string icFile = "";
 	    for (int i = 1; i < argc; ++i) {
 		std::string arg = argv[i];
 		if (arg == "-nZ") {
@@ -783,12 +714,15 @@ int main(int argc, char** argv) {
 		} else if (arg == "-o") {
 			saveFolder = argv[++i];
 		} else if (arg == "-i") {
-			initialConditions = argv[++i];
+			icFile = argv[++i];
 		} 
 	    }	
 
 	if(nZ <=0 or nN <=0 or a <= 0) {
-		printf("nZ (%d), nN (%d), a (%d) should be positive integers. Aborting.\n", nZ, nN, a);
+		cerr << " nZ (" << nZ \
+		<< ") nN (" << nN \
+		<< ") a (" << a \
+		<< ") should be positive integers. Aborting.\n" << endl;
 		return -1;
 	}
 	if(dt <= 0.0f \
@@ -796,27 +730,33 @@ int main(int argc, char** argv) {
 	or Pr <= 0.0f \
 	or totalTime <= 0.0f \
 	or saveTime <= 0.0f) {
-		printf("dt (%e), Ra (%e), Pr (%e), totalTime (%e) should be floats. Aborting.\n", dt, Ra, Pr, totalTime);
+		cerr << " dt (" << dt \
+		<< ") Ra (" << Ra \
+		<< ") Pr (" << Pr \
+		<< ") totalTime (" << totalTime \
+		<< ") saveTime (" << saveTime \
+		<< ") should be positive integers. Aborting.\n" << endl;
 		return -1;
 	}
-	if(saveFolder == "") {
-		printf("Save folder (%s) should be present. Aborting.\n", saveFolder.c_str());
+	if(saveFolder == "" or icFile == "") {
+		cerr <<"Save folder and initial conditions file should be present. Aborting.\n" << endl;
 		return -1;
 	}
 
-	Sim simulation = Sim(nZ, nN, dt, Ra, Pr, a, saveTime, false, 0, 0, totalTime, saveFolder);
-	printf("STARTING SIMULATION\n");
-	printf("Parameters:\n\
-nZ: %d\n\
-nN: %d\n\
-a: %d\n\
-Ra: %e\n\
-Pr: %e\n\
-dt: %e\n\
-totalTime: %e\n\
-saveFolder: %s\n\
-initial conditions: %s\n", nZ, nN, a, Ra, Pr, dt, totalTime, saveFolder.c_str(), initialConditions.c_str());
-	cout << endl;
+	cout <<"STARTING SIMULATION\n" << endl;
+
+	cout <<"Parameters:" << endl;
+	cout << "nZ: " << nZ << endl;
+	cout << "nN: " << nN << endl;
+	cout << "a: " << a << endl;
+	cout << "Ra: " << Ra << endl;
+	cout << "Pr: " << Pr << endl;
+	cout << "dt: " << dt << endl;
+	cout << "totalTime: " << totalTime << endl;
+	cout << "saveFolder: " << saveFolder << endl;
+	cout << "icFile: " << icFile << endl;
+
+	Sim simulation = Sim(nZ, nN, dt, Ra, Pr, a, saveTime, false, 0, 0, totalTime, saveFolder, icFile);
 
 #ifdef NONLINEAR
 	simulation.runNonLinear();
@@ -825,9 +765,6 @@ initial conditions: %s\n", nZ, nN, a, Ra, Pr, dt, totalTime, saveFolder.c_str(),
 	simulation.runLinear();
 #endif
 
-	// test_Sim_triDiagonalSolver();
-	// test_Sim_dfdz2();
-	// cout << test_Sim_dfdz() << endl;
 	cout << "ENDING SIMULATION" << endl;
 	return 0;
 }
