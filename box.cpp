@@ -192,7 +192,6 @@ void Sim::save() {
 		file.write(reinterpret_cast<char*>(tmp), sizeof(tmp[0])*nN*nZ);
 		file.write(reinterpret_cast<char*>(omg), sizeof(omg[0])*nN*nZ);
 		file.write(reinterpret_cast<char*>(psi), sizeof(psi[0])*nN*nZ);
-		file << nZ << nN << dt << Ra << Pr << a << timeBetweenSaves << modifydt << current << t << totalTime;
 	}
 	file.close();
 }
@@ -612,7 +611,7 @@ void Sim::runNonLinear() {
 	for(int k=0; k<nZ; ++k) {
 		tmp[nZ*0+k] = 1-k*dz;
 		tmp[nZ*1+k] = 0.01f*sin(M_PI*k*dz);
-		tmp[nZ*8+k] = 0.01f*sin(M_PI*k*dz);
+		//tmp[nZ*8+k] = 0.01f*sin(M_PI*k*dz);
 	}
 	current = 0;
 	double saveTime = 0;
@@ -752,31 +751,60 @@ void Sim::runLinear() {
 
 int main(int argc, char** argv) {
 // Sim::Sim(int nZ, int nN, double dt, double Ra, double Pr, int a ,double timeBetweenSaves, bool modifydt, int current, double t, double totalTime
-	if(argc < 9) {
-		printf("Usage: %s [nZ] [nN] [dt] [Ra] [Pr] [a] [totalTime] [saveFolder]\n", argv[0]);
-		return 0;
-	} 
+	int nZ =-1;
+	int nN =-1;
+	int a = -1;
+	double dt = -1.;
+	double Ra = -1.;
+	double Pr = -1.;
+	double totalTime = -1;
+	double saveTime = -1.;
+	std::string saveFolder = "";
+	std::string initialConditions = "";
+	    for (int i = 1; i < argc; ++i) {
+		std::string arg = argv[i];
+		if (arg == "-nZ") {
+			cout << "-nZ here" << endl;
+			nZ = atoi(argv[++i]);
+		} else if (arg == "-nN") {
+			nN = atoi(argv[++i]);
+		} else if (arg == "-a") {
+			a = atoi(argv[++i]);
+		} else if (arg == "-dt") {
+			dt = atof(argv[++i]);
+		} else if (arg == "-Ra") {
+			Ra = atof(argv[++i]);
+		} else if (arg == "-Pr") {
+			Pr = atof(argv[++i]);
+		} else if (arg == "-T") {
+			totalTime = atof(argv[++i]);
+		} else if (arg == "-S") {
+			saveTime = atof(argv[++i]);
+		} else if (arg == "-o") {
+			saveFolder = argv[++i];
+		} else if (arg == "-i") {
+			initialConditions = argv[++i];
+		} 
+	    }	
 
-	int nZ = atoi(argv[1]);
-	int nN = atoi(argv[2]);
-	int a  = atoi(argv[6]);
-	double dt = atof(argv[3]);
-	double Ra = atof(argv[4]);
-	double Pr = atof(argv[5]);
-	double totalTime = atof(argv[7]);
-	std::string saveFolder = std::string(argv[8]);
-
-	if(nZ == 0 or nN == 0 or a == 0) {
-		printf("nZ (%s), nN (%s), a (%s) should be integers. Aborting.\n", argv[1], argv[2], argv[6]);
-		return 0;
+	if(nZ <=0 or nN <=0 or a <= 0) {
+		printf("nZ (%d), nN (%d), a (%d) should be positive integers. Aborting.\n", nZ, nN, a);
+		return -1;
 	}
-	if(dt == 0.0f or Ra == 0.0f or 
-			Pr == 0.0f or totalTime == 0.0f ) {
-		printf("dt (%s), Ra (%s), Pr (%s), totalTime (%s) should be floats. Aborting.\n", argv[3], argv[4], argv[5], argv[7]);
-		return 0;
+	if(dt <= 0.0f \
+	or Ra <= 0.0f \
+	or Pr <= 0.0f \
+	or totalTime <= 0.0f \
+	or saveTime <= 0.0f) {
+		printf("dt (%e), Ra (%e), Pr (%e), totalTime (%e) should be floats. Aborting.\n", dt, Ra, Pr, totalTime);
+		return -1;
+	}
+	if(saveFolder == "") {
+		printf("Save folder (%s) should be present. Aborting.\n", saveFolder.c_str());
+		return -1;
 	}
 
-	Sim simulation = Sim(nZ, nN, dt, Ra, Pr, a, 1e-1, false, 0, 0, totalTime, saveFolder);
+	Sim simulation = Sim(nZ, nN, dt, Ra, Pr, a, saveTime, false, 0, 0, totalTime, saveFolder);
 	printf("STARTING SIMULATION\n");
 	printf("Parameters:\n\
 nZ: %d\n\
@@ -786,7 +814,8 @@ Ra: %e\n\
 Pr: %e\n\
 dt: %e\n\
 totalTime: %e\n\
-saveFolder: %s\n", nZ, nN, a, Ra, Pr, dt, totalTime, saveFolder.c_str());
+saveFolder: %s\n\
+initial conditions: %s\n", nZ, nN, a, Ra, Pr, dt, totalTime, saveFolder.c_str(), initialConditions.c_str());
 	cout << endl;
 
 #ifdef NONLINEAR
