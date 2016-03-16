@@ -44,9 +44,9 @@ def drawTemp(tempActual, xGrid, zGrid, name, graphType,              xLabel = ''
 
 
 def main():
-    a = 3
-    Nn = 101
-    Nz = 101
+    a = int(sys.argv[2])
+    Nn = int(sys.argv[3])
+    Nz = int(sys.argv[4])
     Nx = int(a*Nz)
     xAxis = np.linspace(0, a, num=Nx)
     zAxis = np.linspace(0, 1, num=Nz)
@@ -73,7 +73,7 @@ def main():
     plt.subplot(1, 2, 1)
     plt.gca().set_aspect(1.0)
     plt.yticks([0, 1])
-    plt.xticks([0, 1, 2, 3])
+    plt.xticks(xrange(0, a+1))
     plt.tick_params(axis='x', bottom='off', top='off')
     drawTemp(tempActual, xGrid, zGrid, sys.argv[1], 'heatmap', clearAfter=False)
     drawTemp(tempActual, xGrid, zGrid, sys.argv[1], 'contour', clearAfter=False)
@@ -81,7 +81,7 @@ def main():
     plt.subplot(1, 2, 2)
     plt.gca().set_aspect(1.0)
     plt.gca().get_yaxis().set_visible(False)
-    plt.xticks([0, 1, 2, 3])
+    plt.xticks(xrange(0, a+1))
     plt.tick_params(axis='x', bottom='off', top='off')
     plt.gcf().tight_layout()
     drawPsi(psiActual, xGrid, zGrid, sys.argv[1], 'contour', clearAfter=False)

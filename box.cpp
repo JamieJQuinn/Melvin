@@ -79,6 +79,7 @@ class Sim {
 		void save();
 		void load(double* tmp, double* omg, double* psi, std::string icFile);
 		double calcKineticEnergy(); 
+		double calcKineticEnergyForMode(int n);
 		void saveKineticEnergy();
 		bool checkCFL();
 
@@ -190,7 +191,7 @@ std::string strFromNumber(T n) {
 }
 
 void Sim::save() {
-	std::ofstream file (saveFolder+strFromNumber(saveNumber++)+std::string(".dat"), std::ios::out | std::ios::binary); 
+	std::ofstream file (saveFolder+std::string("vars")+strFromNumber(saveNumber++)+std::string(".dat"), std::ios::out | std::ios::binary); 
 	if(file.is_open()) {
 		file.write(reinterpret_cast<char*>(tmp), sizeof(tmp[0])*nN*nZ);
 		file.write(reinterpret_cast<char*>(omg), sizeof(omg[0])*nN*nZ);
@@ -213,11 +214,20 @@ void Sim::load( double* tmp, double* omg, double* psi, std::string icFile) {
 }
 
 void Sim::saveKineticEnergy() {
+	// Save total energy
 	std::ofstream file (saveFolder+"KineticEnergy"+std::string(".dat"), std::ios::out | std::ios::app | std::ios::binary); 
 	double ke = calcKineticEnergy();
 	file.write(reinterpret_cast<char*>(&ke), sizeof(double));
 	file.flush();
 	file.close();
+	// save energy per mode
+	for(int n=1; n<nN; ++n) {
+		std::ofstream file (saveFolder+"KineticEnergyMode"+strFromNumber(n)+std::string(".dat"), std::ios::out | std::ios::app | std::ios::binary); 
+		double ke = calcKineticEnergyForMode(n);
+		file.write(reinterpret_cast<char*>(&ke), sizeof(double));
+		file.flush();
+		file.close();
+	}
 }
 
 void Sim::triDiagonalSolver(const int	nZ,
@@ -521,12 +531,10 @@ void Sim::printBenchmarkData() {
 	}
 }
 
-double Sim::calcKineticEnergy() {
-	// Uses trapezeoid rule to calc kinetic energy for each mode
+double Sim::calcKineticEnergyForMode(int n) {
 	double z0 = 0.0; // limits of integration
 	double z1 = 1.0;
 	double ke = 0; // Kinetic energy
-	for(int n=0; n<nN; ++n) {
 		ke += pow(n*M_PI/a*psi[n*nZ+0], 2)/2.0; // f(0)/2
 		ke += pow(n*M_PI/a*psi[n*nZ+(nZ-1)], 2)/2.0; // f(1)/2
 		for(int k=1; k<nZ-1; ++k) {
@@ -534,8 +542,16 @@ double Sim::calcKineticEnergy() {
 			// f(k)
 			ke += pow(dfdz(psi, in), 2) + pow(n*M_PI/a*psi[in], 2);
 		}
-	}
 	ke *= (z1-z0)*a/(4*(nZ-1));
+	return ke;
+}
+
+double Sim::calcKineticEnergy() {
+	// Uses trapezeoid rule to calc kinetic energy for each mode
+	double ke = 0.0;
+	for(int n=0; n<nN; ++n) {
+		ke += calcKineticEnergyForMode(n);
+	}
 	return ke;
 }
 

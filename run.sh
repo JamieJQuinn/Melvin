@@ -5,10 +5,10 @@ dt=3e-6
 Ra=1e5
 Pr=0.5
 a=3
-T=0.4
-S=0.002
-folder=n1_8testCont/
-ICs=n1_8InitData/20.dat
+T=0.5
+S=0.01
+folder=n1/
+ICs=ICn1
 mkdir -p $folder
 rm -f $folder/*
 echo "Starting program"
