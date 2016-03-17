@@ -45,8 +45,8 @@ def drawTemp(tempActual, xGrid, zGrid, name, graphType,              xLabel = ''
 
 def main():
     a = int(sys.argv[2])
-    Nn = int(sys.argv[3])
-    Nz = int(sys.argv[4])
+    Nn = int(sys.argv[4])
+    Nz = int(sys.argv[3])
     Nx = int(a*Nz)
     xAxis = np.linspace(0, a, num=Nx)
     zAxis = np.linspace(0, 1, num=Nz)
