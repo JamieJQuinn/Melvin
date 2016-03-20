@@ -21,6 +21,9 @@ debug: CFLAGS += $(DEBUG_CFLAGS)
 debug: LDFLAGS += $(DEBUG_LDFLAGS) 
 debug: $(EXECUTABLE)
 
+ddcLinear: CFLAGS += -DLINEAR -DDDC
+ddcLinear: build
+
 linear: CFLAGS += -DLINEAR
 linear: build
 

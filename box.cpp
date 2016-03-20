@@ -22,6 +22,10 @@ class Sim {
 		int nN; 
 		double dt;
 		double Ra; 
+#ifdef DDC 
+		double RaXi;
+		double tau;
+#endif
 		double Pr;
 	        int a;
 		double timeBetweenSaves; 
@@ -29,6 +33,10 @@ class Sim {
 	       	int current; 
 		double t; 
 		double totalTime;
+		double tmpGrad;
+#ifdef DDC
+		double xiGrad;
+#endif
 
 		// Derived constants
 		double dz;
@@ -46,6 +54,10 @@ class Sim {
 		double * psi; // Stream function (Psi)
 		double * omg; // Vorticity (Omega)
 		double * tmp; // Temperature
+#ifdef DDC
+		double * xi;  // Salt concentration
+		double * dXidt; // d/dt of salt concentration
+#endif
 
 		double * dOmgdt; // d/dt of vorticty
 		double * dTmpdt; // d/dt of temperature
@@ -57,10 +69,21 @@ class Sim {
 		// Constructor
 		Sim(int nZ, int nN, double dt,
 		double Ra, double Pr, int a,
+#ifdef DDC
+		double RaXi, double tau,
+#endif
 		double timeBetweenSaves, bool modifydt,
 	       	int current, double t, double totalTime,
 		std::string saveFolder, std::string icFile);
 
+		void init(int nZ, int nN, double dt,
+		double Ra, double Pr, int a,
+#ifdef DDC
+		double RaXi, double tau,
+#endif
+		double timeBetweenSaves, bool modifydt,
+	       	int current, double t, double totalTime,
+		std::string saveFolder, std::string icFile);
 		// Destructor
 		~Sim();
 
@@ -78,6 +101,7 @@ class Sim {
 		void printBenchmarkData();
 		void save();
 		void load(double* tmp, double* omg, double* psi, std::string icFile);
+		void reinit();
 		double calcKineticEnergy(); 
 		double calcKineticEnergyForMode(int n);
 		void saveKineticEnergy();
@@ -85,24 +109,33 @@ class Sim {
 
 		// Simulation functions
 		void updateTmpAndOmg(double f);
+#ifdef DDC
+		void updateXi(double f);
+#endif
 		void computeLinearDerivatives(int linearSim = 1);
 		void computeNonLinearDerivatives();
 		void solveForPsi();
 
 		// Runs the linear simulation
-		void runLinear();
+		double runLinear(int);
 		void runNonLinear();
 };
-
-Sim::Sim(int nZ, int nN, double dt, double Ra, double Pr, int a,
-		double timeBetweenSaves,
-		bool modifydt,
+Sim::Sim(int nZ, int nN, double dt,
+		double Ra, double Pr, int a,
+#ifdef DDC
+		double RaXi, double tau,
+#endif
+		double timeBetweenSaves, bool modifydt,
 	       	int current, double t, double totalTime,
 		std::string saveFolder, std::string icFile) 
 	: nZ {nZ}
 	, nN {nN}
 	, dt {dt}
 	, Ra {Ra}
+#ifdef DDC
+	, RaXi {RaXi}
+	, tau {tau}
+#endif
 	, Pr {Pr}
 	, a {a}
 	, timeBetweenSaves {timeBetweenSaves}
@@ -111,6 +144,41 @@ Sim::Sim(int nZ, int nN, double dt, double Ra, double Pr, int a,
 	, t {t}
 	, totalTime {totalTime}
 	, saveFolder {saveFolder}
+{
+	init(nZ, nN, dt, Ra, Pr, a,
+#ifdef DDC
+		 RaXi,  tau,
+#endif
+		timeBetweenSaves, modifydt, current, t, totalTime, saveFolder, icFile);
+}
+
+void Sim::reinit() {
+	for(int i=0; i<nZ*nN; ++i) {
+		psi[i] = 0.0;
+		omg[i] = 0.0;
+		tmp[i] = 0.0;
+#ifdef DDC
+		xi[i] = 0.0;
+#endif
+	}
+	for(int i=0; i<nZ*nN*2; ++i) {
+		dTmpdt[i] = 0.0;
+		dOmgdt[i] = 0.0;
+#ifdef DDC
+		dXidt[i] = 0.0;
+#endif
+	}
+}
+
+
+void Sim::init(int nZ, int nN, double dt, double Ra, double Pr, int a,
+#ifdef DDC
+		double RaXi, double tau,
+#endif
+		double timeBetweenSaves,
+		bool modifydt,
+	       	int current, double t, double totalTime,
+		std::string saveFolder, std::string icFile) 
 {
 	// Derived Constants
 	nX = nZ*a;
@@ -125,6 +193,11 @@ Sim::Sim(int nZ, int nN, double dt, double Ra, double Pr, int a,
 	omg = new double [nN*nZ];
 	tmp = new double [nN*nZ];
 
+#ifdef DDC
+	xi = new double [nN*nZ];
+	dXidt = new double [2*nN*nZ];
+#endif
+
 	dTmpdt = new double [2*nN*nZ];
 	dOmgdt = new double [2*nN*nZ];
 
@@ -136,12 +209,20 @@ Sim::Sim(int nZ, int nN, double dt, double Ra, double Pr, int a,
 		psi[i] = 0.0;
 		omg[i] = 0.0;
 		tmp[i] = 0.0;
+#ifdef DDC
+		xi[i] = 0.0;
+#endif
 	}
 	for(int i=0; i<nZ*nN*2; ++i) {
 		dTmpdt[i] = 0.0;
 		dOmgdt[i] = 0.0;
+#ifdef DDC
+		dXidt[i] = 0.0;
+#endif
 	}
+#ifdef NONLINEAR
 	load(tmp, omg, psi, icFile);
+#endif
 
 	// Precalculate tridiagonal stuff
 	double * dia = new double [nZ];
@@ -172,6 +253,10 @@ Sim::~Sim() {
 	delete[] psi  ;
 	delete[] omg  ;
 	delete[] tmp  ;
+#ifdef DDC
+	delete[] xi;
+	delete[] dXidt;
+#endif
 
 	delete[] dTmpdt  ;
 	delete[] dOmgdt  ;
@@ -274,6 +359,16 @@ double Sim::adamsBashforth(double *dfdt, int k, int n, double frac) {
 	// Calcs X in equation T_{n+1} = T_{n} + X
 	return ((2.0+frac)*dfdt[current*nZ*nN+n*nZ+k] - frac*dfdt[((current+1)%2)*nZ*nN+n*nZ+k])*dt/2.0;
 }
+
+#ifdef DDC
+void Sim::updateXi(double f=1.0) {
+	for(int n=0; n<nN; ++n) {
+		for(int k=0; k<nZ; ++k) {
+			xi[n*nZ+k] += adamsBashforth(dXidt, k, n, f);
+		}
+	}	
+}
+#endif
 
 void Sim::updateTmpAndOmg(double f = 1.0) {
 	// Update variables using Adams-Bashforth Scheme
@@ -387,8 +482,14 @@ void Sim::computeLinearDerivatives(int linearSim) {
 			int i = k+n*nZ;
 
 			dTmpdt[di] = dfdz2(tmp, i) - pow(n*M_PI/a, 2)*tmp[i];
+#ifdef DDC
+			dXidt[di] = tau*(dfdz2(xi, i) - pow(n*M_PI/a, 2)*xi[i]);
+#endif
 			if (linearSim == 1) {
-				dTmpdt[di] += n*M_PI/a * psi[i];
+#ifdef DDC
+				dXidt[di] += -1*xiGrad*n*M_PI/a * psi[i];
+#endif
+				dTmpdt[di] += -1*tmpGrad*n*M_PI/a * psi[i];
 			}
 			assert(!isnan(dfdz2(tmp, i) - pow(n*M_PI/a, 2)*tmp[i] 
 				+ n*M_PI/a * psi[i]*linearSim));
@@ -396,11 +497,9 @@ void Sim::computeLinearDerivatives(int linearSim) {
 				Pr*(dfdz2(omg, i) - pow(n*M_PI/a, 2)*omg[i] 
 				+ Ra*n*M_PI/a*tmp[i]
 				);
-			assert(!isnan(Pr*(
-				dfdz2(omg, i) 
-				- pow(n*M_PI/a, 2)*omg[i] 
-				+ Ra*n*M_PI/a*tmp[i]
-				)));
+#ifdef DDC
+			dOmgdt[di] += -RaXi*tau*Pr*(n*M_PI/a)*xi[i];
+#endif
 			assert(dOmgdt[nZ*0+k] < EPSILON);
 		}
 	}
@@ -627,17 +726,46 @@ void Sim::runNonLinear() {
 	//printBenchmarkData();
 }
 
-void Sim::runLinear() {
+double Sim::runLinear(int nCrit) {
 	// Initial Conditions
 	// Let psi = omg = dtmpdt = domgdt = 0
 	// Let tmp[n>0] = sin(PI*z)
 	// and tmp[n=0] = (1-z)/N
+	// For DDC Salt-fingering
+	tmpGrad = 1;
+#ifdef DDC
+	xiGrad = 1;
+#endif
+	/*
+	// For DDC SemiConvection
+	tmpGrad = -1;
+#ifdef DDC
+	xiGrad = -1;
+#endif
+	*/
+#ifndef DDC
+	tmpGrad = -1;
+#endif
 	for(int k=0; k<nZ; ++k) {
-		tmp[nZ*0+k] = 1-k*dz;
+		if(tmpGrad==-1){
+			tmp[nZ*0+k] = 1-k*dz;
+		} else if(tmpGrad==1) {
+			tmp[nZ*0+k] = k*dz;
+		}
+#ifdef DDC
+		if(xiGrad==-1){
+			xi[nZ*0+k] = 1-k*dz;
+		} else if(xiGrad==1) {
+			xi[nZ*0+k] = k*dz;
+		}
+#endif
 		for(int n=1; n<nN; ++n) {
 			tmp[nZ*n+k] = sin(M_PI*k*dz);
-		}
-	}	
+#ifdef DDC
+			xi[nZ*n+k] = sin(M_PI*k*dz);
+#endif
+		}	
+	}
 	// Check BCs
 	for(int n=0; n<nN; ++n){
 		if(n>0) {
@@ -652,23 +780,70 @@ void Sim::runLinear() {
 
 	// Stuff for critical rayleigh check
 	double tmpPrev[nN];
+#ifdef DDC
+	double xiPrev[nN];
+#endif
 	double omgPrev[nN];
 	double psiPrev[nN];
 	for(int n=0; n<nN; ++n){
 		tmpPrev[n] = tmp[32+n*nZ];
+#ifdef DDC
+		xiPrev[n]  = xi [32+n*nZ];
+#endif
 		psiPrev[n] = psi[32+n*nZ];
 		omgPrev[n] = omg[32+n*nZ];
 	}
+	double logTmpPrev = 0.0;
+#ifdef DDC
+	double logXiPrev = 0.0;
+#endif
+	double logPsiPrev =0.0;
+	double logOmgPrev =0.0;
+	double tolerance = 1e-10;
 	current = 0;
 	int steps = 0;
+	t=0;
 	while (t<totalTime) {
 		if(steps%500 == 0) {
-			for(int n=1; n<nN; ++n){
-				printf("%d: %e, %e, %e\n",n,
-						std::log(std::abs(tmp[32+n*nZ])) - std::log(std::abs(tmpPrev[n])),
-						std::log(std::abs(omg[32+n*nZ])) - std::log(std::abs(omgPrev[n])),
-						std::log(std::abs(psi[32+n*nZ])) - std::log(std::abs(psiPrev[n])));
+			double logTmp = std::log(std::abs(tmp[32+nCrit*nZ])) - std::log(std::abs(tmpPrev[nCrit]));
+#ifdef DDC
+			double logXi = std::log(std::abs(xi[32+nCrit*nZ])) - std::log(std::abs(xiPrev[nCrit]));
+#endif
+			double logOmg = std::log(std::abs(omg[32+nCrit*nZ])) - std::log(std::abs(omgPrev[nCrit]));
+			double logPsi = std::log(std::abs(psi[32+nCrit*nZ])) - std::log(std::abs(psiPrev[nCrit]));
+			if(std::abs(logTmp - logTmpPrev)<tolerance) {
+#ifdef DDC
+			if(std::abs(logXi - logXiPrev)<tolerance) {
+#endif
+			if(std::abs(logOmg - logOmgPrev)<tolerance) {
+			if(std::abs(logPsi - logPsiPrev)<tolerance) {
+				return logTmp;
+#ifdef DDC
+			}
+#endif
+			}}}
+			logTmpPrev = logTmp;
+#ifdef DDC
+			logXiPrev = logXi;
+#endif
+			logOmgPrev = logOmg;
+			logPsiPrev = logPsi;
+			for(int n=1; n<11; ++n){
+				/*
+				cout << n 
+					<< ", " << std::log(std::abs(tmp[32+n*nZ])) - std::log(std::abs(tmpPrev[n]))
+#ifdef DDC
+					<< ", " << std::log(std::abs(xi[32+n*nZ])) - std::log(std::abs(xiPrev[n]))
+#endif
+					<< ", " << std::log(std::abs(omg[32+n*nZ])) - std::log(std::abs(omgPrev[n]))
+					<< ", " << std::log(std::abs(psi[32+n*nZ])) - std::log(std::abs(psiPrev[n]))
+					<< endl;
+					*/
+
 				tmpPrev[n] = tmp[32+n*nZ];
+#ifdef DDC
+				xiPrev[n] =  xi [32+n*nZ];
+#endif
 				psiPrev[n] = psi[32+n*nZ];
 				omgPrev[n] = omg[32+n*nZ];
 				/*
@@ -690,10 +865,14 @@ void Sim::runLinear() {
 		steps++;
 		computeLinearDerivatives(1);
 		updateTmpAndOmg();
+#ifdef DDC
+		updateXi();
+#endif
 		solveForPsi();
 		t+=dt;
 		++current%=2;
 	}	
+	return 0;
 }
 
 int main(int argc, char** argv) {
@@ -703,6 +882,10 @@ int main(int argc, char** argv) {
 	int a = -1;
 	double dt = -1.;
 	double Ra = -1.;
+#ifdef DDC
+	double RaXi = -1.;
+	double tau = -1.;
+#endif 
 	double Pr = -1.;
 	double totalTime = -1;
 	double saveTime = -1.;
@@ -711,7 +894,6 @@ int main(int argc, char** argv) {
 	    for (int i = 1; i < argc; ++i) {
 		std::string arg = argv[i];
 		if (arg == "-nZ") {
-			cout << "-nZ here" << endl;
 			nZ = atoi(argv[++i]);
 		} else if (arg == "-nN") {
 			nN = atoi(argv[++i]);
@@ -732,26 +914,42 @@ int main(int argc, char** argv) {
 		} else if (arg == "-i") {
 			icFile = argv[++i];
 		} 
+#ifdef DDC
+		
+		else if (arg == "-RaXi") {
+			RaXi = atof(argv[++i]);
+		} else if (arg == "-tau") {
+			tau =atof( argv[++i]);
+		} 
+#endif
 	    }	
 
 	if(nZ <=0 or nN <=0 or a <= 0) {
-		cerr << " nZ (" << nZ \
-		<< ") nN (" << nN \
-		<< ") a (" << a \
+		cerr << " nZ (" << nZ
+		<< ") nN (" << nN
+		<< ") a (" << a
 		<< ") should be positive integers. Aborting.\n" << endl;
 		return -1;
 	}
-	if(dt <= 0.0f \
-	or Ra <= 0.0f \
-	or Pr <= 0.0f \
-	or totalTime <= 0.0f \
+	if(dt <= 0.0f
+	or Ra <= 0.0f
+#ifdef DDC
+	or RaXi <= 0.0f
+	or tau <= 0.0f
+#endif
+	or Pr <= 0.0f
+	or totalTime <= 0.0f
 	or saveTime <= 0.0f) {
-		cerr << " dt (" << dt \
-		<< ") Ra (" << Ra \
-		<< ") Pr (" << Pr \
-		<< ") totalTime (" << totalTime \
-		<< ") saveTime (" << saveTime \
-		<< ") should be positive integers. Aborting.\n" << endl;
+		cerr << " dt (" << dt
+		<< ") Ra (" << Ra
+#ifdef DDC
+		<< ") RaXi (" << Ra
+		<< ") tau (" << Ra
+#endif
+		<< ") Pr (" << Pr
+		<< ") totalTime (" << totalTime
+		<< ") saveTime (" << saveTime
+		<< ") should be positive decimals. Aborting.\n" << endl;
 		return -1;
 	}
 	if(saveFolder == "" or icFile == "") {
@@ -766,19 +964,52 @@ int main(int argc, char** argv) {
 	cout << "nN: " << nN << endl;
 	cout << "a: " << a << endl;
 	cout << "Ra: " << Ra << endl;
+#ifdef DDC
+	cout << "RaXi: " << RaXi << endl;
+	cout << "tau: " << tau << endl;
+#endif
 	cout << "Pr: " << Pr << endl;
 	cout << "dt: " << dt << endl;
 	cout << "totalTime: " << totalTime << endl;
 	cout << "saveFolder: " << saveFolder << endl;
 	cout << "icFile: " << icFile << endl;
-
-	Sim simulation = Sim(nZ, nN, dt, Ra, Pr, a, saveTime, false, 0, 0, totalTime, saveFolder, icFile);
+	Sim simulation = Sim(nZ, nN, dt, Ra, Pr, a,
+#ifdef DDC
+		       RaXi, tau,
+#endif
+			saveTime, false, 0, 0, totalTime, saveFolder, icFile);
 
 #ifdef NONLINEAR
+	cout << "NONLINEAR" << endl;
 	simulation.runNonLinear();
 #endif
 #ifdef LINEAR
-	simulation.runLinear();
+	cout << "LINEAR" << endl;
+	double initialRa = simulation.Ra;
+	double RaCrits [10];
+	for(int n=1; n<11; ++n){
+		cout << "Finding critical Ra for n=" << n << endl;
+		double RaLower = 0.0;
+		double RaUpper = initialRa;
+		while(std::abs(RaLower - RaUpper) > 1e-3) {
+			simulation.reinit();
+			simulation.Ra = (RaUpper+RaLower)/2;
+			cout << "Trying Ra=" << simulation.Ra << endl;
+			double result = simulation.runLinear(n);
+			if(result < 0.0) {
+				RaLower = simulation.Ra;
+			} else if(result > 0.0) {
+				RaUpper = simulation.Ra;
+			} else {
+				cout << "Total time breached." << endl;
+			}
+		}
+		cout << "Critical Ra for n=" << n << " is Ra=" << simulation.Ra << endl;
+		RaCrits[n-1] = simulation.Ra;
+	}
+	for(int n=1; n<11; ++n) {
+		cout << RaCrits[n-1] << "\\" << endl;
+	}
 #endif
 
 	cout << "ENDING SIMULATION" << endl;
