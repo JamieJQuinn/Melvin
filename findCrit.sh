@@ -1,17 +1,17 @@
 #/bin/bash
 nZ=101
-nN=101
-dt=5e-8
+nN=51
+dt=1e-5
 Pr=0.5
 a=3
-T=0.8
-S=0.01
-for i in 7.5 7.75 8; do
-	Ra="$i"e7
-	folder=n1TurbRa"$Ra"/
-	ICs=n1StablenN101nZ101 
+T=10
+S=0.1
+for ICs in ICn1_2nZ101nN51 ICn1_8nZ101nN51 ; do
+for i in 600 900 1300; do
+	Ra="$i"
+	folder=findCrit/"$ICs"Ra"$Ra"/
 	mkdir -p $folder
 	rm -f $folder/*
-	echo "Starting program"
 	./box "-nZ" $nZ "-nN" $nN "-dt" $dt "-Ra" $Ra "-Pr" $Pr "-a" $a "-T" $T "-S" $S "-i" $ICs "-o" $folder/ | tee $folder/log
+done
 done
