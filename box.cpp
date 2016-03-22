@@ -281,6 +281,11 @@ void Sim::save() {
 		file.write(reinterpret_cast<char*>(tmp), sizeof(tmp[0])*nN*nZ);
 		file.write(reinterpret_cast<char*>(omg), sizeof(omg[0])*nN*nZ);
 		file.write(reinterpret_cast<char*>(psi), sizeof(psi[0])*nN*nZ);
+		file.write(reinterpret_cast<char*>(dTmpdt+current*nZ*nN), sizeof(dTmpdt[0])*nN*nZ);
+		file.write(reinterpret_cast<char*>(dTmpdt+((current+1)%2)*nZ*nN), sizeof(dTmpdt[0])*nN*nZ);
+		file.write(reinterpret_cast<char*>(dOmgdt+current*nZ*nN), sizeof(dOmgdt[0])*nN*nZ);
+		file.write(reinterpret_cast<char*>(dOmgdt+((current+1)%2)*nZ*nN), sizeof(dOmgdt[0])*nN*nZ);
+
 	} else {
 		cerr << "Couldn't open " << saveFolder << " for writing. Aborting." << endl;
 	}
@@ -293,6 +298,10 @@ void Sim::load( double* tmp, double* omg, double* psi, std::string icFile) {
 		file.read(reinterpret_cast<char*>(tmp), sizeof(tmp[0])*nN*nZ);
 		file.read(reinterpret_cast<char*>(omg), sizeof(omg[0])*nN*nZ);
 		file.read(reinterpret_cast<char*>(psi), sizeof(psi[0])*nN*nZ);
+		file.read(reinterpret_cast<char*>(dTmpdt+current*nZ*nN), sizeof(dTmpdt[0])*nN*nZ);
+		file.read(reinterpret_cast<char*>(dTmpdt+((current+1)%2)*nZ*nN), sizeof(dTmpdt[0])*nN*nZ);
+		file.read(reinterpret_cast<char*>(dOmgdt+current*nZ*nN), sizeof(dOmgdt[0])*nN*nZ);
+		file.read(reinterpret_cast<char*>(dOmgdt+((current+1)%2)*nZ*nN), sizeof(dOmgdt[0])*nN*nZ);
 	} else {
 		cerr << "Couldn't open " << icFile << " for writing. Aborting." << endl;
 	}
