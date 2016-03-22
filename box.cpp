@@ -105,7 +105,7 @@ class Sim {
 		double calcKineticEnergy(); 
 		double calcKineticEnergyForMode(int n);
 		void saveKineticEnergy();
-		bool checkCFL();
+		double checkCFL();
 
 		// Simulation functions
 		void updateTmpAndOmg(double f);
@@ -282,7 +282,8 @@ void Sim::save() {
 		file.write(reinterpret_cast<char*>(omg), sizeof(omg[0])*nN*nZ);
 		file.write(reinterpret_cast<char*>(psi), sizeof(psi[0])*nN*nZ);
 	} else {
-		cerr << "Couldn't open " << saveFolder << " for writing. Aborting." << endl;
+		cout << "Couldn't open " << saveFolder << " for writing. Aborting." << endl;
+		exit(-1);
 	}
 	file.close();
 }
@@ -294,7 +295,8 @@ void Sim::load( double* tmp, double* omg, double* psi, std::string icFile) {
 		file.read(reinterpret_cast<char*>(omg), sizeof(omg[0])*nN*nZ);
 		file.read(reinterpret_cast<char*>(psi), sizeof(psi[0])*nN*nZ);
 	} else {
-		cerr << "Couldn't open " << icFile << " for writing. Aborting." << endl;
+		cout << "Couldn't open " << icFile << " for reading. Aborting." << endl;
+		exit(-1);
 	}
 }
 
@@ -408,9 +410,10 @@ double Sim::dfdz2(double *f, int k) {
 	return (f[k+1] - 2*f[k] + f[k-1])*oodz2;
 }
 
-bool Sim::checkCFL() {
+double Sim::checkCFL() {
 	double vxMax = 0.0f;
 	double vzMax = 0.0f;
+	double f=1.0f;
 	for(int j=1; j<nX-1; ++j) {
 		for(int k=1; k<nZ-1; ++k) {
 			double vx = 0.0;
@@ -430,11 +433,19 @@ bool Sim::checkCFL() {
 			}
 		}
 	}
-	if(vzMax > dz/dt or vxMax > dx/dt){
-		return false;
-	} else {
-		return true;
+	if(vzMax > dz/dt or vxMax > (float(a)/nN)/dt){
+		cout << "CFL Condition Breached" << endl;
+		cout << "CFL Condition Breached" << endl;
+		exit(-1);
+	} 
+	while(vzMax > 0.9*dz/dt or vxMax > 0.9*(float(a)/nN)/dt) {
+		dt*=0.9;
+		f*=0.9;
+	} 
+	if(f!=1.0f) {
+		cout << "New time step is " << dt << endl;
 	}
+	return f;
 	/*		
 	double * psiActual = new double [nX*nZ];
 	for(int j=0; j<nX*nZ; ++j) {
@@ -670,17 +681,13 @@ void Sim::runNonLinear() {
 			KEsaveTime += 1e-4;
 		}
 		if(CFLCheckTime-t < EPSILON) {
-			CFLCheckTime += 1000*dt;
-			if(!checkCFL()) {
-				cerr << "CFL condition breached at " << t << endl;
-				//f = 0.9;
-				//dt*=f;
-				//cout << "New time step: " << dt << endl;
-			}
+			cout << "Checking CFL" << endl;
+			CFLCheckTime += 1e4*dt;
+			f = checkCFL();
 		}
 		if(saveTime-t < EPSILON) {
+			cout << t << " of " << totalTime << endl;
 			// Check CFL condition is holding
-			printf("%e of %e (%.2f%%)", t, totalTime, t/totalTime*100);
 			cout << endl;
 			saveTime+=timeBetweenSaves;
 			save();
@@ -721,7 +728,6 @@ void Sim::runNonLinear() {
 		++current%=2;
 	}	
 	printf("%e of %e (%.2f%%)\n", t, totalTime, t/totalTime*100);
-	std::string folder = "Ra" + strFromNumber(Ra) + "Pr" + strFromNumber(Pr) + "a" + strFromNumber(a);
 	save();
 	//printBenchmarkData();
 }
@@ -829,7 +835,7 @@ double Sim::runLinear(int nCrit) {
 			logOmgPrev = logOmg;
 			logPsiPrev = logPsi;
 			for(int n=1; n<11; ++n){
-				/*
+/*
 				cout << n 
 					<< ", " << std::log(std::abs(tmp[32+n*nZ])) - std::log(std::abs(tmpPrev[n]))
 #ifdef DDC
@@ -838,7 +844,7 @@ double Sim::runLinear(int nCrit) {
 					<< ", " << std::log(std::abs(omg[32+n*nZ])) - std::log(std::abs(omgPrev[n]))
 					<< ", " << std::log(std::abs(psi[32+n*nZ])) - std::log(std::abs(psiPrev[n]))
 					<< endl;
-					*/
+*/
 
 				tmpPrev[n] = tmp[32+n*nZ];
 #ifdef DDC
@@ -925,7 +931,7 @@ int main(int argc, char** argv) {
 	    }	
 
 	if(nZ <=0 or nN <=0 or a <= 0) {
-		cerr << " nZ (" << nZ
+		cout << " nZ (" << nZ
 		<< ") nN (" << nN
 		<< ") a (" << a
 		<< ") should be positive integers. Aborting.\n" << endl;
@@ -940,7 +946,7 @@ int main(int argc, char** argv) {
 	or Pr <= 0.0f
 	or totalTime <= 0.0f
 	or saveTime <= 0.0f) {
-		cerr << " dt (" << dt
+		cout << " dt (" << dt
 		<< ") Ra (" << Ra
 #ifdef DDC
 		<< ") RaXi (" << Ra
@@ -953,7 +959,7 @@ int main(int argc, char** argv) {
 		return -1;
 	}
 	if(saveFolder == "" or icFile == "") {
-		cerr <<"Save folder and initial conditions file should be present. Aborting.\n" << endl;
+		cout <<"Save folder and initial conditions file should be present. Aborting.\n" << endl;
 		return -1;
 	}
 
@@ -996,13 +1002,26 @@ int main(int argc, char** argv) {
 			simulation.Ra = (RaUpper+RaLower)/2;
 			cout << "Trying Ra=" << simulation.Ra << endl;
 			double result = simulation.runLinear(n);
+#ifdef DDC
+			if(result > 0.0) {
+				RaLower = simulation.Ra;
+			} else if(result < 0.0) {
+				RaUpper = simulation.Ra;
+			} else {
+				cout << "Total time breached." << endl;
+				break;
+			}
+#endif
+#ifndef DDC
 			if(result < 0.0) {
 				RaLower = simulation.Ra;
 			} else if(result > 0.0) {
 				RaUpper = simulation.Ra;
 			} else {
 				cout << "Total time breached." << endl;
+				break;
 			}
+#endif
 		}
 		cout << "Critical Ra for n=" << n << " is Ra=" << simulation.Ra << endl;
 		RaCrits[n-1] = simulation.Ra;
