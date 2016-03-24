@@ -8,6 +8,7 @@
 #include <cassert>
 
 #define strVar(variable) #variable
+#define OMEGA 2*M_PI*4
 
 using std::cout;
 using std::cerr;
@@ -53,6 +54,9 @@ class Sim {
 
 		// Save Folder
 		std::string saveFolder;
+
+		// Initial condition file
+		std::string icFile;
 
 		// Variable arrays
 		double * psi; // Stream function (Psi)
@@ -148,6 +152,7 @@ Sim::Sim(int nZ, int nN, double dt,
 	, t {t}
 	, totalTime {totalTime}
 	, saveFolder {saveFolder}
+	, icFile {icFile}
 {
 	init(nZ, nN, dt, Ra, Pr, a,
 #ifdef DDC
@@ -227,9 +232,7 @@ void Sim::init(int nZ, int nN, double dt, double Ra, double Pr, int a,
 		dXidt[i] = 0.0;
 #endif
 	}
-#ifdef NONLINEAR
-	load(tmp, omg, psi, icFile);
-#endif
+
 
 	// Precalculate tridiagonal stuff
 	double * dia = new double [nZ];
@@ -412,6 +415,10 @@ void Sim::updateTmpAndOmg(double f = 1.0) {
 		assert(omg[n*nZ] < EPSILON);
 		assert(omg[n*nZ+nZ-1] < EPSILON);
 	}	
+
+	// Boundary Conditions
+	// Periodic
+	//tmp[3*nZ+0] = sin(OMEGA*t);
 }
 
 double Sim::dfdz(double *f, int k) {
@@ -464,39 +471,6 @@ double Sim::checkCFL() {
 		cout << "New time step is " << dt << endl;
 	}
 	return f;
-	/*		
-	double * psiActual = new double [nX*nZ];
-	for(int j=0; j<nX*nZ; ++j) {
-		psiActual[j] = 0.0f;
-	}
-	for(int n=0; n<nN; ++n) {
-		for(int j=0; j<nX; ++j) {
-			for(int k=0; k<nZ; ++k) {
-				psiActual[j*nZ + k] += psi[n*nZ + k]*sin(n*M_PI*j*dx/a);
-			}
-		}
-	}
-	double vzMax = 0.0;
-	double vxMax = 0.0;
-	for(int j=1; j<nX-1; ++j) {
-		for(int k=1; k<nZ-1; ++k) {
-			double vx = std::abs(psiActual[j*nZ+k+1] - psiActual[j*nZ+k-1]);
-			if(vx>vxMax){
-				vxMax = vx;
-			}
-			double vz = std::abs(psiActual[(j+1)*nZ+k] - psiActual[(j-1)*nZ+k]);
-			if(vz>vzMax){
-				vzMax = vz;
-			}
-		}
-	}
-	delete [] psiActual;
-	if(vzMax < 2*dz*dx/dt or vxMax < 2*dz*dx/dt){
-		return false;
-	} else {
-		return true;
-	}
-	*/
 }
 
 void Sim::computeLinearDerivatives(int linearSim) {
@@ -684,10 +658,8 @@ double Sim::calcKineticEnergy() {
 }
 
 void Sim::runNonLinear() {
-	// Initial Conditions
-	// Let psi = omg = dtmpdt = domgdt = 0
-	// Let tmp[n] = 0.01*sin(PI*z) for certain n
-	// and tmp[n=0] = (1-z)/N
+	// Load initial conditions
+	load(tmp, omg, psi, icFile);
 	current = 0;
 	double saveTime = 0;
 	double KEsaveTime = 0;
@@ -697,7 +669,7 @@ void Sim::runNonLinear() {
 	while (totalTime-t>EPSILON) {
 		if(KEsaveTime-t < EPSILON) {
 			saveKineticEnergy();
-			KEsaveTime += 1e3*dt;
+			KEsaveTime += 1e-4;
 		}
 		if(CFLCheckTime-t < EPSILON) {
 			//cout << "Checking CFL" << endl;
