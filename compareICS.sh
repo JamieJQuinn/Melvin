@@ -4,7 +4,7 @@ nN=51
 dt=3e-6
 Pr=0.5
 a=3
-T=3
+T=1.5
 S=0.05
 Ra=1e6
 for IC in ICn1nZ101nN51; do

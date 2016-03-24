@@ -47,6 +47,10 @@ class Sim {
 		int KEsaveNumber;
 		double timeBetweenKESaves;
 
+		// Kinetic Energy tracker
+		double kePrev;
+		double keCurrent;
+
 		// Save Folder
 		std::string saveFolder;
 
@@ -185,6 +189,9 @@ void Sim::init(int nZ, int nN, double dt, double Ra, double Pr, int a,
 	dz = double(1)/(nZ-1);
 	dx = double(a)/(nX-1);
 	oodz2 = pow(1.0/dz, 2);
+
+	kePrev = 0.0f;
+	keCurrent = 0.0f;
 	saveNumber=0;
 	KEsaveNumber=0;
 
@@ -313,6 +320,8 @@ void Sim::saveKineticEnergy() {
 	// Save total energy
 	std::ofstream file (saveFolder+"KineticEnergy"+std::string(".dat"), std::ios::out | std::ios::app | std::ios::binary); 
 	double ke = calcKineticEnergy();
+	kePrev = keCurrent;
+	keCurrent = ke;
 	file.write(reinterpret_cast<char*>(&ke), sizeof(double));
 	file.flush();
 	file.close();
@@ -432,7 +441,8 @@ double Sim::checkCFL() {
 				vz += n*M_PI/a*psi[n*nZ+k]*cos(n*M_PI*j*dx/a);
 			}
 			if(isnan(vx) or isnan(vz)){
-				return false;
+				cout << "CFL Condition Breached" << endl;
+				exit(-1);
 			}
 			if( std::abs(vx) > vxMax ) {
 				vxMax = std::abs(vx);
@@ -443,7 +453,6 @@ double Sim::checkCFL() {
 		}
 	}
 	if(vzMax > dz/dt or vxMax > (float(a)/nN)/dt){
-		cout << "CFL Condition Breached" << endl;
 		cout << "CFL Condition Breached" << endl;
 		exit(-1);
 	} 
@@ -684,18 +693,20 @@ void Sim::runNonLinear() {
 	double KEsaveTime = 0;
 	double CFLCheckTime = 0;
 	double f = 1.0f; // Fractional change in dt (if CFL condition being breached)
+	t = 0;
 	while (totalTime-t>EPSILON) {
 		if(KEsaveTime-t < EPSILON) {
 			saveKineticEnergy();
-			KEsaveTime += 1e-4;
+			KEsaveTime += 1e3*dt;
 		}
 		if(CFLCheckTime-t < EPSILON) {
-			cout << "Checking CFL" << endl;
+			//cout << "Checking CFL" << endl;
 			CFLCheckTime += 1e4*dt;
 			f = checkCFL();
+			cout << std::log(std::abs(keCurrent)) - std::log(std::abs(kePrev)) << endl;
 		}
 		if(saveTime-t < EPSILON) {
-			cout << t << " of " << totalTime << endl;
+			cout << t << " of " << totalTime << "(" << t/totalTime*100 << "%)" << endl;
 			// Check CFL condition is holding
 			cout << endl;
 			saveTime+=timeBetweenSaves;

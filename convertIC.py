@@ -16,12 +16,17 @@ print "Converting " + infile + " (" + str(nZOld) + ", " + str(nNOld) + ") to " +
 zRatio = float(nZNew - 1)/(nZOld - 1)
 
 dataOld = np.fromfile(infile, dtype=np.dtype(np.double))
-dataNew = np.zeros(3*nZNew*nNNew)
+dataNew = np.zeros(7*nZNew*nNNew)
 
-for i in xrange(3):
+for i in xrange(7):
     for n in xrange(nNOld):
             # interpolate 
-            dataNew[(i*nNNew+n)*nZNew:(i*nNNew+n+1)*nZNew] = np.interp(np.linspace(0, 1, num=nZNew), np.linspace(0, 1, num=nZOld), dataOld[(i*nNOld+n)*nZOld:(i*nNOld+n+1)*nZOld])
+            dataNew[(i*nNNew+n)*nZNew:(i*nNNew+n+1)*nZNew] = \
+		np.interp(\
+		np.linspace(0, 1, num=nZNew), \
+		np.linspace(0, 1, num=nZOld), \
+		dataOld[(i*nNOld+n)*nZOld:(i*nNOld+n+1)*nZOld]\
+		)
 
 
 dataNew.tofile(outfile)
