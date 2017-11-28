@@ -1,25 +1,36 @@
 CC=g++
-CFLAGS=-c -std=c++0x -fopenmp
-DEBUG_CFLAGS= -DDEBUG -g -pg -Wall
-BUILD_CFLAGS= -DNDEBUG -O2
-LDFLAGS=-fopenmp
-DEBUG_LDFLAGS=-pg
-SOURCES=box.cpp 
-OBJECTS=$(SOURCES:.cpp=.o)
-EXECUTABLE=box
+CFLAGS=-c -std=c++0x
+LDFLAGS=
+SRC_DIR=src
+BUILD_DIR=build
+INCLUDE_DIR=include
 
-all: $(SOURCES) debug
+SOURCES=$(wildcard $(SRC_DIR)/*.cpp)
+OBJECTS=$(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SOURCES))
+EXECUTABLE=exe
 
-test: CFLAGS += -DNDEBUG -pg
-test: LDFLAGS += -pg 
-test: $(EXECUTABLE)
+all: $(BUILD_DIR) build
 
-build: CFLAGS += $(BUILD_CFLAGS)
-build: $(EXECUTABLE)
+$(BUILD_DIR)/$(EXECUTABLE): $(OBJECTS)
+			$(CC) $(LDFLAGS) $(OBJECTS) -o $@
 
-debug: CFLAGS += $(DEBUG_CFLAGS) 
-debug: LDFLAGS += $(DEBUG_LDFLAGS) 
-debug: $(EXECUTABLE)
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
+			$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR):
+			mkdir -p $@
+
+.PHONY: clean
+clean:
+			rm -rf $(BUILD_DIR)
+
+build: CFLAGS += -DNDEBUG -O2 -fopenmp
+build: LDFLAGS += -fopenmp
+build: $(BUILD_DIR)/$(EXECUTABLE)
+
+debug: CFLAGS += -DDEBUG -g -pg -Wall
+debug: LDFLAGS += -pg
+debug: $(BUILD_DIR)/$(EXECUTABLE)
 
 ddcLinear: CFLAGS += -DLINEAR -DDDC
 ddcLinear: build
@@ -35,13 +46,3 @@ nonlinear: build
 
 nonlinearDebug: CFLAGS += -DNONLINEAR
 nonlinearDebug: debug
-
-$(EXECUTABLE): $(OBJECTS) 
-	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
-
-.cpp.o:
-	$(CC) $(CFLAGS) $< -o $@
-
-clean:
-	rm *.o $(EXECUTABLE)
-
