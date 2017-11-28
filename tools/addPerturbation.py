@@ -13,7 +13,7 @@ print "Adding " + str(amp) + " perturbation to mode " + str(n) + "; " + inFile +
 
 data = np.fromfile(inFile, dtype=np.dtype(np.double))
 
-data[n*nZ:(n+1)*nZ] += np.sin(np.pi*np.linspace(0, 1, nZ))
+data[n*nZ:(n+1)*nZ] += amp*np.sin(np.pi*np.linspace(0, 1, nZ))
 
 data.tofile(outFile)
 
