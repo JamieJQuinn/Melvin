@@ -9,7 +9,7 @@ This project includes implementations of
 
 Running 
 ```
-tools/integration_test.sh
+test/integration_test.sh
 ```
 will
 1. build the nonlinear simulation 
