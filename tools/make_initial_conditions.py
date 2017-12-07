@@ -13,7 +13,7 @@ def main():
     parser.add_argument('--n_gridpoints', type=int, required=True,
                         help='number of gridpoints in simulation')
     parser.add_argument('--modes', type=int, nargs='+',
-                        help='number of gridpoints in simulation')
+                        help='modes to initialise')
     parser.add_argument('--periodic', action='store_true',
                         help='enables periodic conditions')
     args = parser.parse_args()
