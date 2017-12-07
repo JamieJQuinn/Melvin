@@ -414,7 +414,7 @@ void Sim::updateTmpAndOmg(double f = 1.0) {
     assert(tmp[n*nZ+nZ-1] < EPSILON);
     assert(omg[n*nZ] < EPSILON);
     assert(omg[n*nZ+nZ-1] < EPSILON);
-  } 
+  }
 
   // Boundary Conditions
   // Periodic
@@ -672,7 +672,7 @@ void Sim::runNonLinear() {
       KEsaveTime += 1e-4;
     }
     if(CFLCheckTime-t < EPSILON) {
-      //cout << "Checking CFL" << endl;
+      cout << "Checking CFL" << endl;
       CFLCheckTime += 1e4*dt;
       f = checkCFL();
       cout << std::log(std::abs(keCurrent)) - std::log(std::abs(kePrev)) << endl;
@@ -889,7 +889,7 @@ int main(int argc, char** argv) {
   double saveTime = -1.;
   std::string saveFolder = "";
   std::string icFile = "";
-      for (int i = 1; i < argc; ++i) {
+  for (int i = 1; i < argc; ++i) {
     std::string arg = argv[i];
     if (arg == "-nZ") {
       nZ = atoi(argv[++i]);
@@ -911,16 +911,15 @@ int main(int argc, char** argv) {
       saveFolder = argv[++i];
     } else if (arg == "-i") {
       icFile = argv[++i];
-    } 
+    }
 #ifdef DDC
-    
     else if (arg == "-RaXi") {
       RaXi = atof(argv[++i]);
     } else if (arg == "-tau") {
       tau =atof( argv[++i]);
-    } 
+    }
 #endif
-      } 
+  }
 
   if(nZ <=0 or nN <=0 or a <= 0) {
     cout << " nZ (" << nZ
