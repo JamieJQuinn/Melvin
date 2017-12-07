@@ -18,7 +18,7 @@ def main():
     args = parser.parse_args()
 
     n_modes = args.n_modes
-    n_gridpoints = args.n_modes
+    n_gridpoints = args.n_gridpoints
     data = np.fromfile(args.filenames[0], dtype=np.dtype(np.double))
     temp = np.transpose(data[:n_modes*n_gridpoints]\
                         .reshape(n_modes, n_gridpoints))
