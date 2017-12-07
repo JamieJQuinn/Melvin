@@ -1,16 +1,6 @@
-box
-*.o
 *.swp
-log
 core
 gmon.out
 .nfs*
-*.dat
-testStuff
-n1InitData/
-n1_8InitData/
-box_ddc
-box_linear
-ICsComparison
-n1Turbulent
 build/
+test/benchmark
