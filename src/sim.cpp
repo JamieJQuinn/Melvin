@@ -497,37 +497,8 @@ void Sim::runNonLinear() {
     }
     if(saveTime-t < EPSILON) {
       cout << t << " of " << totalTime << "(" << t/totalTime*100 << "%)" << endl;
-      // Check CFL condition is holding
-      cout << endl;
       saveTime+=timeBetweenSaves;
       save();
-      /*
-      for(int n=1; n<nN; ++n){
-        printf("%d: %e, %e, %e\n", n,
-            tmp[nZ*n+32],
-            omg[nZ*n+32],
-            psi[nZ*n+32]);
-
-      }
-      int points = 5;
-      int kSpots [] = {17, 33, 50, 66, 84};
-      int nSpots [] = {14};
-      for(int n: nSpots) {
-        for(int k:kSpots){
-          printf("%e|", tmp[k+n*nZ]);
-        }
-        printf("\n");
-      }
-      printMaxOf(tmp, "tmp");
-      printMaxOf(omg, "omg");
-      printMaxOf(psi, "psi");
-      //printMaxOf(dOmgdt+current*nN*nZ, "dOmgdt");
-      //printMaxOf(dTmpdt+current*nN*nZ, "dOmgdt");
-      std::printf(" \n");
-      //printBenchmarkData();
-      //cout << endl;
-      //
-      */
     }
     computeLinearDerivatives(0);
     computeNonLinearDerivatives();
@@ -539,7 +510,6 @@ void Sim::runNonLinear() {
   } 
   printf("%e of %e (%.2f%%)\n", t, totalTime, t/totalTime*100);
   save();
-  //printBenchmarkData();
 }
 
 double Sim::runLinear(int nCrit) {
@@ -645,38 +615,13 @@ double Sim::runLinear(int nCrit) {
       logOmgPrev = logOmg;
       logPsiPrev = logPsi;
       for(int n=1; n<11; ++n){
-/*
-        cout << n
-          << ", " << std::log(std::abs(tmp[32+n*nZ])) - std::log(std::abs(tmpPrev[n]))
-#ifdef DDC
-          << ", " << std::log(std::abs(xi[32+n*nZ])) - std::log(std::abs(xiPrev[n]))
-#endif
-          << ", " << std::log(std::abs(omg[32+n*nZ])) - std::log(std::abs(omgPrev[n]))
-          << ", " << std::log(std::abs(psi[32+n*nZ])) - std::log(std::abs(psiPrev[n]))
-          << endl;
-*/
-
         tmpPrev[n] = tmp[32+n*nZ];
 #ifdef DDC
         xiPrev[n] =  xi [32+n*nZ];
 #endif
         psiPrev[n] = psi[32+n*nZ];
         omgPrev[n] = omg[32+n*nZ];
-        /*
-        printf("%d: %e, %e, %e\n", n,
-            tmp[nZ*n+32],
-            omg[nZ*n+32],
-            psi[nZ*n+32]);
-            */
-
       }
-      /*
-      printMaxOf(tmp, "tmp");
-      printMaxOf(omg, "omg");
-      printMaxOf(psi, "psi");
-      //printMaxOf(dOmgdt+current*nN*nZ, "dOmgdt");
-      std::printf(" \n");
-      */
     }
     steps++;
     computeLinearDerivatives(1);
