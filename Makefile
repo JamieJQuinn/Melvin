@@ -5,11 +5,12 @@ SRC_DIR=src
 BUILD_DIR=build
 INCLUDE_DIR=include
 
-SOURCES=src/main.cpp
+SOURCES=src/main.cpp src/sim.cpp
 #SOURCES=$(wildcard $(SRC_DIR)/*.cpp)
 OBJECTS=$(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SOURCES))
 EXECUTABLE=exe
 
+.PHONY: all
 all: nonlinear
 
 $(BUILD_DIR)/$(EXECUTABLE): $(OBJECTS)
