@@ -80,8 +80,6 @@ class Sim {
     ~Sim();
 
     // Helper functions
-    inline double dfdz(double *f, int k);
-    inline double dfdz2(double *f, int k);
     void triDiagonalSolver(const int nZ,
              const double *rhs, double *sol, const double *sub,
              const double * wk1, const double *wk2);

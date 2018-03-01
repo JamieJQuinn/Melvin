@@ -290,20 +290,6 @@ void Sim::updateTmpAndOmg(double f = 1.0) {
   //tmp[3*nZ+0] = sin(OMEGA*t);
 }
 
-double Sim::dfdz(double *f, int k) {
-  assert(!isnan(f[k+1]));
-  assert(!isnan(f[k-1]));
-  assert(!isnan(1.0/(2*dz)));
-  assert(!isnan((f[k+1]-f[k-1])/(2*dz)));
-  return (f[k+1]-f[k-1])/(2*dz);
-}
-
-double Sim::dfdz2(double *f, int k) {
-  assert(!isnan((f[k+1] - 2*f[k] + f[k-1])*oodz2));
-  // Calculates d/dz of f
-  return (f[k+1] - 2*f[k] + f[k-1])*oodz2;
-}
-
 double Sim::checkCFL() {
   double vxMax = 0.0f;
   double vzMax = 0.0f;
@@ -313,7 +299,7 @@ double Sim::checkCFL() {
       double vx = 0.0;
       double vz = 0.0;
       for(int n=0; n<nN; ++n) {
-        vx += dfdz(psi, n*nZ+k)*sin(n*M_PI*j*dx/a);
+        vx += dfdz(psi, n*nZ+k, dz)*sin(n*M_PI*j*dx/a);
         vz += n*M_PI/a*psi[n*nZ+k]*cos(n*M_PI*j*dx/a);
       }
       if(isnan(vx) or isnan(vz)){
@@ -353,9 +339,9 @@ void Sim::computeLinearDerivatives(int linearSim) {
 
       int i = k+n*nZ;
 
-      dTmpdt[di] = dfdz2(tmp, i) - pow(n*M_PI/a, 2)*tmp[i];
+      dTmpdt[di] = dfdz2(tmp, i, dz) - pow(n*M_PI/a, 2)*tmp[i];
 #ifdef DDC
-      dXidt[di] = tau*(dfdz2(xi, i) - pow(n*M_PI/a, 2)*xi[i]);
+      dXidt[di] = tau*(dfdz2(xi, i, dz) - pow(n*M_PI/a, 2)*xi[i]);
 #endif
       if (linearSim == 1) {
 #ifdef DDC
@@ -363,10 +349,10 @@ void Sim::computeLinearDerivatives(int linearSim) {
 #endif
         dTmpdt[di] += -1*tmpGrad*n*M_PI/a * psi[i];
       }
-      assert(!isnan(dfdz2(tmp, i) - pow(n*M_PI/a, 2)*tmp[i]
+      assert(!isnan(dfdz2(tmp, i, dz) - pow(n*M_PI/a, 2)*tmp[i]
         + n*M_PI/a * psi[i]*linearSim));
       dOmgdt[di] =
-        Pr*(dfdz2(omg, i) - pow(n*M_PI/a, 2)*omg[i]
+        Pr*(dfdz2(omg, i, dz) - pow(n*M_PI/a, 2)*omg[i]
         + Ra*n*M_PI/a*tmp[i]
         );
 #ifdef DDC
@@ -384,8 +370,8 @@ void Sim::computeNonLinearDerivatives() {
       // Contribution TO tmp[n=0]
       dTmpdt[current*nZ*nN+0*nN+k] +=
         -M_PI/(2*a)*n*(
-          dfdz(psi, in)*tmp[in] +
-          dfdz(tmp, in)*psi[in]
+          dfdz(psi, in, dz)*tmp[in] +
+          dfdz(tmp, in, dz)*psi[in]
           );
     }
   }
@@ -395,7 +381,7 @@ void Sim::computeNonLinearDerivatives() {
     for(int k=1; k<nZ-1; ++k) {
       int in = n*nZ+k;
       dTmpdt[current*nZ*nN + in] +=
-        -n*M_PI/a*psi[in]*dfdz(tmp, 0*nZ+k);
+        -n*M_PI/a*psi[in]*dfdz(tmp, 0*nZ+k, dz);
     }
     // Contribution FROM tmp[n>0] and omg[n>0]
     int im, io, o;
@@ -409,13 +395,13 @@ void Sim::computeNonLinearDerivatives() {
         io = nZ*o + k;
         dTmpdt[current*nZ*nN+nZ*n+k] +=
           -M_PI/(2*a)*(
-          -m*dfdz(psi, io)*tmp[im]
-          +o*dfdz(tmp, im)*psi[io]
+          -m*dfdz(psi, io, dz)*tmp[im]
+          +o*dfdz(tmp, im, dz)*psi[io]
           );
         dOmgdt[current*nZ*nN+nZ*n+k] +=
           -M_PI/(2*a)*(
-          -m*dfdz(psi, io)*omg[im]
-          +o*dfdz(omg, im)*psi[io]
+          -m*dfdz(psi, io, dz)*omg[im]
+          +o*dfdz(omg, im, dz)*psi[io]
           );
       }
     }
@@ -429,13 +415,13 @@ void Sim::computeNonLinearDerivatives() {
         io = nZ*o + k;
         dTmpdt[current*nZ*nN+nZ*n+k] +=
           -M_PI/(2*a)*(
-          +m*dfdz(psi, io)*tmp[im]
-          +o*dfdz(tmp, im)*psi[io]
+          +m*dfdz(psi, io, dz)*tmp[im]
+          +o*dfdz(tmp, im, dz)*psi[io]
           );
         dOmgdt[current*nZ*nN+nZ*n+k] +=
           -M_PI/(2*a)*(
-          +m*dfdz(psi, io)*omg[im]
-          +o*dfdz(omg, im)*psi[io]
+          +m*dfdz(psi, io, dz)*omg[im]
+          +o*dfdz(omg, im, dz)*psi[io]
           );
       }
     }
@@ -449,13 +435,13 @@ void Sim::computeNonLinearDerivatives() {
         io = nZ*o + k;
         dTmpdt[current*nZ*nN+nZ*n+k] +=
           -M_PI/(2*a)*(
-          +m*dfdz(psi, io)*tmp[im]
-          +o*dfdz(tmp, im)*psi[io]
+          +m*dfdz(psi, io, dz)*tmp[im]
+          +o*dfdz(tmp, im, dz)*psi[io]
           );
         dOmgdt[current*nZ*nN+nZ*n+k] +=
           +M_PI/(2*a)*(
-          +m*dfdz(psi, io)*omg[im]
-          +o*dfdz(omg, im)*psi[io]
+          +m*dfdz(psi, io, dz)*omg[im]
+          +o*dfdz(omg, im, dz)*psi[io]
           );
       }
     }
@@ -511,7 +497,7 @@ double Sim::calcKineticEnergyForMode(int n) {
     for(int k=1; k<nZ-1; ++k) {
       int in = nZ*n+k;
       // f(k)
-      ke += pow(dfdz(psi, in), 2) + pow(n*M_PI/a*psi[in], 2);
+      ke += pow(dfdz(psi, in, dz), 2) + pow(n*M_PI/a*psi[in], 2);
     }
   ke *= (z1-z0)*a/(4*(nZ-1));
   return ke;
