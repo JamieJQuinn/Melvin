@@ -13,6 +13,7 @@
 using std::cout;
 using std::cerr;
 using std::endl;
+using std::isnan;
 
 const double EPSILON = DBL_EPSILON;
 
