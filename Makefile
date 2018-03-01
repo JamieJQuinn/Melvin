@@ -28,6 +28,7 @@ clean:
 
 .PHONY: test
 test:
+	rm -rf test/benchmark
 	test/integration_test.sh
 
 release: CFLAGS += -DNDEBUG -O2 -fopenmp

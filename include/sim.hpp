@@ -94,7 +94,6 @@ class Sim {
     double calcKineticEnergy();
     double calcKineticEnergyForMode(int n);
     void saveKineticEnergy();
-    double checkCFL();
 
     // Simulation functions
     void updateTmpAndOmg(double f);
