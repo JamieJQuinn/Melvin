@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+
+set -e
+
 nZ=101
 nN=51
 dt=3e-6
