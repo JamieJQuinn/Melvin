@@ -7,6 +7,7 @@
 #include "sim.hpp"
 #include "precision.hpp"
 #include "utility.hpp"
+#include "numerical_methods.hpp"
 
 using namespace std;
 
@@ -251,16 +252,11 @@ void Sim::formTridiArrays ( const int nZ,
   wk1[nZ-1] = 1.0/(dia[nZ-1] - sub[nZ-2]*wk2[nZ-2]);
 }
 
-double Sim::adamsBashforth(double *dfdt, int k, int n, double frac) {
-  // Calcs X in equation T_{n+1} = T_{n} + X
-  return ((2.0+frac)*dfdt[current*nZ*nN+n*nZ+k] - frac*dfdt[((current+1)%2)*nZ*nN+n*nZ+k])*dt/2.0;
-}
-
 #ifdef DDC
 void Sim::updateXi(double f=1.0) {
   for(int n=0; n<nN; ++n) {
     for(int k=0; k<nZ; ++k) {
-      xi[n*nZ+k] += adamsBashforth(dXidt, k, n, f);
+      xi[n*nZ+k] += adamsBashforth(dXidt[current*nZ*nN+n*nZ+k], dXidt[((current+1)%2)*nZ*nN+n*nZ+k], f, dt);
     }
   } 
 }
@@ -272,8 +268,8 @@ void Sim::updateTmpAndOmg(double f = 1.0) {
   // ( if dt changed )
   for(int n=0; n<nN; ++n) {
     for(int k=0; k<nZ; ++k) {
-      tmp[n*nZ+k] += adamsBashforth(dTmpdt, k, n, f);
-      omg[n*nZ+k] += adamsBashforth(dOmgdt, k, n, f);
+      tmp[n*nZ+k] += adamsBashforth(dTmpdt[current*nZ*nN+n*nZ+k], dTmpdt[((current+1)%2)*nZ*nN+n*nZ+k], f, dt);
+      omg[n*nZ+k] += adamsBashforth(dOmgdt[current*nZ*nN+n*nZ+k], dOmgdt[((current+1)%2)*nZ*nN+n*nZ+k], f, dt);
 
       assert(!isnan(tmp[n*nZ+k]));
       assert(!isnan(omg[n*nZ+k]));

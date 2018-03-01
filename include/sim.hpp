@@ -80,7 +80,6 @@ class Sim {
     ~Sim();
 
     // Helper functions
-    double adamsBashforth(double *dfdt,int k, int n, double frac);
     inline double dfdz(double *f, int k);
     inline double dfdz2(double *f, int k);
     void triDiagonalSolver(const int nZ,
