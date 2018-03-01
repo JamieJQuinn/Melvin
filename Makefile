@@ -13,17 +13,17 @@ EXECUTABLE=exe
 all: nonlinear
 
 $(BUILD_DIR)/$(EXECUTABLE): $(OBJECTS)
-			$(CC) $(LDFLAGS) $(OBJECTS) -o $@
+	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
-			$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR):
-			mkdir -p $@
+	mkdir -p $@
 
 .PHONY: clean
 clean:
-			rm -rf $(BUILD_DIR)
+	rm -rf $(BUILD_DIR)
 
 release: CFLAGS += -DNDEBUG -O2 -fopenmp
 release: LDFLAGS += -fopenmp
