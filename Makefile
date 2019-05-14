@@ -5,7 +5,7 @@ SRC_DIR=src
 BUILD_DIR=build
 INCLUDE_DIR=include
 
-SOURCES=src/main.cpp src/sim.cpp src/numerical_methods.cpp
+SOURCES=src/main.cpp src/sim.cpp src/numerical_methods.cpp src/thomas_algorithm.cpp
 #SOURCES=$(wildcard $(SRC_DIR)/*.cpp)
 OBJECTS=$(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SOURCES))
 EXECUTABLE=exe

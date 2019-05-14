@@ -17,7 +17,7 @@ rm -f $folder/*
 echo "==================== Building program"
 make nonlinear
 echo "==================== Starting program"
-build/exe -nZ $nZ -nN $nN -dt $dt -Ra $Ra -Pr $Pr -a $a -T $T -S $S -i $ICs -o $folder/ | tee $folder/log
+time build/exe -nZ $nZ -nN $nN -dt $dt -Ra $Ra -Pr $Pr -a $a -T $T -S $S -i $ICs -o $folder/ | tee $folder/log
 echo "==================== Comparing results"
 comparison_results=$(python tools/print_variables.py test/benchmark/vars5.dat --max_print_mode 20 --n_modes 51 --n_gridpoints 101 | column -t | diff -q - test/benchmark_t5.txt)
 if [ -n "$comparison_results" ]; then

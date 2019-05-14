@@ -1,5 +1,7 @@
 #pragma once
 
+#include "thomas_algorithm.hpp"
+
 class Sim {
   public:
     // Defined constants
@@ -54,9 +56,7 @@ class Sim {
     double * dOmgdt; // d/dt of vorticty
     double * dTmpdt; // d/dt of temperature
 
-    double * wk1; // Used in Thomas Algorithm
-    double * wk2;
-    double * sub;
+    ThomasAlgorithm *thomasAlgorithm;
 
     // Constructor
     Sim(int nZ, int nN, double dt,
@@ -80,12 +80,6 @@ class Sim {
     ~Sim();
 
     // Helper functions
-    void triDiagonalSolver(const int nZ,
-             const double *rhs, double *sol, const double *sub,
-             const double * wk1, const double *wk2);
-    void formTridiArrays ( const int nZ,
-      const double *sub, const double *dia, const double *sup,
-      double * wk1, double *wk2);
     void printMaxOf(double *a, std::string name);
     void printBenchmarkData();
     void save();

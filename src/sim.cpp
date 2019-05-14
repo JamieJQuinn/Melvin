@@ -96,10 +96,6 @@ void Sim::init(int nZ, int nN, double dt, double Ra, double Pr, int a,
   dTmpdt = new double [2*nN*nZ];
   dOmgdt = new double [2*nN*nZ];
 
-  wk1 = new double [nN*nZ];
-  wk2 = new double [nN*nZ];
-  sub = new double [nZ];
-
   for(int i=0; i<nZ*nN; ++i) {
     psi[i] = 0.0;
     omg[i] = 0.0;
@@ -116,29 +112,7 @@ void Sim::init(int nZ, int nN, double dt, double Ra, double Pr, int a,
 #endif
   }
 
-
-  // Precalculate tridiagonal stuff
-  double * dia = new double [nZ];
-  double * sup = new double [nZ];
-  for(int k=0; k<nZ; ++k) {
-    sub[k] = sup[k] = -oodz2;
-  }
-  for(int n=0; n<nN; ++n) {
-    for(int k=0; k<nZ; ++k){
-      dia[k] = pow(M_PI/a*n, 2) + 2*oodz2;
-    }
-    dia[0] = dia[nZ-1] = 1.0;
-    sub[nZ-2] = sup[0] = 0.0;
-    formTridiArrays( nZ,
-    sub, dia, sup,
-    wk1+nZ*n, wk2+n*nZ);
-  }
-  for(int i=0; i<nZ*nN; ++i) {
-    assert(!std::isnan(wk1[i]));
-    assert(!std::isnan(wk2[i]));
-  }
-  delete [] dia;
-  delete [] sup;
+thomasAlgorithm = new ThomasAlgorithm(nZ, nN, a, oodz2);
 }
 
 Sim::~Sim() {
@@ -154,9 +128,7 @@ Sim::~Sim() {
   delete[] dTmpdt  ;
   delete[] dOmgdt  ;
 
-  delete[] wk1  ;
-  delete[] wk2  ;
-  delete[] sub;
+  delete thomasAlgorithm;
 }
 
 void Sim::save() {
@@ -212,45 +184,6 @@ void Sim::saveKineticEnergy() {
   }
 }
 
-void Sim::triDiagonalSolver(const int nZ,
-             const double *rhs, double *sol, const double *sub,
-             const double * wk1, const double *wk2) {
-  // Solves the tridiagonal system represented by sub, dia and sup.
-  // If sub, dia and sup do not change, they can be rolled into wk1 and wk2
-  // using formTridiArrays() and simply saved
-
-  // Forward Subsitution
-  assert(!isnan(wk1[0]));
-  assert(!isnan(rhs[0]));
-  sol[0] = rhs[0]*wk1[0];
-  for (int i=1; i<nZ; ++i) {
-    sol[i] = (rhs[i] - sub[i-1]*sol[i-1])*wk1[i];
-    assert(!isnan(rhs[i]));
-    assert(!isnan(sub[i-1]));
-    assert(!isnan(sol[i-1]));
-    assert(!isnan(wk1[i]));
-    assert(!isnan(sol[i]));
-  }
-  // Backward Substitution
-  for (int i=nZ-2; i>=0; --i) {
-    sol[i] -= wk2[i]*sol[i+1];
-  }
-}
-
-void Sim::formTridiArrays ( const int nZ,
-          const double *sub, const double *dia, const double *sup,
-    double * wk1, double *wk2) {
-  assert(dia[0] != 0.0);
-  wk1[0] = 1.0/dia[0];
-  wk2[0] = sup[0]*wk1[0];
-  for (int i=1; i<nZ-1; ++i) {
-    assert((dia[i] - sub[i-1] * wk2[i-1]) != 0.0);
-    wk1[i] = 1.0/(dia[i] - sub[i-1] * wk2[i-1]);
-    wk2[i] = sup[i]*wk1[i];
-  }
-  assert((dia[nZ-1] - sub[nZ-2]*wk2[nZ-2]) != 0.0);
-  wk1[nZ-1] = 1.0/(dia[nZ-1] - sub[nZ-2]*wk2[nZ-2]);
-}
 
 #ifdef DDC
 void Sim::updateXi(double f=1.0) {
@@ -414,7 +347,7 @@ void Sim::computeNonLinearDerivatives() {
 void Sim::solveForPsi(){
   // Solve for Psi using Thomas algorithm
   for(int n=0; n<nN; ++n) {
-    triDiagonalSolver(nZ, omg+nZ*n, psi+nZ*n, sub, wk1+nZ*n, wk2+nZ*n);
+    thomasAlgorithm->solve(psi+nZ*n, omg+nZ*n, n);
     // Check Boundary Conditions
     assert(psi[nZ*n+0] == 0.0);
     assert(psi[nZ*n+nZ-1] == 0.0);
