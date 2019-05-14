@@ -54,14 +54,14 @@ def main():
 
     start_time = max(args.start_time, 0)
     end_time = args.end_time
-    average = np.zeros(len(filenames))
+    average = np.zeros(len(args.filenames))
 
     if not args.plot_against_mode:
         for filename in args.filenames:
             kinetic_energy = np.fromfile(filename, dtype=np.dtype(np.double))
             plt.gca().set_yscale('log')
             plt.plot(kinetic_energy, label="n="+filename.split('.')[0][17:])
-        plt.xlabel("Time (10^{-4})")
+        plt.xlabel(r"Time ($10^{-4}$)")
         plt.ylabel("Kinetic Energy")
         plt.tight_layout()
     else:
