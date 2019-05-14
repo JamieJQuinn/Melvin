@@ -1,8 +1,5 @@
 #pragma once
 
-#include <cassert>
-#include <cmath>
-
 class ThomasAlgorithm {
   private:
     void formTriDiagonalArraysForN(const double *sub, const double *dia, const double *sup,

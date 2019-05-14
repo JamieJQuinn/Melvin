@@ -1,4 +1,6 @@
 #include "thomas_algorithm.hpp"
+#include <cassert>
+#include <cmath>
 
 ThomasAlgorithm::~ThomasAlgorithm() {
   delete[] wk1;
