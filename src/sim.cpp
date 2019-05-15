@@ -186,7 +186,7 @@ void Sim::computeLinearDerivatives(int linearSim) {
   for(int n=linearSim; n<c.nN; ++n) {
     for(int k=1; k<c.nZ-1; ++k) {
       // Setup indices
-      int di = current*c.nZ*c.nN+n*c.nZ+k;;
+      int di = current*c.nZ*c.nN+n*c.nZ+k;
 
       int i = k+n*c.nZ;
 

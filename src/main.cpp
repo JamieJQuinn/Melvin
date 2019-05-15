@@ -13,7 +13,6 @@ int main(int argc, char** argv) {
   cout <<"STARTING SIMULATION\n" << endl;
 
   std::string constantsFile = "";
-
   for (int i = 1; i < argc; ++i) {
     std::string arg = argv[i];
     if (arg == "--constants") {
@@ -27,12 +26,10 @@ int main(int argc, char** argv) {
   }
 
   const Constants c(constantsFile);
-
   if(not c.isValid()) {
     cout << "ABORTING\n" << endl;
     return -1;
   }
-
   c.print();
 
   Sim simulation(c);
