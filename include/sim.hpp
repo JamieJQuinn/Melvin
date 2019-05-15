@@ -1,48 +1,26 @@
 #pragma once
 
 #include "thomas_algorithm.hpp"
+#include "constants.hpp"
 
 class Sim {
   public:
-    // Defined constants
-    int nZ;
-    int nN;
-    double dt;
-    double Ra;
-#ifdef DDC
-    double RaXi;
-    double tau;
-#endif
-    double Pr;
-          int a;
-    double timeBetweenSaves;
-    bool modifydt;
-          int current;
-    double t;
-    double totalTime;
-    double tmpGrad;
-#ifdef DDC
-    double xiGrad;
-#endif
+    bool modifydt; // has dt been modified?
+    int current; // which array is the current derivative in?
+    double t; // current time
+    double dt; // current timestep
+    int saveNumber; // Current save file
+    int KEsaveNumber; // Current kinetic energy save file
 
-    // Derived constants
-    double dz;
-    double dx;
-    int nX;
-    double oodz2;
-    int saveNumber;
-    int KEsaveNumber;
-    double timeBetweenKESaves;
+    // Gradients HACK - this needs refactored somewhere - into Constants?
+    double tmpGrad;
+    double xiGrad;
 
     // Kinetic Energy tracker
     double kePrev;
     double keCurrent;
 
-    // Save Folder
-    std::string saveFolder;
-
-    // Initial condition file
-    std::string icFile;
+    const Constants c;
 
     // Variable arrays
     double * psi; // Stream function (Psi)
@@ -58,32 +36,14 @@ class Sim {
 
     ThomasAlgorithm *thomasAlgorithm;
 
-    // Constructor
-    Sim(int nZ, int nN, double dt,
-    double Ra, double Pr, int a,
-#ifdef DDC
-    double RaXi, double tau,
-#endif
-    double timeBetweenSaves, bool modifydt,
-          int current, double t, double totalTime,
-    std::string saveFolder, std::string icFile);
-
-    void init(int nZ, int nN, double dt,
-    double Ra, double Pr, int a,
-#ifdef DDC
-    double RaXi, double tau,
-#endif
-    double timeBetweenSaves, bool modifydt,
-          int current, double t, double totalTime,
-    std::string saveFolder, std::string icFile);
-    // Destructor
+    Sim(const Constants &c_in);
     ~Sim();
 
     // Helper functions
     void printMaxOf(double *a, std::string name);
     void printBenchmarkData();
     void save();
-    void load(double* tmp, double* omg, double* psi, std::string icFile);
+    void load(double* tmp, double* omg, double* psi, const std::string &icFile);
     void reinit();
     double calcKineticEnergy();
     double calcKineticEnergyForMode(int n);

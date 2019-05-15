@@ -106,11 +106,10 @@ int main(int argc, char** argv) {
   cout << "totalTime: " << totalTime << endl;
   cout << "saveFolder: " << saveFolder << endl;
   cout << "icFile: " << icFile << endl;
-  Sim simulation = Sim(nZ, nN, dt, Ra, Pr, a,
-#ifdef DDC
-           RaXi, tau,
-#endif
-      saveTime, false, 0, 0, totalTime, saveFolder, icFile);
+
+  Constants c(nZ, nN, dt, Ra, Pr, a, saveTime, totalTime, saveFolder, icFile);
+
+  Sim simulation(c);
 
 #ifdef NONLINEAR
   cout << "NONLINEAR" << endl;
