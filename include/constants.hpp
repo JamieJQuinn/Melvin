@@ -9,9 +9,11 @@ class Constants {
     int nN;
     real initialDt;
     real Ra;
+    int tempGrad;
 #ifdef DDC
     real RaXi;
     real tau;
+    int xiGrad;
 #endif
     real Pr;
     int aspectRatio;
@@ -30,7 +32,6 @@ class Constants {
 
     Constants();
     Constants(const std::string &input);
-    Constants(int nZ_in, int nN_in, real initialDt_in, real Ra_in, real Pr_in, int aspectRatio_in, real timeBetweenSaves_in, real totalTime_in, std::string &saveFolder_in, std::string &icFile_in);
 
     void calculateDerivedConstants();
 

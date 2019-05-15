@@ -29,7 +29,7 @@ clean:
 .PHONY: test
 test:
 	rm -rf test/benchmark
-	test/integration_test.sh
+	test/nonlinear_test.sh
 
 profile: CFLAGS += -DNONLINEAR -DNDEBUG -fopenmp -pg
 profile: LDFLAGS += -pg -fopenmp

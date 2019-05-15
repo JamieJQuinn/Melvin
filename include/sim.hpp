@@ -8,7 +8,6 @@
 class Sim {
   public:
     bool modifydt; // has dt been modified?
-    int current; // which array is the current derivative in?
     real t; // current time
     real dt; // current timestep
     int saveNumber; // Current save file
@@ -22,7 +21,7 @@ class Sim {
     real kePrev;
     real keCurrent;
 
-    const Constants c;
+    Constants c;
 
     // Variable arrays
     Variable psi; // Stream function (Psi)
@@ -61,6 +60,6 @@ class Sim {
     void solveForPsi();
 
     // Runs the linear simulation
-    real runLinear(int);
     void runNonLinear();
+    real findCriticalRa(int nCrit);
 };

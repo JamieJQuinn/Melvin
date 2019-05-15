@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <cmath>
 
 #include <sim.hpp>
 #include <precision.hpp>
@@ -38,24 +39,28 @@ int main(int argc, char** argv) {
   cout << "NONLINEAR" << endl;
   simulation.runNonLinear();
 #endif
+
 #ifdef LINEAR
   cout << "LINEAR" << endl;
-  real initialRa = simulation.Ra;
+  real initialRa = simulation.c.Ra;
   real RaCrits [10];
+  int nCritAnalytical = c.aspectRatio/sqrt(2);
+  cout << "Critial mode should be " << nCritAnalytical << endl;
+  cout << "Critial Ra should be " << pow(M_PI/c.aspectRatio, 4) * pow(pow(nCritAnalytical,2) + pow(c.aspectRatio,2), 3) / pow(nCritAnalytical,2) << endl;
   for(int n=1; n<11; ++n){
     cout << "Finding critical Ra for n=" << n << endl;
     real RaLower = 0.0;
     real RaUpper = initialRa;
     while(std::abs(RaLower - RaUpper) > 1e-3) {
       simulation.reinit();
-      simulation.Ra = (RaUpper+RaLower)/2;
-      cout << "Trying Ra=" << simulation.Ra << endl;
+      simulation.c.Ra = (RaUpper+RaLower)/2;
+      cout << "Trying Ra=" << simulation.c.Ra << endl;
       real result = simulation.runLinear(n);
 #ifdef DDC
       if(result > 0.0) {
-        RaLower = simulation.Ra;
+        RaLower = simulation.c.Ra;
       } else if(result < 0.0) {
-        RaUpper = simulation.Ra;
+        RaUpper = simulation.c.Ra;
       } else {
         cout << "Total time breached." << endl;
         break;
@@ -63,17 +68,17 @@ int main(int argc, char** argv) {
 #endif
 #ifndef DDC
       if(result < 0.0) {
-        RaLower = simulation.Ra;
+        RaLower = simulation.c.Ra;
       } else if(result > 0.0) {
-        RaUpper = simulation.Ra;
+        RaUpper = simulation.c.Ra;
       } else {
         cout << "Total time breached." << endl;
         break;
       }
 #endif
     }
-    cout << "Critical Ra for n=" << n << " is Ra=" << simulation.Ra << endl;
-    RaCrits[n-1] = simulation.Ra;
+    cout << "Critical Ra for n=" << n << " is Ra=" << simulation.c.Ra << endl;
+    RaCrits[n-1] = simulation.c.Ra;
   }
   for(int n=1; n<11; ++n) {
     cout << RaCrits[n-1] << "\\" << endl;

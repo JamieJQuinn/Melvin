@@ -33,24 +33,6 @@ Sim::Sim(const Constants &c_in)
   thomasAlgorithm = new ThomasAlgorithm(c.nZ, c.nN, c.aspectRatio, c.oodz2);
 }
 
-//void Sim::reinit() {
-  //for(int i=0; i<c.nZ*c.nN; ++i) {
-    //psi[i] = 0.0;
-    //omg[i] = 0.0;
-    //tmp[i] = 0.0;
-//#ifdef DDC
-    //xi[i] = 0.0;
-//#endif
-  //}
-  //for(int i=0; i<c.nZ*c.nN*2; ++i) {
-    //dTmpdt[i] = 0.0;
-    //dOmgdt[i] = 0.0;
-//#ifdef DDC
-    //dXidt[i] = 0.0;
-//#endif
-  //}
-//}
-
 Sim::~Sim() {
   delete thomasAlgorithm;
 }
@@ -82,6 +64,18 @@ void Sim::load(const std::string &icFile) {
     cout << "Couldn't open " << c.icFile << " for reading. Aborting." << endl;
     exit(-1);
   }
+}
+
+void Sim::reinit() {
+  tmp.fill(0.0);
+  omg.fill(0.0);
+  psi.fill(0.0);
+  dTmpdt.fill(0.0);
+  dOmgdt.fill(0.0);
+#ifdef DDC
+  xi.fill(0.0);
+  dXidt.fill(0.0);
+#endif
 }
 
 void Sim::saveKineticEnergy() {
@@ -154,9 +148,9 @@ void Sim::computeLinearDerivatives(int linearSim) {
 #endif
       if (linearSim == 1) {
 #ifdef DDC
-        dXidt(n,k) += -1*xiGrad*n*M_PI/c.aspectRatio * psi(n,k);
+        dXidt(n,k) += -1*c.xiGrad*n*M_PI/c.aspectRatio * psi(n,k);
 #endif
-        dTmpdt(n,k) += -1*tmpGrad*n*M_PI/c.aspectRatio * psi(n,k);
+        dTmpdt(n,k) += -1*c.tempGrad*n*M_PI/c.aspectRatio * psi(n,k);
       }
       assert(!isnan(tmp.dfdz2(n,k) - pow(n*M_PI/c.aspectRatio, 2)*tmp(n,k)
         + n*M_PI/c.aspectRatio * psi(n,k)*linearSim));
@@ -264,24 +258,6 @@ void Sim::solveForPsi(){
 
 }
 
-//void Sim::printMaxOf(real *a, std::string name) {
-  //int nStart = 0; // n level to start from
-  //// Find max
-  //real max = a[nStart*c.nZ];
-  //int maxLoc[] = {0, nStart};
-  //for(int n=nStart; n<c.nN; ++n) {
-    //for(int k=0; k<c.nZ; ++k) {
-      //if(a[n*c.nZ+k]>max) {
-        //max = a[n*c.nZ+k];
-        //maxLoc[0] = k;
-        //maxLoc[1] = n;
-      //}
-    //}
-  //}
-  //// print max
-  //cout << max << " @ " << "(" << maxLoc[0] << ", " << maxLoc[1] << ")" << endl;
-//}
-
 void Sim::printBenchmarkData() const {
   cout << t << " of " << c.totalTime << "(" << t/c.totalTime*100 << ")" << endl;
   for(int n=0; n<21; ++n) {
@@ -314,7 +290,6 @@ real Sim::calcKineticEnergy() {
 void Sim::runNonLinear() {
   // Load initial conditions
   load(c.icFile);
-  current = 0;
   real saveTime = 0;
   real KEsaveTime = 0;
   real CFLCheckTime = 0;
@@ -329,7 +304,6 @@ void Sim::runNonLinear() {
       cout << "Checking CFL" << endl;
       CFLCheckTime += 1e4*dt;
       f = checkCFL(psi, c.dz, c.dx, dt, c.aspectRatio, c.nN, c.nX, c.nZ);
-      cout << std::log(std::abs(keCurrent)) - std::log(std::abs(kePrev)) << endl;
     }
     if(saveTime-t < EPSILON) {
       cout << t << " of " << c.totalTime << "(" << t/c.totalTime*100 << "%)" << endl;
@@ -349,126 +323,65 @@ void Sim::runNonLinear() {
   save();
 }
 
-//real Sim::runLinear(int nCrit) {
-  //// Initial Conditions
-  //// Let psi = omg = dtmpdt = domgdt = 0
-  //// Let tmp[n>0] = sin(PI*z)
-  //// and tmp[n=0] = (1-z)/N
-  //// For DDC Salt-fingering
-  //real tmpGrad = 1;
-//#ifdef DDC
-  //real xiGrad = 1;
-//#endif
-  //[>
-  //// For DDC SemiConvection
-  //tmpGrad = -1;
-//#ifdef DDC
-  //xiGrad = -1;
-//#endif
-  //*/
-//#ifndef DDC
-  //tmpGrad = -1;
-//#endif
-  //for(int k=0; k<c.nZ; ++k) {
-    //if(tmpGrad==-1){
-      //tmp[c.nZ*0+k] = 1-k*c.dz;
-    //} else if(tmpGrad==1) {
-      //tmp[c.nZ*0+k] = k*c.dz;
-    //}
-//#ifdef DDC
-    //if(xiGrad==-1){
-      //xi[c.nZ*0+k] = 1-k*c.dz;
-    //} else if(xiGrad==1) {
-      //xi[c.nZ*0+k] = k*c.dz;
-    //}
-//#endif
-    //for(int n=1; n<c.nN; ++n) {
-      //tmp[c.nZ*n+k] = sin(M_PI*k*c.dz);
-//#ifdef DDC
-      //xi[c.nZ*n+k] = sin(M_PI*k*c.dz);
-//#endif
-    //} 
-  //}
-  //// Check BCs
-  //for(int n=0; n<c.nN; ++n){
-    //if(n>0) {
-      //assert(tmp[n*c.nZ] < EPSILON);
-    //} else {
-      //assert(tmp[n*c.nZ] - 1.0 < EPSILON);
-    //}
-    //assert(tmp[n*c.nZ+c.nZ-1] < EPSILON);
-    //assert(omg[n*c.nZ] < EPSILON);
-    //assert(omg[n*c.nZ+c.nZ-1] < EPSILON);
-  //}
+real Sim::findCriticalRa(int nCrit) {
+  load(c.icFile);
 
-  //// Stuff for critical rayleigh check
-  //real tmpPrev[c.nN];
-//#ifdef DDC
-  //real xiPrev[c.nN];
-//#endif
-  //real omgPrev[c.nN];
-  //real psiPrev[c.nN];
-  //for(int n=0; n<c.nN; ++n){
-    //tmpPrev[n] = tmp[32+n*c.nZ];
-//#ifdef DDC
-    //xiPrev[n]  = xi [32+n*c.nZ];
-//#endif
-    //psiPrev[n] = psi[32+n*c.nZ];
-    //omgPrev[n] = omg[32+n*c.nZ];
-  //}
-  //real logTmpPrev = 0.0;
-//#ifdef DDC
-  //real logXiPrev = 0.0;
-//#endif
-  //real logPsiPrev =0.0;
-  //real logOmgPrev =0.0;
-  //real tolerance = 1e-10;
-  //current = 0;
-  //int steps = 0;
-  //t=0;
-  //while (t<c.totalTime) {
-    //if(steps%500 == 0) {
-      //real logTmp = std::log(std::abs(tmp[32+nCrit*c.nZ])) - std::log(std::abs(tmpPrev[nCrit]));
-//#ifdef DDC
-      //real logXi = std::log(std::abs(xi[32+nCrit*c.nZ])) - std::log(std::abs(xiPrev[nCrit]));
-//#endif
-      //real logOmg = std::log(std::abs(omg[32+nCrit*c.nZ])) - std::log(std::abs(omgPrev[nCrit]));
-      //real logPsi = std::log(std::abs(psi[32+nCrit*c.nZ])) - std::log(std::abs(psiPrev[nCrit]));
-      //if(std::abs(logTmp - logTmpPrev)<tolerance) {
-//#ifdef DDC
-      //if(std::abs(logXi - logXiPrev)<tolerance) {
-//#endif
-      //if(std::abs(logOmg - logOmgPrev)<tolerance) {
-      //if(std::abs(logPsi - logPsiPrev)<tolerance) {
-        //return logTmp;
-//#ifdef DDC
-      //}
-//#endif
-      //}}}
-      //logTmpPrev = logTmp;
-//#ifdef DDC
-      //logXiPrev = logXi;
-//#endif
-      //logOmgPrev = logOmg;
-      //logPsiPrev = logPsi;
-      //for(int n=1; n<11; ++n){
-        //tmpPrev[n] = tmp[32+n*c.nZ];
-//#ifdef DDC
-        //xiPrev[n] =  xi [32+n*c.nZ];
-//#endif
-        //psiPrev[n] = psi[32+n*c.nZ];
-        //omgPrev[n] = omg[32+n*c.nZ];
-      //}
-    //}
-    //steps++;
-    //computeLinearDerivatives(1);
-    //updateTmpAndOmg();
-//#ifdef DDC
-    //updateXi();
-//#endif
-    //solveForPsi();
-    //t+=dt;
-    //++current%=2;
-  //} 
-  //return 0;
-//}
+  // Stuff for critical rayleigh check
+  real tmpPrev = tmp(nCrit, 32);
+  real psiPrev = psi(nCrit, 32);
+  real omgPrev = omg(nCrit, 32);
+#ifdef DDC
+  real xiPrev = xi(nCrit, 32);
+#endif
+
+  real logTmpPrev = 0.0, logOmgPrev = 0.0, logPsiPrev = 0.0;
+#ifdef DDC
+  real logXiPrev = 0.0;
+#endif
+
+  real tolerance = 1e-10;
+  int steps = 0;
+  t=0;
+  while (t<c.totalTime) {
+    if(steps%500 == 0) {
+      real logTmp = std::log(std::abs(tmp(nCrit,32))) - std::log(std::abs(tmpPrev));
+#ifdef DDC
+      real logXi = std::log(std::abs(xi(nCrit,32))) - std::log(std::abs(xiPrev));
+#endif
+      real logOmg = std::log(std::abs(omg(nCrit,32))) - std::log(std::abs(omgPrev));
+      real logPsi = std::log(std::abs(psi(nCrit,32))) - std::log(std::abs(psiPrev));
+      if(std::abs(logTmp - logTmpPrev)<tolerance and
+#ifdef DDC
+         std::abs(logXi  -  logXiPrev)<tolerance and
+#endif
+         std::abs(logOmg - logOmgPrev)<tolerance and
+         std::abs(logPsi - logPsiPrev)<tolerance) {
+        return logTmp;
+      }
+      logTmpPrev = logTmp;
+#ifdef DDC
+      logXiPrev = logXi;
+#endif
+      logOmgPrev = logOmg;
+      logPsiPrev = logPsi;
+      tmpPrev = tmp(nCrit, 32);
+      psiPrev = psi(nCrit, 32);
+      omgPrev = omg(nCrit, 32);
+#ifdef DDC
+      xiPrev = xi(nCrit, 32);
+#endif
+    }
+
+    steps++;
+    computeLinearDerivatives(1);
+    updateTmpAndOmg();
+#ifdef DDC
+    updateXi();
+#endif
+    solveForPsi();
+    t+=dt;
+    dTmpdt.advanceTimestep();
+    dOmgdt.advanceTimestep();
+  }
+  return 0;
+}

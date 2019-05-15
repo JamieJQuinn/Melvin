@@ -10,25 +10,6 @@ Constants::Constants(const std::string &input) {
   readJson(input);
 }
 
-Constants::Constants(int nZ_in, int nN_in, real initialDt_in, real Ra_in, real Pr_in, int aspectRatio_in, real timeBetweenSaves_in, real totalTime_in, std::string &saveFolder_in, std::string &icFile_in)
-  : nZ {nZ_in}
-  , nN {nN_in}
-  , initialDt {initialDt_in}
-  , Ra {Ra_in}
-  , Pr {Pr_in}
-  , aspectRatio {aspectRatio_in}
-  , timeBetweenSaves {timeBetweenSaves_in}
-  , totalTime {totalTime_in}
-  , saveFolder {saveFolder_in}
-  , icFile {icFile_in}
-#ifdef DDC
-  , RaXi {RaXi_in}
-  , tau {tau_in}
-#endif
-{
-  calculateDerivedConstants();
-}
-
 void Constants::calculateDerivedConstants() {
   nX = nZ*aspectRatio;
   dz = 1.0/(nZ-1);
@@ -42,9 +23,11 @@ void Constants::print() const {
   std::cout << "nN: " << nN << std::endl;
   std::cout << "aspectRatio: " << aspectRatio << std::endl;
   std::cout << "Ra: " << Ra << std::endl;
+  std::cout << "tempGrad: " << tempGrad << std::endl;
 #ifdef DDC
   std::cout << "RaXi: " << RaXi << std::endl;
   std::cout << "tau: " << tau << std::endl;
+  std::cout << "xiGrad: " << xiGrad << std::endl;
 #endif
   std::cout << "Pr: " << Pr << std::endl;
   std::cout << "dt: " << initialDt << std::endl;
@@ -105,12 +88,14 @@ void Constants::readJson(const std::string &filePath) {
   initialDt = j["initialDt"];
   Ra = j["Ra"];
   Pr = j["Pr"];
+  tempGrad = j["tempGrad"];
   aspectRatio = j["aspectRatio"];
   timeBetweenSaves = j["timeBetweenSaves"];
   totalTime = j["totalTime"];
   saveFolder = j["saveFolder"];
   icFile = j["icFile"];
 #ifdef DDC
+  xiGrad = j["xiGrad"];
   RaXi = j["RaXi"];
   tau = j["tau"];
 #endif
@@ -126,12 +111,14 @@ void Constants::writeJson(const std::string &filePath) const {
   j["initialDt"] = initialDt;
   j["Ra"] = Ra;
   j["Pr"] = Pr;
+  j["tempGrad"] = tempGrad;
   j["aspectRatio"] = aspectRatio;
   j["timeBetweenSaves"] = timeBetweenSaves;
   j["totalTime"] = totalTime;
   j["saveFolder"] = saveFolder;
   j["icFile"] = icFile;
 #ifdef DDC
+  j["xiGrad"] = xiGrad;
   j["RaXi"] = RaXi;
   j["tau"] = tau;
 #endif

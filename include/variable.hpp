@@ -8,17 +8,6 @@
 class Variable {
   // Encapsulates an array representing a variable in the model
   public:
-    // get current array
-    //// get array representing the variable nSteps steps in the future
-    //int readFromFile(FILE* fp, int nSteps);
-    //int writeToFile(FILE* fp, int nSteps) const;
-    //int readFromFile(FILE* fp);
-    //int writeToFile(FILE* fp) const;
-    //int len() const;
-    //real operator[](const int i) const;
-    //void print() const;
-    //void printTo(std::ostream& stream) const;
-
     real * getMode(int n);
     real * getPlus(int nSteps=0);
     const real* getPlus(int nSteps) const;
@@ -35,6 +24,8 @@ class Variable {
 
     inline real dfdz(int n, int k) const;
     inline real dfdz2(int n, int k) const;
+
+    void fill(real value);
 
     void writeToFile(std::ofstream& file) const;
     void readFromFile(std::ifstream& file);
