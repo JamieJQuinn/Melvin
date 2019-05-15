@@ -97,49 +97,6 @@ void Sim::saveKineticEnergy() {
   }
 }
 
-//#ifdef DDC
-//void Sim::updateXi(real f=1.0) {
-  //for(int n=0; n<c.nN; ++n) {
-    //for(int k=0; k<c.nZ; ++k) {
-      //xi[n*c.nZ+k] += adamsBashforth(dXidt[current*c.nZ*c.nN+n*c.nZ+k], dXidt[((current+1)%2)*c.nZ*c.nN+n*c.nZ+k], f, dt);
-    //}
-  //} 
-//}
-//#endif
-
-void Sim::updateOmg(real f = 1.0) {
-  // Update variables using Adams-Bashforth Scheme
-  // f is the proportional change between the new dt and old dt
-  // ( if dt changed )
-  for(int n=0; n<c.nN; ++n) {
-    for(int k=0; k<c.nZ; ++k) {
-      omg(n, k) += adamsBashforth(dOmgdt(n, k), dOmgdt.getPrev(n, k), f, dt);
-      assert(!isnan(omg(n, k)));
-    }
-    // check BCs
-    assert(omg(n, 0) < EPSILON);
-    assert(omg(n, c.nZ-1) < EPSILON);
-  }
-}
-
-void Sim::updateTmp(real f=1.0) {
-  for(int n=0; n<c.nN; ++n) {
-    for(int k=0; k<c.nZ; ++k) {
-      tmp(n, k) += adamsBashforth(dTmpdt(n, k), dTmpdt.getPrev(n, k), f, dt);
-      assert(!isnan(tmp(n, k)));
-    }
-    // check BCs
-    if(n>0) {
-      assert(tmp(n, 0) < EPSILON);
-    } else {
-      assert(tmp(n, 0) - 1.0 < EPSILON);
-    }
-    assert(tmp(n, c.nZ-1) < EPSILON);
-  }
-}
-
-
-
 void Sim::computeLinearDerivatives(int linearSim) {
   // Computes the (linear) derivatives of Tmp and omg
   // If linear sim is 0, we start n from 0 and the advection approximation
@@ -156,8 +113,6 @@ void Sim::computeLinearDerivatives(int linearSim) {
 #endif
         dTmpdt(n,k) += -1*c.tempGrad*n*M_PI/c.aspectRatio * psi(n,k);
       }
-      assert(!isnan(tmp.dfdz2(n,k) - pow(n*M_PI/c.aspectRatio, 2)*tmp(n,k)
-        + n*M_PI/c.aspectRatio * psi(n,k)*linearSim));
       dOmgdt(n,k) =
         c.Pr*(omg.dfdz2(n,k) - pow(n*M_PI/c.aspectRatio, 2)*omg(n,k)
         + c.Ra*n*M_PI/c.aspectRatio*tmp(n,k)
@@ -165,7 +120,6 @@ void Sim::computeLinearDerivatives(int linearSim) {
 #ifdef DDC
       dOmgdt(n,k) += -c.c.RaXi*c.tau*c.Pr*(n*M_PI/c.aspectRatio)*xi(n,k);
 #endif
-      assert(dOmgdt(0,k) < EPSILON);
     }
   }
 }
@@ -251,15 +205,35 @@ void Sim::solveForPsi(){
   // Solve for Psi using Thomas algorithm
   for(int n=0; n<c.nN; ++n) {
     thomasAlgorithm->solve(psi.getMode(n), omg.getMode(n), n);
-    // Check Boundary Conditions
+  }
+}
+
+void Sim::applyBoundaryConditions() {
+  // Streamfunction
+  for(int n=0; n<c.nN; ++n) {
     assert(psi(n,0) == 0.0);
     assert(psi(n,c.nZ-1) == 0.0);
   }
-  // Check BCs
   for(int k=0; k<c.nZ; ++k) {
     assert(psi(0,k) < EPSILON);
   }
 
+  // Temp
+  for(int n=0; n<c.nN; ++n) {
+    if(n>0) {
+      assert(tmp(n, 0) < EPSILON);
+    } else {
+      assert(tmp(n, 0) - 1.0 < EPSILON);
+    }
+    assert(tmp(n, c.nZ-1) < EPSILON);
+  }
+
+  // Vorticity
+  for(int n=0; n<c.nN; ++n) {
+    // check BCs
+    assert(omg(n, 0) < EPSILON);
+    assert(omg(n, c.nZ-1) < EPSILON);
+  }
 }
 
 void Sim::printBenchmarkData() const {
@@ -294,6 +268,7 @@ real Sim::calcKineticEnergy() {
 void Sim::runNonLinear() {
   // Load initial conditions
   load(c.icFile);
+
   real saveTime = 0;
   real KEsaveTime = 0;
   real CFLCheckTime = 0;
@@ -316,8 +291,8 @@ void Sim::runNonLinear() {
     }
     computeLinearDerivatives(0);
     computeNonLinearDerivatives();
-    updateTmp(f);
-    updateOmg(f);
+    tmp.update(dTmpdt, dt, f);
+    omg.update(dOmgdt, dt, f);
     f=1.0f;
     solveForPsi();
     t+=dt;
@@ -379,10 +354,10 @@ real Sim::findCriticalRa(int nCrit) {
 
     steps++;
     computeLinearDerivatives(1);
-    updateTmp();
-    updateOmg();
+    tmp.update(dTmpdt, dt);
+    omg.update(dOmgdt, dt);
 #ifdef DDC
-    updateXi();
+    xi.update(dXidt, dt);
 #endif
     solveForPsi();
     t+=dt;

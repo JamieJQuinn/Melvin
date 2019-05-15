@@ -51,14 +51,10 @@ class Sim {
     void saveKineticEnergy();
 
     // Simulation functions
-    void updateTmp(real f);
-    void updateOmg(real f);
-#ifdef DDC
-    void updateXi(real f);
-#endif
     void computeLinearDerivatives(int linearSim = 1);
     void computeNonLinearDerivatives();
     void solveForPsi();
+    void applyBoundaryConditions();
 
     // Runs the linear simulation
     void runNonLinear();

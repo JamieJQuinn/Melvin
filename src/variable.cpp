@@ -2,6 +2,7 @@
 #include <precision.hpp>
 #include <numerical_methods.hpp>
 #include <cassert>
+#include <cmath>
 
 real* Variable::getPlus(int nSteps) {
   return data + ((current+nSteps)%totalSteps)*varSize();
@@ -22,6 +23,14 @@ void Variable::advanceTimestep(int nSteps) {
   current = (current + nSteps)%totalSteps;
 }
 
+bool Variable::anyNan() const {
+  for(int i=0; i<this->totalSize(); ++i) {
+    if(std::isnan(data[i])) {
+      return true;
+    }
+  }
+  return false;
+}
 
 void Variable::writeToFile(std::ofstream& file) const {
   for(int i=0; i<totalSteps; ++i) {
@@ -38,6 +47,14 @@ void Variable::readFromFile(std::ifstream& file) {
 void Variable::fill(real value) {
   for(int i=0; i<this->totalSize(); ++i) {
     data[i] = value;
+  }
+}
+
+void Variable::update(const Variable& dVardt, const real dt, const real f) {
+  for(int n=0; n<nN; ++n) {
+    for(int k=0; k<nZ; ++k) {
+      (*this)(n, k) += adamsBashforth(dVardt(n, k), dVardt.getPrev(n, k), f, dt);
+    }
   }
 }
 

@@ -25,6 +25,10 @@ class Variable {
     inline real dfdz(int n, int k) const;
     inline real dfdz2(int n, int k) const;
 
+    void update(const Variable& dVardt, const real dt, const real f=1.0);
+
+    bool anyNan() const;
+
     void fill(real value);
 
     void writeToFile(std::ofstream& file) const;
