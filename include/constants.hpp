@@ -10,11 +10,9 @@ class Constants {
     real initialDt;
     real Ra;
     int tempGrad;
-#ifdef DDC
     real RaXi;
     real tau;
     int xiGrad;
-#endif
     real Pr;
     int aspectRatio;
     real timeBetweenSaves;

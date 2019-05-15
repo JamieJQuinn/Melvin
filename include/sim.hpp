@@ -23,10 +23,6 @@ class Sim {
     Variable psi; // Stream function (Psi)
     Variable omg; // Vorticity (Omega)
     Variable tmp; // Temperature
-#ifdef DDC
-    Variable xi;  // Salt concentration
-    Variable dXidt; // d/dt of salt concentration
-#endif
 
     Variable dTmpdt; // d/dt of temperature
     Variable dOmgdt; // d/dt of vorticty
@@ -54,9 +50,11 @@ class Sim {
     void solveForPsi();
     void applyBoundaryConditions();
 
-    // Runs the linear simulation
     void runNonLinear();
+
+    // Runs the linear simulation
     void initialLinearConditions();
-    real isCritical(int nCrit);
+    bool isCritical(int nCrit);
     real findCriticalRa(int nCrit);
+    virtual void runLinearStep();
 };

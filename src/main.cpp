@@ -4,6 +4,7 @@
 
 #include <sim.hpp>
 #include <precision.hpp>
+#include <double_diffusive_sim.hpp>
 
 #define strVar(variable) #variable
 #define OMEGA 2*M_PI*4
@@ -33,7 +34,13 @@ int main(int argc, char** argv) {
   }
   c.print();
 
+#ifndef DDC
   Sim simulation(c);
+#endif
+
+#ifdef DDC
+  DoubleDiffusiveSimulation simulation(c);
+#endif
 
 #ifdef NONLINEAR
   cout << "NONLINEAR" << endl;
@@ -43,19 +50,25 @@ int main(int argc, char** argv) {
 #ifdef LINEAR
   cout << "LINEAR" << endl;
   int nCritAnalytical = c.aspectRatio/sqrt(2) + 0.5;
-  real RaCrit = pow(M_PI/c.aspectRatio, 4) * pow(pow(nCritAnalytical,2) + pow(c.aspectRatio,2), 3) / pow(nCritAnalytical,2);
+  real Ra_mn = pow(M_PI/c.aspectRatio, 4) * pow(pow(nCritAnalytical,2) + pow(c.aspectRatio,2), 3) / pow(nCritAnalytical,2);
+  real RaCrit = Ra_mn;
 
 #ifdef DDC
-  RaCrit = c.RaXi - RaCrit;
+  if(c.tempGrad > 0) {
+    RaCrit = c.RaXi - Ra_mn;
+  } else {
+    RaCrit = Ra_mn;
+  }
 #endif
 
   cout << "Critical mode should be " << nCritAnalytical << endl;
-  cout << "Corresponding Ra is " << RaCrit << endl;
+  cout << "Corresponding Ra_mn is " << Ra_mn << endl;
+  cout << "And RaCrit is " << RaCrit << endl;
 
   simulation.c.Ra = RaCrit - 2;
   cout << "Testing Ra = " << simulation.c.Ra << endl;
   bool isBelowCritical = simulation.isCritical(nCritAnalytical);
-  cout << "Below this, critial = " << isBelowCritical << endl;
+  cout << "Below this, critical = " << isBelowCritical << endl;
   if(simulation.isFinished()) {
     cout << "Total time breached." << endl;
     return -1;
@@ -65,7 +78,7 @@ int main(int argc, char** argv) {
   cout << "Testing Ra = " << simulation.c.Ra << endl;
   simulation.reinit();
   bool isAboveCritical = simulation.isCritical(nCritAnalytical);
-  cout << "Above this, critial = " << isAboveCritical << endl;
+  cout << "Above this, critical = " << isAboveCritical << endl;
   if(simulation.isFinished()) {
     cout << "Total time breached." << endl;
     return -1;
@@ -76,14 +89,14 @@ int main(int argc, char** argv) {
 #endif
 
 #ifdef DDC
-  bool success = not (isAboveCritical and (not isBelowCritical));
+  bool success = (not isAboveCritical) and isBelowCritical;
 #endif
 
   if(success) {
-    cout << "Critical Ra confirmed." << endl;
+    cout << "Critical Ra FOUND." << endl;
     return 1;
   } else {
-    cout << "Critical Ra not found." << endl;
+    cout << "Critical Ra NOT FOUND." << endl;
     return -1;
   }
 #endif

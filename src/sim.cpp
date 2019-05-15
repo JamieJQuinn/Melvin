@@ -16,10 +16,6 @@ Sim::Sim(const Constants &c_in)
   , psi(c_in)
   , omg(c_in)
   , tmp(c_in)
-#ifdef DDC
-  , xi(c_in)
-  , dXidt(c_in, 2)
-#endif
   , dTmpdt(c_in, 2)
   , dOmgdt(c_in, 2)
 {
@@ -72,10 +68,6 @@ void Sim::reinit() {
   psi.fill(0.0);
   dTmpdt.fill(0.0);
   dOmgdt.fill(0.0);
-#ifdef DDC
-  xi.fill(0.0);
-  dXidt.fill(0.0);
-#endif
 }
 
 void Sim::saveKineticEnergy() {
@@ -102,16 +94,10 @@ void Sim::computeLinearDerivatives() {
   for(int n=0; n<c.nN; ++n) {
     for(int k=1; k<c.nZ-1; ++k) {
       dTmpdt(n,k) = tmp.dfdz2(n,k) - pow(n*M_PI/c.aspectRatio, 2)*tmp(n,k);
-#ifdef DDC
-      dXidt(n,k) = c.tau*(xi.dfdz2(n,k) - pow(n*M_PI/c.aspectRatio, 2)*xi(n,k));
-#endif
       dOmgdt(n,k) =
         c.Pr*(omg.dfdz2(n,k) - pow(n*M_PI/c.aspectRatio, 2)*omg(n,k)
         + c.Ra*n*M_PI/c.aspectRatio*tmp(n,k)
         );
-#ifdef DDC
-      dOmgdt(n,k) += -c.RaXi*c.tau*c.Pr*(n*M_PI/c.aspectRatio)*xi(n,k);
-#endif
     }
   }
 }
@@ -121,15 +107,9 @@ void Sim::addAdvectionApproximation() {
   for(int k=1; k<c.nZ-1; ++k) {
     dOmgdt(0,k) = 0.0;
     dTmpdt(0,k) = 0.0;
-#ifdef DDC
-    dXidt(0,k) = 0.0;
-#endif
   }
   for(int n=1; n<c.nN; ++n) {
     for(int k=1; k<c.nZ-1; ++k) {
-#ifdef DDC
-      dXidt(n,k) += -1*c.xiGrad*n*M_PI/c.aspectRatio * psi(n,k);
-#endif
       dTmpdt(n,k) += -1*c.tempGrad*n*M_PI/c.aspectRatio * psi(n,k);
     }
   }
@@ -317,16 +297,13 @@ void Sim::runNonLinear() {
 void Sim::initialLinearConditions() {
   for(int n=1; n<c.nN; ++n) {
     for(int k=0; k<c.nZ; ++k) {
-      tmp(n,k) = sin(M_PI * k*c.dz);
-#ifdef DDC
-      xi(n,k) = sin(M_PI * k*c.dz);
-#endif
+      tmp(n,k) = 0.1*sin(M_PI * k*c.dz);
     }
   }
 }
 
-real Sim::isCritical(int nCrit) {
-  return findCriticalRa(nCrit);
+bool Sim::isCritical(int nCrit) {
+  return findCriticalRa(nCrit) > 0.0;
 }
 
 real Sim::isFinished() {
@@ -340,14 +317,9 @@ real Sim::findCriticalRa(int nCrit) {
   real tmpPrev = tmp(nCrit, 32);
   real psiPrev = psi(nCrit, 32);
   real omgPrev = omg(nCrit, 32);
-#ifdef DDC
-  real xiPrev = xi(nCrit, 32);
-#endif
 
   real logTmpPrev = 0.0, logOmgPrev = 0.0, logPsiPrev = 0.0;
-#ifdef DDC
-  real logXiPrev = 0.0;
-#endif
+  real kePrev = 0.0;
 
   real tolerance = 1e-8;
   int steps = 0;
@@ -355,46 +327,36 @@ real Sim::findCriticalRa(int nCrit) {
   while (t<c.totalTime) {
     if(steps%500 == 0) {
       real logTmp = std::log(std::abs(tmp(nCrit,32))) - std::log(std::abs(tmpPrev));
-#ifdef DDC
-      real logXi = std::log(std::abs(xi(nCrit,32))) - std::log(std::abs(xiPrev));
-#endif
       real logOmg = std::log(std::abs(omg(nCrit,32))) - std::log(std::abs(omgPrev));
       real logPsi = std::log(std::abs(psi(nCrit,32))) - std::log(std::abs(psiPrev));
       if(std::abs(logTmp - logTmpPrev)<tolerance and
-#ifdef DDC
-         std::abs(logXi  -  logXiPrev)<tolerance and
-#endif
          std::abs(logOmg - logOmgPrev)<tolerance and
          std::abs(logPsi - logPsiPrev)<tolerance) {
         return logTmp;
       }
-      //cout << logTmp << logXi << logOmg << logPsi << endl;
       logTmpPrev = logTmp;
-#ifdef DDC
-      logXiPrev = logXi;
-#endif
       logOmgPrev = logOmg;
       logPsiPrev = logPsi;
       tmpPrev = tmp(nCrit, 32);
       psiPrev = psi(nCrit, 32);
       omgPrev = omg(nCrit, 32);
-#ifdef DDC
-      xiPrev = xi(nCrit, 32);
-#endif
+
+      saveKineticEnergy();
     }
 
     steps++;
-    computeLinearDerivatives();
-    addAdvectionApproximation();
-    tmp.update(dTmpdt, dt);
-    omg.update(dOmgdt, dt);
-#ifdef DDC
-    xi.update(dXidt, dt);
-#endif
-    solveForPsi();
-    t+=dt;
-    dTmpdt.advanceTimestep();
-    dOmgdt.advanceTimestep();
+    runLinearStep();
   }
   return 0;
+}
+
+void Sim::runLinearStep() {
+  computeLinearDerivatives();
+  addAdvectionApproximation();
+  tmp.update(dTmpdt, dt);
+  omg.update(dOmgdt, dt);
+  solveForPsi();
+  t+=dt;
+  dTmpdt.advanceTimestep();
+  dOmgdt.advanceTimestep();
 }
