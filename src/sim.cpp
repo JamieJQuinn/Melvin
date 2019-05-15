@@ -326,13 +326,7 @@ void Sim::initialLinearConditions() {
 }
 
 real Sim::isCritical(int nCrit) {
-  real logTmp = findCriticalRa(nCrit);
-#ifdef DDC
-  return logTmp < 0.0;
-#endif
-#ifndef DDC
-  return logTmp > 0.0;
-#endif
+  return findCriticalRa(nCrit);
 }
 
 real Sim::isFinished() {
