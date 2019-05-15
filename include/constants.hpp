@@ -1,27 +1,28 @@
 #pragma once
 
 #include <string>
+#include "precision.hpp"
 
 class Constants {
   public:
     int nZ;
     int nN;
-    double initialDt;
-    double Ra;
+    real initialDt;
+    real Ra;
 #ifdef DDC
-    double RaXi;
-    double tau;
+    real RaXi;
+    real tau;
 #endif
-    double Pr;
+    real Pr;
     int aspectRatio;
-    double timeBetweenSaves;
-    double totalTime;
+    real timeBetweenSaves;
+    real totalTime;
 
     // Derived ants
-    double dz;
-    double dx;
+    real dz;
+    real dx;
     int nX;
-    double oodz2;
+    real oodz2;
 
     // I/O files
     std::string saveFolder;
@@ -29,7 +30,7 @@ class Constants {
 
     Constants();
     Constants(const std::string &input);
-    Constants(int nZ_in, int nN_in, double initialDt_in, double Ra_in, double Pr_in, int aspectRatio_in, double timeBetweenSaves_in, double totalTime_in, std::string &saveFolder_in, std::string &icFile_in);
+    Constants(int nZ_in, int nN_in, real initialDt_in, real Ra_in, real Pr_in, int aspectRatio_in, real timeBetweenSaves_in, real totalTime_in, std::string &saveFolder_in, std::string &icFile_in);
 
     void calculateDerivedConstants();
 

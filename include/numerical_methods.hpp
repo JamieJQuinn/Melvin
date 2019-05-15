@@ -1,6 +1,8 @@
 #pragma once
 
-double dfdz(double *f, int k, double dz);
-double dfdz2(double *f, int k, double dz);
-double adamsBashforth(double dfdt_current, double dfdt_prev, double frac, double dt);
-double checkCFL(double* psi, double dz, double dx, double dt, int a, int nN, int nX, int nZ);
+#include "precision.hpp"
+
+real dfdz(real *f, int k, real dz);
+real dfdz2(real *f, int k, real dz);
+real adamsBashforth(real dfdt_current, real dfdt_prev, real frac, real dt);
+real checkCFL(real* psi, real dz, real dx, real dt, int a, int nN, int nX, int nZ);

@@ -4,27 +4,27 @@
 
 using namespace std;
 
-double adamsBashforth(double dfdt_current, double dfdt_prev, double frac, double dt) {
+real adamsBashforth(real dfdt_current, real dfdt_prev, real frac, real dt) {
   // Calcs X in equation T_{n+1} = T_{n} + X
   return ((2.0+frac)*dfdt_current - frac*dfdt_prev)*dt/2.0;
 }
 
-double dfdz(double *f, int k, double dz) {
+real dfdz(real *f, int k, real dz) {
   return (f[k+1]-f[k-1])/(2*dz);
 }
 
-double dfdz2(double *f, int k, double dz) {
+real dfdz2(real *f, int k, real dz) {
   return (f[k+1] - 2*f[k] + f[k-1])/pow(dz,2);
 }
 
-double checkCFL(double* psi, double dz, double dx, double dt, int a, int nN, int nX, int nZ) {
-  double vxMax = 0.0f;
-  double vzMax = 0.0f;
-  double f=1.0f;
+real checkCFL(real* psi, real dz, real dx, real dt, int a, int nN, int nX, int nZ) {
+  real vxMax = 0.0f;
+  real vzMax = 0.0f;
+  real f=1.0f;
   for(int j=1; j<nX-1; ++j) {
     for(int k=1; k<nZ-1; ++k) {
-      double vx = 0.0;
-      double vz = 0.0;
+      real vx = 0.0;
+      real vz = 0.0;
       for(int n=0; n<nN; ++n) {
         vx += dfdz(psi, n*nZ+k, dz)*sin(n*M_PI*j*dx/a);
         vz += n*M_PI/a*psi[n*nZ+k]*cos(n*M_PI*j*dx/a);

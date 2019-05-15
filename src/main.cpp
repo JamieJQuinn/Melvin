@@ -40,17 +40,17 @@ int main(int argc, char** argv) {
 #endif
 #ifdef LINEAR
   cout << "LINEAR" << endl;
-  double initialRa = simulation.Ra;
-  double RaCrits [10];
+  real initialRa = simulation.Ra;
+  real RaCrits [10];
   for(int n=1; n<11; ++n){
     cout << "Finding critical Ra for n=" << n << endl;
-    double RaLower = 0.0;
-    double RaUpper = initialRa;
+    real RaLower = 0.0;
+    real RaUpper = initialRa;
     while(std::abs(RaLower - RaUpper) > 1e-3) {
       simulation.reinit();
       simulation.Ra = (RaUpper+RaLower)/2;
       cout << "Trying Ra=" << simulation.Ra << endl;
-      double result = simulation.runLinear(n);
+      real result = simulation.runLinear(n);
 #ifdef DDC
       if(result > 0.0) {
         RaLower = simulation.Ra;

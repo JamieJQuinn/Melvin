@@ -22,17 +22,17 @@ Sim::Sim(const Constants &c_in)
   dt = c.initialDt;
 
   // Initialise Arrays
-  psi = new double [c.nN*c.nZ];
-  omg = new double [c.nN*c.nZ];
-  tmp = new double [c.nN*c.nZ];
+  psi = new real [c.nN*c.nZ];
+  omg = new real [c.nN*c.nZ];
+  tmp = new real [c.nN*c.nZ];
 
 #ifdef DDC
-  xi = new double [c.nN*c.nZ];
-  dXidt = new double [2*c.nN*c.nZ];
+  xi = new real [c.nN*c.nZ];
+  dXidt = new real [2*c.nN*c.nZ];
 #endif
 
-  dTmpdt = new double [2*c.nN*c.nZ];
-  dOmgdt = new double [2*c.nN*c.nZ];
+  dTmpdt = new real [2*c.nN*c.nZ];
+  dOmgdt = new real [2*c.nN*c.nZ];
 
   for(int i=0; i<c.nZ*c.nN; ++i) {
     psi[i] = 0.0;
@@ -105,7 +105,7 @@ void Sim::save() {
   file.close();
 }
 
-void Sim::load( double* tmp, double* omg, double* psi, const std::string &icFile) {
+void Sim::load( real* tmp, real* omg, real* psi, const std::string &icFile) {
   std::ifstream file (c.icFile, std::ios::in | std::ios::binary);
   if(file.is_open()) {
     file.read(reinterpret_cast<char*>(tmp), sizeof(tmp[0])*c.nN*c.nZ);
@@ -124,24 +124,24 @@ void Sim::load( double* tmp, double* omg, double* psi, const std::string &icFile
 void Sim::saveKineticEnergy() {
   // Save total energy
   std::ofstream file (c.saveFolder+"KineticEnergy"+std::string(".dat"), std::ios::out | std::ios::app | std::ios::binary);
-  double ke = calcKineticEnergy();
+  real ke = calcKineticEnergy();
   kePrev = keCurrent;
   keCurrent = ke;
-  file.write(reinterpret_cast<char*>(&ke), sizeof(double));
+  file.write(reinterpret_cast<char*>(&ke), sizeof(real));
   file.flush();
   file.close();
   // save energy per mode
   for(int n=1; n<c.nN; ++n) {
     std::ofstream file (c.saveFolder+"KineticEnergyMode"+strFromNumber(n)+std::string(".dat"), std::ios::out | std::ios::app | std::ios::binary);
-    double ke = calcKineticEnergyForMode(n);
-    file.write(reinterpret_cast<char*>(&ke), sizeof(double));
+    real ke = calcKineticEnergyForMode(n);
+    file.write(reinterpret_cast<char*>(&ke), sizeof(real));
     file.flush();
     file.close();
   }
 }
 
 #ifdef DDC
-void Sim::updateXi(double f=1.0) {
+void Sim::updateXi(real f=1.0) {
   for(int n=0; n<c.nN; ++n) {
     for(int k=0; k<c.nZ; ++k) {
       xi[n*c.nZ+k] += adamsBashforth(dXidt[current*c.nZ*c.nN+n*c.nZ+k], dXidt[((current+1)%2)*c.nZ*c.nN+n*c.nZ+k], f, dt);
@@ -150,7 +150,7 @@ void Sim::updateXi(double f=1.0) {
 }
 #endif
 
-void Sim::updateTmpAndOmg(double f = 1.0) {
+void Sim::updateTmpAndOmg(real f = 1.0) {
   // Update variables using Adams-Bashforth Scheme
   // f is the proportional change between the new dt and old dt
   // ( if dt changed )
@@ -314,10 +314,10 @@ void Sim::solveForPsi(){
 
 }
 
-void Sim::printMaxOf(double *a, std::string name) {
+void Sim::printMaxOf(real *a, std::string name) {
   int nStart = 0; // n level to start from
   // Find max
-  double max = a[nStart*c.nZ];
+  real max = a[nStart*c.nZ];
   int maxLoc[] = {0, nStart};
   for(int n=nStart; n<c.nN; ++n) {
     for(int k=0; k<c.nZ; ++k) {
@@ -339,10 +339,10 @@ void Sim::printBenchmarkData() {
   }
 }
 
-double Sim::calcKineticEnergyForMode(int n) {
-  double z0 = 0.0; // limits of integration
-  double z1 = 1.0;
-  double ke = 0; // Kinetic energy
+real Sim::calcKineticEnergyForMode(int n) {
+  real z0 = 0.0; // limits of integration
+  real z1 = 1.0;
+  real ke = 0; // Kinetic energy
     ke += pow(n*M_PI/c.aspectRatio*psi[n*c.nZ+0], 2)/2.0; // f(0)/2
     ke += pow(n*M_PI/c.aspectRatio*psi[n*c.nZ+(c.nZ-1)], 2)/2.0; // f(1)/2
     for(int k=1; k<c.nZ-1; ++k) {
@@ -354,9 +354,9 @@ double Sim::calcKineticEnergyForMode(int n) {
   return ke;
 }
 
-double Sim::calcKineticEnergy() {
+real Sim::calcKineticEnergy() {
   // Uses trapezeoid rule to calc kinetic energy for each mode
-  double ke = 0.0;
+  real ke = 0.0;
   for(int n=0; n<c.nN; ++n) {
     ke += calcKineticEnergyForMode(n);
   }
@@ -367,10 +367,10 @@ void Sim::runNonLinear() {
   // Load initial conditions
   load(tmp, omg, psi, c.icFile);
   current = 0;
-  double saveTime = 0;
-  double KEsaveTime = 0;
-  double CFLCheckTime = 0;
-  double f = 1.0f; // Fractional change in dt (if CFL condition being breached)
+  real saveTime = 0;
+  real KEsaveTime = 0;
+  real CFLCheckTime = 0;
+  real f = 1.0f; // Fractional change in dt (if CFL condition being breached)
   t = 0;
   while (c.totalTime-t>EPSILON) {
     if(KEsaveTime-t < EPSILON) {
@@ -400,15 +400,15 @@ void Sim::runNonLinear() {
   save();
 }
 
-double Sim::runLinear(int nCrit) {
+real Sim::runLinear(int nCrit) {
   // Initial Conditions
   // Let psi = omg = dtmpdt = domgdt = 0
   // Let tmp[n>0] = sin(PI*z)
   // and tmp[n=0] = (1-z)/N
   // For DDC Salt-fingering
-  double tmpGrad = 1;
+  real tmpGrad = 1;
 #ifdef DDC
-  double xiGrad = 1;
+  real xiGrad = 1;
 #endif
   /*
   // For DDC SemiConvection
@@ -453,12 +453,12 @@ double Sim::runLinear(int nCrit) {
   }
 
   // Stuff for critical rayleigh check
-  double tmpPrev[c.nN];
+  real tmpPrev[c.nN];
 #ifdef DDC
-  double xiPrev[c.nN];
+  real xiPrev[c.nN];
 #endif
-  double omgPrev[c.nN];
-  double psiPrev[c.nN];
+  real omgPrev[c.nN];
+  real psiPrev[c.nN];
   for(int n=0; n<c.nN; ++n){
     tmpPrev[n] = tmp[32+n*c.nZ];
 #ifdef DDC
@@ -467,24 +467,24 @@ double Sim::runLinear(int nCrit) {
     psiPrev[n] = psi[32+n*c.nZ];
     omgPrev[n] = omg[32+n*c.nZ];
   }
-  double logTmpPrev = 0.0;
+  real logTmpPrev = 0.0;
 #ifdef DDC
-  double logXiPrev = 0.0;
+  real logXiPrev = 0.0;
 #endif
-  double logPsiPrev =0.0;
-  double logOmgPrev =0.0;
-  double tolerance = 1e-10;
+  real logPsiPrev =0.0;
+  real logOmgPrev =0.0;
+  real tolerance = 1e-10;
   current = 0;
   int steps = 0;
   t=0;
   while (t<c.totalTime) {
     if(steps%500 == 0) {
-      double logTmp = std::log(std::abs(tmp[32+nCrit*c.nZ])) - std::log(std::abs(tmpPrev[nCrit]));
+      real logTmp = std::log(std::abs(tmp[32+nCrit*c.nZ])) - std::log(std::abs(tmpPrev[nCrit]));
 #ifdef DDC
-      double logXi = std::log(std::abs(xi[32+nCrit*c.nZ])) - std::log(std::abs(xiPrev[nCrit]));
+      real logXi = std::log(std::abs(xi[32+nCrit*c.nZ])) - std::log(std::abs(xiPrev[nCrit]));
 #endif
-      double logOmg = std::log(std::abs(omg[32+nCrit*c.nZ])) - std::log(std::abs(omgPrev[nCrit]));
-      double logPsi = std::log(std::abs(psi[32+nCrit*c.nZ])) - std::log(std::abs(psiPrev[nCrit]));
+      real logOmg = std::log(std::abs(omg[32+nCrit*c.nZ])) - std::log(std::abs(omgPrev[nCrit]));
+      real logPsi = std::log(std::abs(psi[32+nCrit*c.nZ])) - std::log(std::abs(psiPrev[nCrit]));
       if(std::abs(logTmp - logTmpPrev)<tolerance) {
 #ifdef DDC
       if(std::abs(logXi - logXiPrev)<tolerance) {

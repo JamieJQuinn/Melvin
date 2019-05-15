@@ -2,37 +2,38 @@
 
 #include "thomas_algorithm.hpp"
 #include "constants.hpp"
+#include "precision.hpp"
 
 class Sim {
   public:
     bool modifydt; // has dt been modified?
     int current; // which array is the current derivative in?
-    double t; // current time
-    double dt; // current timestep
+    real t; // current time
+    real dt; // current timestep
     int saveNumber; // Current save file
     int KEsaveNumber; // Current kinetic energy save file
 
     // Gradients HACK - this needs refactored somewhere - into Constants?
-    double tmpGrad;
-    double xiGrad;
+    real tmpGrad;
+    real xiGrad;
 
     // Kinetic Energy tracker
-    double kePrev;
-    double keCurrent;
+    real kePrev;
+    real keCurrent;
 
     const Constants c;
 
     // Variable arrays
-    double * psi; // Stream function (Psi)
-    double * omg; // Vorticity (Omega)
-    double * tmp; // Temperature
+    real * psi; // Stream function (Psi)
+    real * omg; // Vorticity (Omega)
+    real * tmp; // Temperature
 #ifdef DDC
-    double * xi;  // Salt concentration
-    double * dXidt; // d/dt of salt concentration
+    real * xi;  // Salt concentration
+    real * dXidt; // d/dt of salt concentration
 #endif
 
-    double * dOmgdt; // d/dt of vorticty
-    double * dTmpdt; // d/dt of temperature
+    real * dOmgdt; // d/dt of vorticty
+    real * dTmpdt; // d/dt of temperature
 
     ThomasAlgorithm *thomasAlgorithm;
 
@@ -40,25 +41,25 @@ class Sim {
     ~Sim();
 
     // Helper functions
-    void printMaxOf(double *a, std::string name);
+    void printMaxOf(real *a, std::string name);
     void printBenchmarkData();
     void save();
-    void load(double* tmp, double* omg, double* psi, const std::string &icFile);
+    void load(real* tmp, real* omg, real* psi, const std::string &icFile);
     void reinit();
-    double calcKineticEnergy();
-    double calcKineticEnergyForMode(int n);
+    real calcKineticEnergy();
+    real calcKineticEnergyForMode(int n);
     void saveKineticEnergy();
 
     // Simulation functions
-    void updateTmpAndOmg(double f);
+    void updateTmpAndOmg(real f);
 #ifdef DDC
-    void updateXi(double f);
+    void updateXi(real f);
 #endif
     void computeLinearDerivatives(int linearSim = 1);
     void computeNonLinearDerivatives();
     void solveForPsi();
 
     // Runs the linear simulation
-    double runLinear(int);
+    real runLinear(int);
     void runNonLinear();
 };

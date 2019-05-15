@@ -8,17 +8,17 @@ ThomasAlgorithm::~ThomasAlgorithm() {
   delete[] sub;
 }
 
-ThomasAlgorithm::ThomasAlgorithm(const int nZ, const int nN, const int a, const double oodz2) :
+ThomasAlgorithm::ThomasAlgorithm(const int nZ, const int nN, const int a, const real oodz2) :
 nZ {nZ},
 oodz2 {oodz2}
 {
-  wk1 = new double [nN*nZ];
-  wk2 = new double [nN*nZ];
-  sub = new double [nZ];
+  wk1 = new real [nN*nZ];
+  wk2 = new real [nN*nZ];
+  sub = new real [nZ];
 
   // Precalculate tridiagonal arrays
-  double * dia = new double [nZ];
-  double * sup = new double [nZ];
+  real * dia = new real [nZ];
+  real * sup = new real [nZ];
   for(int k=0; k<nZ; ++k) {
     sub[k] = sup[k] = -oodz2;
   }
@@ -42,8 +42,8 @@ oodz2 {oodz2}
 }
 
 void ThomasAlgorithm::formTriDiagonalArraysForN (
-          const double *sub, const double *dia, const double *sup,
-    double * wk1, double *wk2) {
+          const real *sub, const real *dia, const real *sup,
+    real * wk1, real *wk2) {
   assert(dia[0] != 0.0);
 
   wk1[0] = 1.0/dia[0];
@@ -61,7 +61,7 @@ void ThomasAlgorithm::formTriDiagonalArraysForN (
   wk1[nZ-1] = 1.0/(dia[nZ-1] - sub[nZ-2]*wk2[nZ-2]);
 }
 
-void ThomasAlgorithm::solve(double *sol, const double *rhs, const int n) const {
+void ThomasAlgorithm::solve(real *sol, const real *rhs, const int n) const {
   // Solves the tridiagonal system represented by sub, dia and sup.
   // If sub, dia and sup do not change, they can be rolled into wk1 and wk2
   // using formTridiArrays() and simply saved

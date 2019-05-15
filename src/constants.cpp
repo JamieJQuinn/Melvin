@@ -10,7 +10,7 @@ Constants::Constants(const std::string &input) {
   readJson(input);
 }
 
-Constants::Constants(int nZ_in, int nN_in, double initialDt_in, double Ra_in, double Pr_in, int aspectRatio_in, double timeBetweenSaves_in, double totalTime_in, std::string &saveFolder_in, std::string &icFile_in)
+Constants::Constants(int nZ_in, int nN_in, real initialDt_in, real Ra_in, real Pr_in, int aspectRatio_in, real timeBetweenSaves_in, real totalTime_in, std::string &saveFolder_in, std::string &icFile_in)
   : nZ {nZ_in}
   , nN {nN_in}
   , initialDt {initialDt_in}
@@ -32,7 +32,7 @@ Constants::Constants(int nZ_in, int nN_in, double initialDt_in, double Ra_in, do
 void Constants::calculateDerivedConstants() {
   nX = nZ*aspectRatio;
   dz = 1.0/(nZ-1);
-  dx = double(aspectRatio)/(nX-1);
+  dx = real(aspectRatio)/(nX-1);
   oodz2 = pow(1.0/dz, 2);
 }
 
