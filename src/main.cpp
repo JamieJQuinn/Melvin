@@ -51,34 +51,38 @@ int main(int argc, char** argv) {
     cout << "Finding critical Ra for n=" << n << endl;
     real RaLower = 0.0;
     real RaUpper = initialRa;
-    while(std::abs(RaLower - RaUpper) > 1e-1) {
+    while(std::abs(RaLower - RaUpper) > 1) {
       simulation.reinit();
       simulation.c.Ra = (RaUpper+RaLower)/2;
       cout << "Trying Ra=" << simulation.c.Ra << endl;
-      real result = simulation.findCriticalRa(n);
-#ifdef DDC
-      if(result > 0.0) {
-        RaLower = simulation.c.Ra;
-      } else if(result < 0.0) {
-        RaUpper = simulation.c.Ra;
-      } else {
+      bool isCritical = simulation.isCritical(n);
+      if(simulation.isFinished()) {
         cout << "Total time breached." << endl;
         break;
       }
+      if(isCritical) {
+#ifdef DDC
+        // Let's raise Ra to damp xi instability
+        RaLower = simulation.c.Ra;
 #endif
 #ifndef DDC
-      if(result < 0.0) {
-        RaLower = simulation.c.Ra;
-      } else if(result > 0.0) {
+        // Upper bound is critical, let's lower it
         RaUpper = simulation.c.Ra;
-      } else {
-        cout << "Total time breached." << endl;
-        break;
-      }
 #endif
-    }
+      } else {
 #ifdef DDC
-    cout << "Critical Ra for n=" << n << " is Ra=" << c.RaXi - simulation.c.Ra << endl;
+        // Let's lower Ra to enhance xi instability
+        RaUpdder = simulation.c.Ra;
+#endif
+#ifndef DDC
+        // Lower bound is critical, let's raise it
+        RaLower = simulation.c.Ra;
+#endif
+      }
+    }
+
+#ifdef DDC
+    cout << "Critical Ra for n=" << n << " is RaXi - Ra =" << c.RaXi - simulation.c.Ra << endl;
 #endif
 #ifndef DDC
     cout << "Critical Ra for n=" << n << " is Ra=" << simulation.c.Ra << endl;

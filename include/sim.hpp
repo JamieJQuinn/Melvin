@@ -45,6 +45,7 @@ class Sim {
     real calcKineticEnergy();
     real calcKineticEnergyForMode(int n);
     void saveKineticEnergy();
+    real isFinished();
 
     // Simulation functions
     void computeLinearDerivatives();
@@ -56,5 +57,6 @@ class Sim {
     // Runs the linear simulation
     void runNonLinear();
     void initialLinearConditions();
+    real isCritical(int nCrit);
     real findCriticalRa(int nCrit);
 };

@@ -315,11 +315,28 @@ void Sim::runNonLinear() {
 }
 
 void Sim::initialLinearConditions() {
-  for(int n=0; n<c.nN; ++n) {
+  for(int n=1; n<c.nN; ++n) {
     for(int k=0; k<c.nZ; ++k) {
       tmp(n,k) = sin(M_PI * k*c.dz);
+#ifdef DDC
+      xi(n,k) = sin(M_PI * k*c.dz);
+#endif
     }
   }
+}
+
+real Sim::isCritical(int nCrit) {
+  real logTmp = findCriticalRa(nCrit);
+#ifdef DDC
+  return logTmp < 0.0;
+#endif
+#ifndef DDC
+  return logTmp > 0.0;
+#endif
+}
+
+real Sim::isFinished() {
+  return t > c.totalTime;
 }
 
 real Sim::findCriticalRa(int nCrit) {
@@ -357,6 +374,7 @@ real Sim::findCriticalRa(int nCrit) {
          std::abs(logPsi - logPsiPrev)<tolerance) {
         return logTmp;
       }
+      //cout << logTmp << logXi << logOmg << logPsi << endl;
       logTmpPrev = logTmp;
 #ifdef DDC
       logXiPrev = logXi;
