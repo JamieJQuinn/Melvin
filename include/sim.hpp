@@ -51,7 +51,8 @@ class Sim {
     void saveKineticEnergy();
 
     // Simulation functions
-    void updateTmpAndOmg(real f);
+    void updateTmp(real f);
+    void updateOmg(real f);
 #ifdef DDC
     void updateXi(real f);
 #endif

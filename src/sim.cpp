@@ -107,17 +107,26 @@ void Sim::saveKineticEnergy() {
 //}
 //#endif
 
-void Sim::updateTmpAndOmg(real f = 1.0) {
+void Sim::updateOmg(real f = 1.0) {
   // Update variables using Adams-Bashforth Scheme
   // f is the proportional change between the new dt and old dt
   // ( if dt changed )
   for(int n=0; n<c.nN; ++n) {
     for(int k=0; k<c.nZ; ++k) {
-      tmp(n, k) += adamsBashforth(dTmpdt(n, k), dTmpdt.getPrev(n, k), f, dt);
       omg(n, k) += adamsBashforth(dOmgdt(n, k), dOmgdt.getPrev(n, k), f, dt);
-
-      assert(!isnan(tmp(n, k)));
       assert(!isnan(omg(n, k)));
+    }
+    // check BCs
+    assert(omg(n, 0) < EPSILON);
+    assert(omg(n, c.nZ-1) < EPSILON);
+  }
+}
+
+void Sim::updateTmp(real f=1.0) {
+  for(int n=0; n<c.nN; ++n) {
+    for(int k=0; k<c.nZ; ++k) {
+      tmp(n, k) += adamsBashforth(dTmpdt(n, k), dTmpdt.getPrev(n, k), f, dt);
+      assert(!isnan(tmp(n, k)));
     }
     // check BCs
     if(n>0) {
@@ -126,14 +135,9 @@ void Sim::updateTmpAndOmg(real f = 1.0) {
       assert(tmp(n, 0) - 1.0 < EPSILON);
     }
     assert(tmp(n, c.nZ-1) < EPSILON);
-    assert(omg(n, 0) < EPSILON);
-    assert(omg(n, c.nZ-1) < EPSILON);
   }
-
-  // Boundary Conditions
-  // Periodic
-  //tmp[3*c.nZ+0] = sin(OMEGA*t);
 }
+
 
 
 void Sim::computeLinearDerivatives(int linearSim) {
@@ -312,7 +316,8 @@ void Sim::runNonLinear() {
     }
     computeLinearDerivatives(0);
     computeNonLinearDerivatives();
-    updateTmpAndOmg(f);
+    updateTmp(f);
+    updateOmg(f);
     f=1.0f;
     solveForPsi();
     t+=dt;
@@ -374,7 +379,8 @@ real Sim::findCriticalRa(int nCrit) {
 
     steps++;
     computeLinearDerivatives(1);
-    updateTmpAndOmg();
+    updateTmp();
+    updateOmg();
 #ifdef DDC
     updateXi();
 #endif
