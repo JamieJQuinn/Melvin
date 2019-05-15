@@ -13,10 +13,6 @@ class Sim {
     int saveNumber; // Current save file
     int KEsaveNumber; // Current kinetic energy save file
 
-    // Gradients HACK - this needs refactored somewhere - into Constants?
-    real tmpGrad;
-    real xiGrad;
-
     // Kinetic Energy tracker
     real kePrev;
     real keCurrent;
@@ -51,12 +47,14 @@ class Sim {
     void saveKineticEnergy();
 
     // Simulation functions
-    void computeLinearDerivatives(int linearSim = 1);
+    void computeLinearDerivatives();
+    void addAdvectionApproximation();
     void computeNonLinearDerivatives();
     void solveForPsi();
     void applyBoundaryConditions();
 
     // Runs the linear simulation
     void runNonLinear();
+    void initialLinearConditions();
     real findCriticalRa(int nCrit);
 };

@@ -46,6 +46,9 @@ debug: $(BUILD_DIR) $(BUILD_DIR)/$(EXECUTABLE)
 ddcLinear: CFLAGS += -DLINEAR -DDDC
 ddcLinear: release
 
+ddcLinearDebug: CFLAGS += -DLINEAR -DDDC
+ddcLinearDebug: debug
+
 linear: CFLAGS += -DLINEAR
 linear: release
 

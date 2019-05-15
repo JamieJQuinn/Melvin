@@ -97,29 +97,40 @@ void Sim::saveKineticEnergy() {
   }
 }
 
-void Sim::computeLinearDerivatives(int linearSim) {
+void Sim::computeLinearDerivatives() {
   // Computes the (linear) derivatives of Tmp and omg
-  // If linear sim is 0, we start n from 0 and the advection approximation
-  // in dTmpdt vanishes
-  for(int n=linearSim; n<c.nN; ++n) {
+  for(int n=0; n<c.nN; ++n) {
     for(int k=1; k<c.nZ-1; ++k) {
       dTmpdt(n,k) = tmp.dfdz2(n,k) - pow(n*M_PI/c.aspectRatio, 2)*tmp(n,k);
 #ifdef DDC
       dXidt(n,k) = c.tau*(xi.dfdz2(n,k) - pow(n*M_PI/c.aspectRatio, 2)*xi(n,k));
 #endif
-      if (linearSim == 1) {
-#ifdef DDC
-        dXidt(n,k) += -1*c.xiGrad*n*M_PI/c.aspectRatio * psi(n,k);
-#endif
-        dTmpdt(n,k) += -1*c.tempGrad*n*M_PI/c.aspectRatio * psi(n,k);
-      }
       dOmgdt(n,k) =
         c.Pr*(omg.dfdz2(n,k) - pow(n*M_PI/c.aspectRatio, 2)*omg(n,k)
         + c.Ra*n*M_PI/c.aspectRatio*tmp(n,k)
         );
 #ifdef DDC
-      dOmgdt(n,k) += -c.c.RaXi*c.tau*c.Pr*(n*M_PI/c.aspectRatio)*xi(n,k);
+      dOmgdt(n,k) += -c.RaXi*c.tau*c.Pr*(n*M_PI/c.aspectRatio)*xi(n,k);
 #endif
+    }
+  }
+}
+
+void Sim::addAdvectionApproximation() {
+  // Only applies to the linear simulation
+  for(int k=1; k<c.nZ-1; ++k) {
+    dOmgdt(0,k) = 0.0;
+    dTmpdt(0,k) = 0.0;
+#ifdef DDC
+    dXidt(0,k) = 0.0;
+#endif
+  }
+  for(int n=1; n<c.nN; ++n) {
+    for(int k=1; k<c.nZ-1; ++k) {
+#ifdef DDC
+      dXidt(n,k) += -1*c.xiGrad*n*M_PI/c.aspectRatio * psi(n,k);
+#endif
+      dTmpdt(n,k) += -1*c.tempGrad*n*M_PI/c.aspectRatio * psi(n,k);
     }
   }
 }
@@ -289,7 +300,7 @@ void Sim::runNonLinear() {
       saveTime+=c.timeBetweenSaves;
       save();
     }
-    computeLinearDerivatives(0);
+    computeLinearDerivatives();
     computeNonLinearDerivatives();
     tmp.update(dTmpdt, dt, f);
     omg.update(dOmgdt, dt, f);
@@ -303,8 +314,16 @@ void Sim::runNonLinear() {
   save();
 }
 
+void Sim::initialLinearConditions() {
+  for(int n=0; n<c.nN; ++n) {
+    for(int k=0; k<c.nZ; ++k) {
+      tmp(n,k) = sin(M_PI * k*c.dz);
+    }
+  }
+}
+
 real Sim::findCriticalRa(int nCrit) {
-  load(c.icFile);
+  initialLinearConditions();
 
   // Stuff for critical rayleigh check
   real tmpPrev = tmp(nCrit, 32);
@@ -319,7 +338,7 @@ real Sim::findCriticalRa(int nCrit) {
   real logXiPrev = 0.0;
 #endif
 
-  real tolerance = 1e-10;
+  real tolerance = 1e-8;
   int steps = 0;
   t=0;
   while (t<c.totalTime) {
@@ -353,7 +372,8 @@ real Sim::findCriticalRa(int nCrit) {
     }
 
     steps++;
-    computeLinearDerivatives(1);
+    computeLinearDerivatives();
+    addAdvectionApproximation();
     tmp.update(dTmpdt, dt);
     omg.update(dOmgdt, dt);
 #ifdef DDC

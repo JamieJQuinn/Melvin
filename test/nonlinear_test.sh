@@ -19,8 +19,7 @@ cat << EOF > $save_folder/constants.js
   "saveFolder":"test/benchmark/",
   "timeBetweenSaves":0.01,
   "totalTime":0.05,
-  "tempGrad":-1,
-  "xiGrad":-1
+  "tempGrad":-1
 }
 EOF
 

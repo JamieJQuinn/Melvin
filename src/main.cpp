@@ -51,11 +51,11 @@ int main(int argc, char** argv) {
     cout << "Finding critical Ra for n=" << n << endl;
     real RaLower = 0.0;
     real RaUpper = initialRa;
-    while(std::abs(RaLower - RaUpper) > 1e-3) {
+    while(std::abs(RaLower - RaUpper) > 1e-1) {
       simulation.reinit();
       simulation.c.Ra = (RaUpper+RaLower)/2;
       cout << "Trying Ra=" << simulation.c.Ra << endl;
-      real result = simulation.runLinear(n);
+      real result = simulation.findCriticalRa(n);
 #ifdef DDC
       if(result > 0.0) {
         RaLower = simulation.c.Ra;
@@ -77,7 +77,12 @@ int main(int argc, char** argv) {
       }
 #endif
     }
+#ifdef DDC
+    cout << "Critical Ra for n=" << n << " is Ra=" << c.RaXi - simulation.c.Ra << endl;
+#endif
+#ifndef DDC
     cout << "Critical Ra for n=" << n << " is Ra=" << simulation.c.Ra << endl;
+#endif
     RaCrits[n-1] = simulation.c.Ra;
   }
   for(int n=1; n<11; ++n) {
