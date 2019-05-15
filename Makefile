@@ -5,7 +5,7 @@ SRC_DIR=src
 BUILD_DIR=build
 INCLUDE_DIR=include
 
-SOURCES=src/main.cpp src/sim.cpp src/numerical_methods.cpp src/thomas_algorithm.cpp src/constants.cpp
+SOURCES=src/main.cpp src/sim.cpp src/numerical_methods.cpp src/thomas_algorithm.cpp src/constants.cpp src/variable.cpp
 #SOURCES=$(wildcard $(SRC_DIR)/*.cpp)
 OBJECTS=$(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SOURCES))
 EXECUTABLE=exe
@@ -30,6 +30,10 @@ clean:
 test:
 	rm -rf test/benchmark
 	test/integration_test.sh
+
+profile: CFLAGS += -DNONLINEAR -DNDEBUG -fopenmp -pg
+profile: LDFLAGS += -pg -fopenmp
+profile: $(BUILD_DIR) $(BUILD_DIR)/$(EXECUTABLE)
 
 release: CFLAGS += -DNDEBUG -O2 -fopenmp
 release: LDFLAGS += -fopenmp

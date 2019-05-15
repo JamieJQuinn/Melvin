@@ -3,6 +3,7 @@
 #include <thomas_algorithm.hpp>
 #include <constants.hpp>
 #include <precision.hpp>
+#include <variable.hpp>
 
 class Sim {
   public:
@@ -24,16 +25,16 @@ class Sim {
     const Constants c;
 
     // Variable arrays
-    real * psi; // Stream function (Psi)
-    real * omg; // Vorticity (Omega)
-    real * tmp; // Temperature
+    Variable psi; // Stream function (Psi)
+    Variable omg; // Vorticity (Omega)
+    Variable tmp; // Temperature
 #ifdef DDC
-    real * xi;  // Salt concentration
-    real * dXidt; // d/dt of salt concentration
+    Variable xi;  // Salt concentration
+    Variable dXidt; // d/dt of salt concentration
 #endif
 
-    real * dOmgdt; // d/dt of vorticty
-    real * dTmpdt; // d/dt of temperature
+    Variable dTmpdt; // d/dt of temperature
+    Variable dOmgdt; // d/dt of vorticty
 
     ThomasAlgorithm *thomasAlgorithm;
 
@@ -41,10 +42,10 @@ class Sim {
     ~Sim();
 
     // Helper functions
-    void printMaxOf(real *a, std::string name);
-    void printBenchmarkData();
+    void printMaxOf(real *a, std::string name) const;
+    void printBenchmarkData() const;
     void save();
-    void load(real* tmp, real* omg, real* psi, const std::string &icFile);
+    void load(const std::string &icFile);
     void reinit();
     real calcKineticEnergy();
     real calcKineticEnergyForMode(int n);

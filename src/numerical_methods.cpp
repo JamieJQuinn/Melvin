@@ -1,6 +1,7 @@
 #include <cmath>
 #include <iostream>
 #include <numerical_methods.hpp>
+#include <variable.hpp>
 
 using namespace std;
 
@@ -9,15 +10,7 @@ real adamsBashforth(real dfdt_current, real dfdt_prev, real frac, real dt) {
   return ((2.0+frac)*dfdt_current - frac*dfdt_prev)*dt/2.0;
 }
 
-real dfdz(real *f, int k, real dz) {
-  return (f[k+1]-f[k-1])/(2*dz);
-}
-
-real dfdz2(real *f, int k, real dz) {
-  return (f[k+1] - 2*f[k] + f[k-1])/pow(dz,2);
-}
-
-real checkCFL(real* psi, real dz, real dx, real dt, int a, int nN, int nX, int nZ) {
+real checkCFL(const Variable &psi, real dz, real dx, real dt, int a, int nN, int nX, int nZ) {
   real vxMax = 0.0f;
   real vzMax = 0.0f;
   real f=1.0f;
@@ -26,8 +19,8 @@ real checkCFL(real* psi, real dz, real dx, real dt, int a, int nN, int nX, int n
       real vx = 0.0;
       real vz = 0.0;
       for(int n=0; n<nN; ++n) {
-        vx += dfdz(psi, n*nZ+k, dz)*sin(n*M_PI*j*dx/a);
-        vz += n*M_PI/a*psi[n*nZ+k]*cos(n*M_PI*j*dx/a);
+        vx += psi.dfdz(n,k)*sin(n*M_PI*j*dx/a);
+        vz += n*M_PI/a*psi(n,k)*cos(n*M_PI*j*dx/a);
       }
       if(isnan(vx) or isnan(vz)){
         cout << "CFL Condition Breached" << endl;
