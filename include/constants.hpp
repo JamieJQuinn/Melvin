@@ -33,6 +33,9 @@ class Constants {
 
     void calculateDerivedConstants();
 
+    void print() const;
+    bool isValid() const;
+
     void readJson(const std::string &filePath);
     void writeJson(const std::string &filePath) const;
 };

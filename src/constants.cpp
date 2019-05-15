@@ -36,6 +36,59 @@ void Constants::calculateDerivedConstants() {
   oodz2 = pow(1.0/dz, 2);
 }
 
+void Constants::print() const {
+  std::cout <<"Parameters:" << std::endl;
+  std::cout << "nZ: " << nZ << std::endl;
+  std::cout << "nN: " << nN << std::endl;
+  std::cout << "aspectRatio: " << aspectRatio << std::endl;
+  std::cout << "Ra: " << Ra << std::endl;
+#ifdef DDC
+  std::cout << "RaXi: " << RaXi << std::endl;
+  std::cout << "tau: " << tau << std::endl;
+#endif
+  std::cout << "Pr: " << Pr << std::endl;
+  std::cout << "dt: " << initialDt << std::endl;
+  std::cout << "totalTime: " << totalTime << std::endl;
+  std::cout << "saveFolder: " << saveFolder << std::endl;
+  std::cout << "icFile: " << icFile << std::endl;
+}
+
+bool Constants::isValid() const {
+  if(nZ <=0 or nN <=0 or aspectRatio <= 0) {
+    std::cout << " nZ (" << nZ
+    << ") nN (" << nN
+    << ") aspectRatio (" << aspectRatio
+    << ") should be positive integers.\n" << std::endl;
+    return -1;
+  }
+  if(initialDt <= 0.0f
+  or Ra <= 0.0f
+#ifdef DDC
+  or RaXi <= 0.0f
+  or tau <= 0.0f
+#endif
+  or Pr <= 0.0f
+  or totalTime <= 0.0f
+  or timeBetweenSaves <= 0.0f) {
+    std::cout << " initial dt (" << initialDt
+    << ") Ra (" << Ra
+#ifdef DDC
+    << ") RaXi (" << Ra
+    << ") tau (" << Ra
+#endif
+    << ") Pr (" << Pr
+    << ") total time (" << totalTime
+    << ") time between saves (" << timeBetweenSaves
+    << ") should be positive decimals.\n" << std::endl;
+    return -1;
+  }
+  if(saveFolder == "" or icFile == "") {
+    std::cout <<"Save folder and initial conditions file should be present.\n" << std::endl;
+    return -1;
+  }
+  return 1;
+}
+
 void Constants::readJson(const std::string &filePath) {
   nlohmann::json j;
 
