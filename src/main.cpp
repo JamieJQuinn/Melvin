@@ -1,8 +1,8 @@
 #include <iostream>
 #include <string>
 
-#include "sim.hpp"
-#include "precision.hpp"
+#include <sim.hpp>
+#include <precision.hpp>
 
 #define strVar(variable) #variable
 #define OMEGA 2*M_PI*4

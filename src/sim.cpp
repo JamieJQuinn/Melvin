@@ -4,10 +4,10 @@
 #include <algorithm>
 #include <cassert>
 
-#include "sim.hpp"
-#include "precision.hpp"
-#include "utility.hpp"
-#include "numerical_methods.hpp"
+#include <sim.hpp>
+#include <precision.hpp>
+#include <utility.hpp>
+#include <numerical_methods.hpp>
 
 using namespace std;
 

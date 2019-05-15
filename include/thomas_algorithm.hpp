@@ -1,6 +1,6 @@
 #pragma once
 
-#include "precision.hpp"
+#include <precision.hpp>
 
 class ThomasAlgorithm {
   private:

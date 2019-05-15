@@ -1,6 +1,6 @@
 #pragma once
 
-#include "precision.hpp"
+#include <precision.hpp>
 
 real dfdz(real *f, int k, real dz);
 real dfdz2(real *f, int k, real dz);

@@ -1,4 +1,4 @@
-#include "thomas_algorithm.hpp"
+#include <thomas_algorithm.hpp>
 #include <cassert>
 #include <cmath>
 

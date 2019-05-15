@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include "precision.hpp"
+#include <precision.hpp>
 
 class Constants {
   public:

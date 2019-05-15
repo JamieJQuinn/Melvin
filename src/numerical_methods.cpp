@@ -1,6 +1,6 @@
 #include <cmath>
 #include <iostream>
-#include "numerical_methods.hpp"
+#include <numerical_methods.hpp>
 
 using namespace std;
 

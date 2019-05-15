@@ -1,8 +1,8 @@
 #pragma once
 
-#include "thomas_algorithm.hpp"
-#include "constants.hpp"
-#include "precision.hpp"
+#include <thomas_algorithm.hpp>
+#include <constants.hpp>
+#include <precision.hpp>
 
 class Sim {
   public:
