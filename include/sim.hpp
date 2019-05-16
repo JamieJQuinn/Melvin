@@ -49,8 +49,8 @@ class Sim {
     void computeNonLinearDerivatives();
     void solveForPsi();
     void applyBoundaryConditions();
-    virtual void updateVars(real f=1.0);
-    virtual void advanceDerivatives();
+    void updateVars(real f=1.0);
+    void advanceDerivatives();
 
     void runNonLinear();
 

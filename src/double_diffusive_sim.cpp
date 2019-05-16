@@ -95,3 +95,12 @@ void DoubleDiffusiveSimulation::advanceDerivatives() {
   dOmgdt.advanceTimestep();
   dXidt.advanceTimestep();
 }
+
+void DoubleDiffusiveSimulation::runLinearStep() {
+  computeLinearDerivatives();
+  addAdvectionApproximation();
+  updateVars();
+  advanceDerivatives();
+  solveForPsi();
+  t+=dt;
+}

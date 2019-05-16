@@ -17,4 +17,5 @@ class DoubleDiffusiveSimulation : public Sim {
     void initialLinearConditions();
     void updateVars(real f=1.0);
     void advanceDerivatives();
+    void runLinearStep();
 };
