@@ -286,7 +286,7 @@ void Sim::runNonLinear() {
   while (c.totalTime-t>EPSILON) {
     if(KEsaveTime-t < EPSILON) {
       saveKineticEnergy();
-      KEsaveTime += 1e-4;
+      KEsaveTime += 1e4*dt;
     }
     if(CFLCheckTime-t < EPSILON) {
       cout << "Checking CFL" << endl;
@@ -299,7 +299,6 @@ void Sim::runNonLinear() {
       save();
     }
     runNonLinearStep(f);
-    //runLinearStep();
     t+=dt;
     f=1.0f;
   } 
@@ -345,13 +344,11 @@ real Sim::findCriticalRa(int nCrit) {
       tmpPrev = tmp(nCrit, 32);
       psiPrev = psi(nCrit, 32);
       omgPrev = omg(nCrit, 32);
-
-      saveKineticEnergy();
     }
-
     steps++;
     runLinearStep();
   }
+  saveKineticEnergy();
   return 0;
 }
 
