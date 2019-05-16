@@ -24,8 +24,7 @@ def main():
                         help='sets up linear stability conditions')
     args = parser.parse_args()
 
-    if args.salt_fingering or args.combined_convection:
-        ddc = True
+    ddc = args.salt_fingering or args.combined_convection
 
     n_modes = args.n_modes
     n_gridpoints = args.n_gridpoints
