@@ -26,23 +26,23 @@ rm -f $save_folder/*
 
 cat << EOF > $save_folder/constants.js
 {
-  "Pr":0.5,
-  "Ra":50000,
-  "RaXi":100000,
-  "tau":0.01,
-  "aspectRatio":3,
+  "Pr":1,
+  "Ra":1.1e4,
+  "RaXi":1e6,
+  "tau":1e-2,
+  "aspectRatio":1.41421356237,
   "icFile":"$save_folder/ICn1nZ101nN51_SF",
   "initialDt":3e-6,
   "nN":51,
   "nZ":101,
   "saveFolder":"test/benchmark/",
-  "timeBetweenSaves":0.1,
+  "timeBetweenSaves":0.01,
   "totalTime":10
 }
 EOF
 
 constants_file=$save_folder/constants.js
-python tools/make_initial_conditions.py --output $save_folder/ICn1nZ101nN51_SF --n_modes 51 --n_gridpoints 101 --modes 1 --combined_convection
+python tools/make_initial_conditions.py --output $save_folder/ICn1nZ101nN51_SF --n_modes 51 --n_gridpoints 101 --modes 1 25 --salt_fingering
 
 echo "==================== Building program"
 make clean

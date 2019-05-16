@@ -17,7 +17,7 @@ def main():
                         help='number of modes in simulation', required=True)
     parser.add_argument('--n_z_gridpoints', type=int,
                         help='number of gridpoints in simulation', required=True)
-    parser.add_argument('--aspect_ratio',
+    parser.add_argument('--aspect_ratio', type=float,
                         help='aspect ratio of sim', required=True)
     parser.add_argument('--output',
                         help='Output file')
@@ -28,8 +28,8 @@ def main():
 
     n_modes = args.n_modes
     n_z_gridpoints = args.n_z_gridpoints
-    aspect_ratio = int(args.aspect_ratio)
-    n_x_gridpoints = aspect_ratio*n_z_gridpoints
+    aspect_ratio = args.aspect_ratio
+    n_x_gridpoints = int(aspect_ratio*n_z_gridpoints)
     x_axis = np.linspace(0, aspect_ratio, num=n_x_gridpoints)
     z_axis = np.linspace(0, 1, num=n_z_gridpoints)
     x_grid, z_grid = np.meshgrid(x_axis, z_axis)
@@ -66,7 +66,7 @@ def main():
     plt.subplot(1, 3, 1)
     plt.gca().set_aspect(1.0)
     plt.yticks([0, 1])
-    plt.xticks(xrange(0, aspect_ratio+1))
+    plt.xticks(xrange(0, int(aspect_ratio+1)))
     plt.tick_params(axis='x', bottom='off', top='off')
     plt.pcolormesh(x_grid, z_grid, temp_actual, cmap='coolwarm')
     # plt.contour(x_grid, z_grid, temp_actual)
@@ -75,7 +75,7 @@ def main():
     plt.subplot(1, 3, 2)
     plt.gca().set_aspect(1.0)
     plt.gca().get_yaxis().set_visible(False)
-    plt.xticks(xrange(0, aspect_ratio+1))
+    plt.xticks(xrange(0, int(aspect_ratio+1)))
     plt.tick_params(axis='x', bottom='off', top='off')
     plt.gcf().tight_layout()
     plt.contour(x_grid, z_grid, psi_actual, 6, colors='k')
@@ -84,7 +84,7 @@ def main():
         plt.subplot(1, 3, 3)
         plt.gca().set_aspect(1.0)
         plt.yticks([0, 1])
-        plt.xticks(xrange(0, aspect_ratio+1))
+        plt.xticks(xrange(0, int(aspect_ratio+1)))
         plt.tick_params(axis='x', bottom='off', top='off')
         plt.pcolormesh(x_grid, z_grid, xi_actual, cmap='coolwarm')
 

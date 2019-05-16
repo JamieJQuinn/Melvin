@@ -73,9 +73,10 @@ def main():
 
     # Initialise modes
     for mode in modes:
-        varidx = 0*n_modes*n_gridpoints # temperature
-        data[varidx + n_gridpoints*(mode+0):varidx + n_gridpoints*(mode+1)] =\
-            amp*np.sin(np.pi*np.linspace(0, 1, n_gridpoints))
+        if not ddc:
+            varidx = 0*n_modes*n_gridpoints # temperature
+            data[varidx + n_gridpoints*(mode+0):varidx + n_gridpoints*(mode+1)] =\
+                amp*np.sin(np.pi*np.linspace(0, 1, n_gridpoints))
 
         if ddc:
             varidx = 7*n_modes*n_gridpoints # xi
