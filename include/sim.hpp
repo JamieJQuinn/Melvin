@@ -49,10 +49,12 @@ class Sim {
     void computeNonLinearDerivatives();
     void solveForPsi();
     void applyBoundaryConditions();
+    virtual void updateVars(real f=1.0);
+    virtual void advanceDerivatives();
 
     void runNonLinear();
 
-    // Runs the linear simulation
+    // Linear critical Rayleigh functions
     void initialLinearConditions();
     bool isCritical(int nCrit);
     real findCriticalRa(int nCrit);

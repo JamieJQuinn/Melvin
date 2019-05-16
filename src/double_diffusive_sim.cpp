@@ -84,14 +84,14 @@ void DoubleDiffusiveSimulation::initialLinearConditions() {
   }
 }
 
-void DoubleDiffusiveSimulation::runLinearStep() {
-  computeLinearDerivatives();
-  addAdvectionApproximation();
-  tmp.update(dTmpdt, dt);
-  omg.update(dOmgdt, dt);
-  xi.update(dXidt, dt);
-  solveForPsi();
-  t+=dt;
+void DoubleDiffusiveSimulation::updateVars(real f) {
+  tmp.update(dTmpdt, dt, f);
+  omg.update(dOmgdt, dt, f);
+  xi.update(dXidt, dt, f);
+}
+
+void DoubleDiffusiveSimulation::advanceDerivatives() {
   dTmpdt.advanceTimestep();
   dOmgdt.advanceTimestep();
+  dXidt.advanceTimestep();
 }

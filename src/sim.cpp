@@ -256,6 +256,16 @@ real Sim::calcKineticEnergy() {
   return ke;
 }
 
+void Sim::updateVars(real f) {
+  tmp.update(dTmpdt, dt, f);
+  omg.update(dOmgdt, dt, f);
+}
+
+void Sim::advanceDerivatives() {
+  dTmpdt.advanceTimestep();
+  dOmgdt.advanceTimestep();
+}
+
 void Sim::runNonLinear() {
   // Load initial conditions
   load(c.icFile);
@@ -282,13 +292,11 @@ void Sim::runNonLinear() {
     }
     computeLinearDerivatives();
     computeNonLinearDerivatives();
-    tmp.update(dTmpdt, dt, f);
-    omg.update(dOmgdt, dt, f);
+    updateVars(f);
+    advanceDerivatives();
     f=1.0f;
     solveForPsi();
     t+=dt;
-    dTmpdt.advanceTimestep();
-    dOmgdt.advanceTimestep();
   } 
   printf("%e of %e (%.2f%%)\n", t, c.totalTime, t/c.totalTime*100);
   save();
@@ -353,10 +361,8 @@ real Sim::findCriticalRa(int nCrit) {
 void Sim::runLinearStep() {
   computeLinearDerivatives();
   addAdvectionApproximation();
-  tmp.update(dTmpdt, dt);
-  omg.update(dOmgdt, dt);
+  updateVars();
+  advanceDerivatives();
   solveForPsi();
   t+=dt;
-  dTmpdt.advanceTimestep();
-  dOmgdt.advanceTimestep();
 }
