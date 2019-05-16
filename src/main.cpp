@@ -57,7 +57,7 @@ int main(int argc, char** argv) {
   if(c.tempGrad > 0) {
     RaCrit = c.RaXi - Ra_mn;
   } else {
-    RaCrit = Ra_mn;
+    RaCrit = (c.Pr + c.tau)/(c.Pr + 1) * c.RaXi * c.tau + (c.Pr + c.tau)*(1 + c.tau) / c.Pr * Ra_mn;
   }
 #endif
 
@@ -71,7 +71,6 @@ int main(int argc, char** argv) {
   cout << "Below this, critical = " << isBelowCritical << endl;
   if(simulation.isFinished()) {
     cout << "Total time breached." << endl;
-    return -1;
   }
 
   simulation.c.Ra = RaCrit + 2;
@@ -81,15 +80,20 @@ int main(int argc, char** argv) {
   cout << "Above this, critical = " << isAboveCritical << endl;
   if(simulation.isFinished()) {
     cout << "Total time breached." << endl;
-    return -1;
   }
 
+  bool success = false;
+
 #ifndef DDC
-  bool success = isAboveCritical and (not isBelowCritical);
+  success = isAboveCritical and (not isBelowCritical);
 #endif
 
 #ifdef DDC
-  bool success = (not isAboveCritical) and isBelowCritical;
+  if(c.tempGrad > 0) {
+    success = (not isAboveCritical) and isBelowCritical;
+  } else {
+    success = isAboveCritical and (not isBelowCritical);
+  }
 #endif
 
   if(success) {
