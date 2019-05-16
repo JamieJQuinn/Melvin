@@ -4,3 +4,4 @@ gmon.out
 .nfs*
 build/
 test/benchmark
+initial_conditions/
