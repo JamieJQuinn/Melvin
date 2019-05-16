@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include <thomas_algorithm.hpp>
 #include <constants.hpp>
 #include <precision.hpp>
@@ -11,11 +13,9 @@ class Sim {
     real t; // current time
     real dt; // current timestep
     int saveNumber; // Current save file
-    int KEsaveNumber; // Current kinetic energy save file
 
     // Kinetic Energy tracker
-    real kePrev;
-    real keCurrent;
+    std::vector<real> kineticEnergies;
 
     Constants c;
 
@@ -38,7 +38,7 @@ class Sim {
     virtual void save();
     virtual void load(const std::string &icFile);
     void reinit();
-    real calcKineticEnergy();
+    void calcKineticEnergy();
     real calcKineticEnergyForMode(int n);
     void saveKineticEnergy();
     real isFinished();

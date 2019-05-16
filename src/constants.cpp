@@ -6,6 +6,8 @@
 
 Constants::Constants() {}
 
+Constants::~Constants() {}
+
 Constants::Constants(const std::string &input) {
   readJson(input);
 }

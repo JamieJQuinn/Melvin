@@ -31,9 +31,9 @@ test:
 	rm -rf test/benchmark
 	test/nonlinear_test.sh
 
-profile: CFLAGS += -DNONLINEAR -DNDEBUG -fopenmp -pg
-profile: LDFLAGS += -pg -fopenmp
-profile: $(BUILD_DIR) $(BUILD_DIR)/$(EXECUTABLE)
+profile: CFLAGS += -pg
+profile: LDFLAGS += -pg
+profile: nonlinear
 
 release: CFLAGS += -DNDEBUG -O2 -fopenmp
 release: LDFLAGS += -fopenmp

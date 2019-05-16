@@ -27,6 +27,7 @@ class Constants {
     std::string icFile; // initial conditions
 
     Constants();
+    ~Constants();
     Constants(const std::string &input);
 
     void calculateDerivedConstants();

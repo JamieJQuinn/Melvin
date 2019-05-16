@@ -19,10 +19,7 @@ Sim::Sim(const Constants &c_in)
   , dTmpdt(c_in, 2)
   , dOmgdt(c_in, 2)
 {
-  kePrev = 0.0f;
-  keCurrent = 0.0f;
   saveNumber=0;
-  KEsaveNumber=0;
 
   dt = c.initialDt;
 
@@ -72,21 +69,43 @@ void Sim::reinit() {
 
 void Sim::saveKineticEnergy() {
   // Save total energy
-  std::ofstream file (c.saveFolder+"KineticEnergy"+std::string(".dat"), std::ios::out | std::ios::app | std::ios::binary);
-  real ke = calcKineticEnergy();
-  kePrev = keCurrent;
-  keCurrent = ke;
-  file.write(reinterpret_cast<char*>(&ke), sizeof(real));
+  std::ofstream file (c.saveFolder+"KineticEnergy.dat", std::ios::out | std::ios::app | std::ios::binary);
+  for(int i=0; i<kineticEnergies.size(); ++i) {
+    file.write(reinterpret_cast<char*>(&kineticEnergies[i]), sizeof(real));
+  }
   file.flush();
   file.close();
   // save energy per mode
-  for(int n=1; n<c.nN; ++n) {
-    std::ofstream file (c.saveFolder+"KineticEnergyMode"+strFromNumber(n)+std::string(".dat"), std::ios::out | std::ios::app | std::ios::binary);
-    real ke = calcKineticEnergyForMode(n);
-    file.write(reinterpret_cast<char*>(&ke), sizeof(real));
-    file.flush();
-    file.close();
+  //for(int n=1; n<c.nN; ++n) {
+    //std::ofstream file (c.saveFolder+"KineticEnergyMode"+strFromNumber(n)+std::string(".dat"), std::ios::out | std::ios::app | std::ios::binary);
+    //real ke = calcKineticEnergyForMode(n);
+    //file.write(reinterpret_cast<char*>(&ke), sizeof(real));
+    //file.flush();
+    //file.close();
+  //}
+}
+
+real Sim::calcKineticEnergyForMode(int n) {
+  real z0 = 0.0; // limits of integration
+  real z1 = 1.0;
+  real ke = 0; // Kinetic energy
+    ke += pow(n*M_PI/c.aspectRatio*psi(n,0), 2)/2.0; // f(0)/2
+    ke += pow(n*M_PI/c.aspectRatio*psi(n,c.nZ-1), 2)/2.0; // f(1)/2
+    for(int k=1; k<c.nZ-1; ++k) {
+      ke += pow(psi.dfdz(n,k), 2) + pow(n*M_PI/c.aspectRatio*psi(n,k), 2);
+    }
+  ke *= (z1-z0)*c.aspectRatio/(4*(c.nZ-1));
+  return ke;
+}
+
+void Sim::calcKineticEnergy() {
+  // Uses trapezeoid rule to calc kinetic energy for each mode
+  real ke = 0.0;
+  for(int n=0; n<c.nN; ++n) {
+    ke += calcKineticEnergyForMode(n);
   }
+
+  kineticEnergies.push_back(ke);
 }
 
 void Sim::computeLinearDerivatives() {
@@ -234,28 +253,6 @@ void Sim::printBenchmarkData() const {
   }
 }
 
-real Sim::calcKineticEnergyForMode(int n) {
-  real z0 = 0.0; // limits of integration
-  real z1 = 1.0;
-  real ke = 0; // Kinetic energy
-    ke += pow(n*M_PI/c.aspectRatio*psi(n,0), 2)/2.0; // f(0)/2
-    ke += pow(n*M_PI/c.aspectRatio*psi(n,c.nZ-1), 2)/2.0; // f(1)/2
-    for(int k=1; k<c.nZ-1; ++k) {
-      ke += pow(psi.dfdz(n,k), 2) + pow(n*M_PI/c.aspectRatio*psi(n,k), 2);
-    }
-  ke *= (z1-z0)*c.aspectRatio/(4*(c.nZ-1));
-  return ke;
-}
-
-real Sim::calcKineticEnergy() {
-  // Uses trapezeoid rule to calc kinetic energy for each mode
-  real ke = 0.0;
-  for(int n=0; n<c.nN; ++n) {
-    ke += calcKineticEnergyForMode(n);
-  }
-  return ke;
-}
-
 void Sim::updateVars(real f) {
   tmp.update(dTmpdt, dt, f);
   omg.update(dOmgdt, dt, f);
@@ -285,8 +282,8 @@ void Sim::runNonLinear() {
   t = 0;
   while (c.totalTime-t>EPSILON) {
     if(KEsaveTime-t < EPSILON) {
-      saveKineticEnergy();
-      KEsaveTime += 1e4*dt;
+      calcKineticEnergy();
+      KEsaveTime += 1e3*dt;
     }
     if(CFLCheckTime-t < EPSILON) {
       cout << "Checking CFL" << endl;
@@ -304,6 +301,7 @@ void Sim::runNonLinear() {
   } 
   printf("%e of %e (%.2f%%)\n", t, c.totalTime, t/c.totalTime*100);
   save();
+  saveKineticEnergy();
 }
 
 bool Sim::isCritical(int nCrit) {
@@ -323,7 +321,6 @@ real Sim::findCriticalRa(int nCrit) {
   real omgPrev = omg(nCrit, 32);
 
   real logTmpPrev = 0.0, logOmgPrev = 0.0, logPsiPrev = 0.0;
-  real kePrev = 0.0;
 
   real tolerance = 1e-8;
   int steps = 0;
@@ -344,6 +341,9 @@ real Sim::findCriticalRa(int nCrit) {
       tmpPrev = tmp(nCrit, 32);
       psiPrev = psi(nCrit, 32);
       omgPrev = omg(nCrit, 32);
+    }
+    if(steps%1000 == 0) {
+      calcKineticEnergy();
     }
     steps++;
     runLinearStep();
