@@ -18,12 +18,12 @@ cat << EOF > $save_folder/constants.js
   "nZ":101,
   "saveFolder":"test/benchmark/",
   "timeBetweenSaves":0.01,
-  "totalTime":0.05,
-  "tempGrad":-1
+  "totalTime":0.05
 }
 EOF
 
 constants_file=$save_folder/constants.js
+python tools/make_initial_conditions.py --output initial_conditions/ICn1nZ101nN51 --n_modes 51 --n_gridpoints 101 --modes 1
 
 echo "==================== Building program"
 make clean
