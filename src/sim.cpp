@@ -266,6 +266,14 @@ void Sim::advanceDerivatives() {
   dOmgdt.advanceTimestep();
 }
 
+void Sim::runNonLinearStep(real f) {
+  computeLinearDerivatives();
+  computeNonLinearDerivatives();
+  updateVars(f);
+  advanceDerivatives();
+  solveForPsi();
+}
+
 void Sim::runNonLinear() {
   // Load initial conditions
   load(c.icFile);
@@ -290,13 +298,10 @@ void Sim::runNonLinear() {
       saveTime+=c.timeBetweenSaves;
       save();
     }
-    computeLinearDerivatives();
-    computeNonLinearDerivatives();
-    updateVars(f);
-    advanceDerivatives();
-    f=1.0f;
-    solveForPsi();
+    runNonLinearStep(f);
+    //runLinearStep();
     t+=dt;
+    f=1.0f;
   } 
   printf("%e of %e (%.2f%%)\n", t, c.totalTime, t/c.totalTime*100);
   save();

@@ -58,5 +58,8 @@ linearDebug: debug
 nonlinear: CFLAGS += -DNONLINEAR
 nonlinear: release
 
+ddcNonlinear: CFLAGS += -DDDC
+ddcNonlinear: nonlinear
+
 nonlinearDebug: CFLAGS += -DNONLINEAR
 nonlinearDebug: debug

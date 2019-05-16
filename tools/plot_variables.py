@@ -21,6 +21,7 @@ def main():
                         help='aspect ratio of sim', required=True)
     parser.add_argument('--output',
                         help='Output file')
+    parser.add_argument('--ddc', action='store_true', help='Plot xi')
     args = parser.parse_args()
 
     print(args.filename)
@@ -39,6 +40,10 @@ def main():
                         .reshape(n_modes, n_z_gridpoints))
     psi = np.transpose(data[2*n_modes*n_z_gridpoints:3*n_modes*n_z_gridpoints]\
                        .reshape(n_modes, n_z_gridpoints))
+    if args.ddc:
+        varidx = 7
+        xi = np.transpose(data[(varidx)*n_modes*n_z_gridpoints:(varidx+1)*n_modes*n_z_gridpoints]\
+                           .reshape(n_modes, n_z_gridpoints))
     #plt.gca().set_aspect(1.0)
     #plt.axis('off')
     #plt.gca().get_xaxis().set_visible(False)
@@ -50,11 +55,15 @@ def main():
     psi_actual = np.zeros((n_z_gridpoints, n_x_gridpoints))
     cosine = np.cos(np.pi/aspect_ratio*np.outer(np.arange(n_modes), x_axis))
     sine = np.sin(np.pi/aspect_ratio*np.outer(np.arange(n_modes), x_axis))
-    np.dot(psi, cosine, out=psi_actual)
-    np.dot(temp, sine, out=temp_actual)
+    np.dot(psi, sine, out=psi_actual)
+    np.dot(temp, cosine, out=temp_actual)
+
+    if args.ddc:
+        xi_actual = np.zeros((n_z_gridpoints, n_x_gridpoints))
+        np.dot(xi, cosine, out=xi_actual)
 
     # Plot
-    plt.subplot(1, 2, 1)
+    plt.subplot(1, 3, 1)
     plt.gca().set_aspect(1.0)
     plt.yticks([0, 1])
     plt.xticks(xrange(0, aspect_ratio+1))
@@ -62,13 +71,22 @@ def main():
     plt.pcolormesh(x_grid, z_grid, temp_actual, cmap='coolwarm')
     # plt.contour(x_grid, z_grid, temp_actual)
     #plt.savefig(sys.argv[1] +'tmp.png', bbox_inches='tight', pad_inches=0)
-    plt.subplot(1, 2, 2)
+
+    plt.subplot(1, 3, 2)
     plt.gca().set_aspect(1.0)
     plt.gca().get_yaxis().set_visible(False)
     plt.xticks(xrange(0, aspect_ratio+1))
     plt.tick_params(axis='x', bottom='off', top='off')
     plt.gcf().tight_layout()
     plt.contour(x_grid, z_grid, psi_actual, 6, colors='k')
+
+    if args.ddc:
+        plt.subplot(1, 3, 3)
+        plt.gca().set_aspect(1.0)
+        plt.yticks([0, 1])
+        plt.xticks(xrange(0, aspect_ratio+1))
+        plt.tick_params(axis='x', bottom='off', top='off')
+        plt.pcolormesh(x_grid, z_grid, xi_actual, cmap='coolwarm')
 
     if args.output:
         plt.savefig(args.output, bbox_inches='tight', pad_inches=0, dpi=200)

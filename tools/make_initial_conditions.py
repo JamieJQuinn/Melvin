@@ -18,13 +18,18 @@ def main():
                         help='enables periodic conditions')
     parser.add_argument('--salt_fingering', action='store_true',
                         help='enables salt fingering conditions')
+    parser.add_argument('--combined_convection', action='store_true',
+                        help='fully unstable convection in both gradients')
     parser.add_argument('--linear_stability', action='store_true',
                         help='sets up linear stability conditions')
     args = parser.parse_args()
 
+    if args.salt_fingering or args.combined_convection:
+        ddc = True
+
     n_modes = args.n_modes
     n_gridpoints = args.n_gridpoints
-    if args.salt_fingering:
+    if ddc:
         n_vars = 10
     else:
         n_vars = 7
@@ -37,6 +42,10 @@ def main():
         temp_grad = 1
         xi_grad = 1
 
+    if args.combined_convection:
+        temp_grad = -1
+        xi_grad = 1
+
     # Stored as temp|omg|psi contiguously
     data = np.zeros(n_vars*n_modes*n_gridpoints)
 
@@ -47,7 +56,7 @@ def main():
         data[varidx + n_gridpoints*(mode+0):varidx + n_gridpoints*(mode+1)] =\
                 np.linspace(0, 1, n_gridpoints)[::temp_grad]
 
-        if args.salt_fingering:
+        if ddc:
             mode = 0
             varidx = 7*n_modes*n_gridpoints # xi
             data[varidx + n_gridpoints*(mode+0):varidx + n_gridpoints*(mode+1)] =\
@@ -68,7 +77,7 @@ def main():
         data[varidx + n_gridpoints*(mode+0):varidx + n_gridpoints*(mode+1)] =\
             amp*np.sin(np.pi*np.linspace(0, 1, n_gridpoints))
 
-        if args.salt_fingering:
+        if ddc:
             varidx = 7*n_modes*n_gridpoints # xi
             data[varidx + n_gridpoints*(mode+0):varidx + n_gridpoints*(mode+1)] =\
                 amp*np.sin(np.pi*np.linspace(0, 1, n_gridpoints))

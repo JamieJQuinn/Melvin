@@ -95,3 +95,74 @@ void DoubleDiffusiveSimulation::runLinearStep() {
   solveForPsi();
   t+=dt;
 }
+
+void DoubleDiffusiveSimulation::runNonLinearStep(real f) {
+  computeLinearDerivatives();
+  computeNonLinearDerivatives();
+  updateVars(f);
+  advanceDerivatives();
+  solveForPsi();
+}
+
+void DoubleDiffusiveSimulation::computeNonLinearDerivatives() {
+  Sim::computeNonLinearDerivatives();
+  for(int n=1; n<c.nN; ++n) {
+    for(int k=1; k<c.nZ-1; ++k) {
+      // Contribution TO xi[n=0]
+      dXidt(0,k) +=
+        -M_PI/(2*c.aspectRatio)*n*(
+          psi.dfdz(n,k)*xi(n,k) +
+          xi.dfdz(n,k)*psi(n,k)
+          );
+    }
+  }
+  #pragma omp parallel for schedule(dynamic)
+  for(int n=1; n<c.nN; ++n) {
+    // Contribution FROM tmp[n=0]
+    for(int k=1; k<c.nZ-1; ++k) {
+      dXidt(n,k) +=
+        -n*M_PI/c.aspectRatio*psi(n,k)*xi.dfdz(0,k);
+    }
+    // Contribution FROM tmp[n>0] and omg[n>0]
+    int o;
+    for(int m=1; m<n; ++m){
+      // Case n = n' + n''
+      o = n-m;
+      assert(o>0 and o<c.nN);
+      assert(m>0 and m<c.nN);
+      for(int k=1; k<c.nZ-1; ++k) {
+        dXidt(n,k) +=
+          -M_PI/(2*c.aspectRatio)*(
+          -m*psi.dfdz(o,k)*xi(m,k)
+          +o*xi.dfdz(m,k)*psi(o,k)
+          );
+      }
+    }
+    for(int m=n+1; m<c.nN; ++m){
+      // Case n = n' - n''
+      o = m-n;
+      assert(o>0 and o<c.nN);
+      assert(m>0 and m<c.nN);
+      for(int k=1; k<c.nZ-1; ++k) {
+        dXidt(n,k) +=
+          -M_PI/(2*c.aspectRatio)*(
+          +m*psi.dfdz(o,k)*xi(m,k)
+          +o*xi.dfdz(m,k)*psi(o,k)
+          );
+      }
+    }
+    for(int m=1; m+n<c.nN; ++m){
+      // Case n= n'' - n'
+      o = n+m;
+      assert(o>0 and o<c.nN);
+      assert(m>0 and m<c.nN);
+      for(int k=1; k<c.nZ-1; ++k) {
+        dXidt(n,k) +=
+          -M_PI/(2*c.aspectRatio)*(
+          +m*psi.dfdz(o,k)*xi(m,k)
+          +o*xi.dfdz(m,k)*psi(o,k)
+          );
+      }
+    }
+  }
+}

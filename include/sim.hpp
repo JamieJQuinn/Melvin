@@ -45,7 +45,6 @@ class Sim {
 
     // Simulation functions
     void computeLinearDerivatives();
-    void addAdvectionApproximation();
     void computeNonLinearDerivatives();
     void solveForPsi();
     void applyBoundaryConditions();
@@ -53,8 +52,10 @@ class Sim {
     void advanceDerivatives();
 
     void runNonLinear();
+    virtual void runNonLinearStep(real f=1.0);
 
     // Linear critical Rayleigh functions
+    void addAdvectionApproximation();
     bool isCritical(int nCrit);
     real findCriticalRa(int nCrit);
     virtual void runLinearStep();
