@@ -17,7 +17,7 @@ def main():
                         help='number of modes in simulation', required=True)
     parser.add_argument('--n_z_gridpoints', type=int,
                         help='number of gridpoints in simulation', required=True)
-    parser.add_argument('--aspect_ratio', type=int,
+    parser.add_argument('--aspect_ratio',
                         help='aspect ratio of sim', required=True)
     parser.add_argument('--output',
                         help='Output file')

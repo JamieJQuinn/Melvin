@@ -14,7 +14,7 @@ class Constants {
     real tau;
     int xiGrad;
     real Pr;
-    int aspectRatio;
+    real aspectRatio;
     real timeBetweenSaves;
     real totalTime;
 
