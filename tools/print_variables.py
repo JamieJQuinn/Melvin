@@ -28,6 +28,6 @@ def main():
                        .reshape(n_modes, n_gridpoints))
 
     for i in range(args.max_print_mode+1):
-        print i, "%.5E" % temp[32, i], "%.5E" % omega[32, i], "%.5E" % psi[32, i]
+        print(i, "%.5E" % temp[32, i], "%.5E" % omega[32, i], "%.5E" % psi[32, i])
 
 main()
