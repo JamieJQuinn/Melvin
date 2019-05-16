@@ -16,20 +16,62 @@ def main():
                         help='modes to initialise')
     parser.add_argument('--periodic', action='store_true',
                         help='enables periodic conditions')
+    parser.add_argument('--salt_fingering', action='store_true',
+                        help='enables salt fingering conditions')
+    parser.add_argument('--linear_stability', action='store_true',
+                        help='sets up linear stability conditions')
     args = parser.parse_args()
 
     n_modes = args.n_modes
     n_gridpoints = args.n_gridpoints
+    if args.salt_fingering:
+        n_vars = 10
+    else:
+        n_vars = 7
+
+    # Default to unstable temp gradient
+    temp_grad = -1
+    xi_grad = 1
+
+    if args.salt_fingering:
+        temp_grad = 1
+        xi_grad = 1
 
     # Stored as temp|omg|psi contiguously
-    data = np.zeros(7*n_modes*n_gridpoints)
+    data = np.zeros(n_vars*n_modes*n_gridpoints)
+
+    # Set up n=0 linear gradients
     if not args.periodic:
         mode = 0
-        data[n_gridpoints*(mode+0):n_gridpoints*(mode+1)] = np.linspace(1, 0, n_gridpoints)
+        varidx = 0*n_modes*n_gridpoints # temperature
+        data[varidx + n_gridpoints*(mode+0):varidx + n_gridpoints*(mode+1)] =\
+                np.linspace(0, 1, n_gridpoints)[::temp_grad]
 
-    for mode in args.modes:
-        data[n_gridpoints*(mode+0):n_gridpoints*(mode+1)]\
-                = 0.01*np.sin(np.pi*np.linspace(0, 1, n_gridpoints))
+        if args.salt_fingering:
+            mode = 0
+            varidx = 7*n_modes*n_gridpoints # xi
+            data[varidx + n_gridpoints*(mode+0):varidx + n_gridpoints*(mode+1)] =\
+                    np.linspace(0, 1, n_gridpoints)[::xi_grad]
+
+    if args.linear_stability:
+        # initialise all modes with a large amplitude
+        modes = range(1, args.n_modes)
+        amp = 1.0
+    else:
+        # initialise chosen modes with a small amplitude
+        modes = args.modes
+        amp = 0.01
+
+    # Initialise modes
+    for mode in modes:
+        varidx = 0*n_modes*n_gridpoints # temperature
+        data[varidx + n_gridpoints*(mode+0):varidx + n_gridpoints*(mode+1)] =\
+            amp*np.sin(np.pi*np.linspace(0, 1, n_gridpoints))
+
+        if args.salt_fingering:
+            varidx = 7*n_modes*n_gridpoints # xi
+            data[varidx + n_gridpoints*(mode+0):varidx + n_gridpoints*(mode+1)] =\
+                amp*np.sin(np.pi*np.linspace(0, 1, n_gridpoints))
 
     data.tofile(args.output)
 
