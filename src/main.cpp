@@ -54,11 +54,7 @@ int main(int argc, char** argv) {
   real RaCrit = Ra_mn;
 
 #ifdef DDC
-  if(c.tempGrad > 0) {
     RaCrit = c.RaXi - Ra_mn;
-  } else {
-    RaCrit = (c.Pr + c.tau)/(c.Pr + 1) * c.RaXi * c.tau + (c.Pr + c.tau)*(1 + c.tau) / c.Pr * Ra_mn;
-  }
 #endif
 
   cout << "Critical mode should be " << nCritAnalytical << endl;
@@ -89,11 +85,7 @@ int main(int argc, char** argv) {
 #endif
 
 #ifdef DDC
-  if(c.tempGrad > 0) {
-    success = (not isAboveCritical) and isBelowCritical;
-  } else {
-    success = isAboveCritical and (not isBelowCritical);
-  }
+  success = (not isAboveCritical) and isBelowCritical;
 #endif
 
   if(success) {

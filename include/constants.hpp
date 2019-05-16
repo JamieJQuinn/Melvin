@@ -9,10 +9,8 @@ class Constants {
     int nN;
     real initialDt;
     real Ra;
-    int tempGrad;
     real RaXi;
     real tau;
-    int xiGrad;
     real Pr;
     real aspectRatio;
     real timeBetweenSaves;

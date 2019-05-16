@@ -70,16 +70,7 @@ void DoubleDiffusiveSimulation::addAdvectionApproximation() {
   }
   for(int n=1; n<c.nN; ++n) {
     for(int k=1; k<c.nZ-1; ++k) {
-      dXidt(n,k) += -1*c.xiGrad*n*M_PI/c.aspectRatio * psi(n,k);
-    }
-  }
-}
-
-void DoubleDiffusiveSimulation::initialLinearConditions() {
-  Sim::initialLinearConditions();
-  for(int n=1; n<c.nN; ++n) {
-    for(int k=0; k<c.nZ; ++k) {
-      xi(n,k) = 0.1*sin(M_PI * k*c.dz);
+      dXidt(n,k) += -1*xi.dfdz(0,k)*n*M_PI/c.aspectRatio * psi(n,k);
     }
   }
 }

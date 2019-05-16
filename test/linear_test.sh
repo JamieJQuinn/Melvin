@@ -10,7 +10,7 @@ rm -f $save_folder/*
 cat << EOF > $save_folder/constants.js
 {
   "Pr":0.5,
-  "Ra":10000,
+  "Ra":1,
   "aspectRatio":3,
   "icFile":"initial_conditions/ICn1nZ101nN51",
   "initialDt":1e-5,
@@ -24,8 +24,10 @@ cat << EOF > $save_folder/constants.js
 EOF
 
 constants_file=$save_folder/constants.js
+python tools/make_initial_conditions.py --output initial_conditions/ICn1nZ101nN51 --n_modes 51 --n_gridpoints 101 --linear_stability
 
 echo "==================== Building program"
+make clean
 make linear
 
 echo "==================== Starting program"

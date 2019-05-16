@@ -26,6 +26,7 @@ EOF
 constants_file=$save_folder/constants.js
 
 echo "==================== Building program"
+make clean
 make nonlinear
 
 echo "==================== Starting program"

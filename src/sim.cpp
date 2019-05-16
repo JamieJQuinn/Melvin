@@ -110,7 +110,7 @@ void Sim::addAdvectionApproximation() {
   }
   for(int n=1; n<c.nN; ++n) {
     for(int k=1; k<c.nZ-1; ++k) {
-      dTmpdt(n,k) += -1*c.tempGrad*n*M_PI/c.aspectRatio * psi(n,k);
+      dTmpdt(n,k) += -1*tmp.dfdz(0,k)*n*M_PI/c.aspectRatio * psi(n,k);
     }
   }
 }
@@ -302,14 +302,6 @@ void Sim::runNonLinear() {
   save();
 }
 
-void Sim::initialLinearConditions() {
-  for(int n=1; n<c.nN; ++n) {
-    for(int k=0; k<c.nZ; ++k) {
-      tmp(n,k) = 0.1*sin(M_PI * k*c.dz);
-    }
-  }
-}
-
 bool Sim::isCritical(int nCrit) {
   return findCriticalRa(nCrit) > 0.0;
 }
@@ -319,7 +311,7 @@ real Sim::isFinished() {
 }
 
 real Sim::findCriticalRa(int nCrit) {
-  initialLinearConditions();
+  load(c.icFile);
 
   // Stuff for critical rayleigh check
   real tmpPrev = tmp(nCrit, 32);

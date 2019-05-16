@@ -23,11 +23,9 @@ void Constants::print() const {
   std::cout << "nN: " << nN << std::endl;
   std::cout << "aspectRatio: " << aspectRatio << std::endl;
   std::cout << "Ra: " << Ra << std::endl;
-  std::cout << "tempGrad: " << tempGrad << std::endl;
 #ifdef DDC
   std::cout << "RaXi: " << RaXi << std::endl;
   std::cout << "tau: " << tau << std::endl;
-  std::cout << "xiGrad: " << xiGrad << std::endl;
 #endif
   std::cout << "Pr: " << Pr << std::endl;
   std::cout << "dt: " << initialDt << std::endl;
@@ -56,8 +54,8 @@ bool Constants::isValid() const {
     std::cout << " initial dt (" << initialDt
     << ") Ra (" << Ra
 #ifdef DDC
-    << ") RaXi (" << Ra
-    << ") tau (" << Ra
+    << ") RaXi (" << RaXi
+    << ") tau (" << tau
 #endif
     << ") Pr (" << Pr
     << ") total time (" << totalTime
@@ -88,14 +86,12 @@ void Constants::readJson(const std::string &filePath) {
   initialDt = j["initialDt"];
   Ra = j["Ra"];
   Pr = j["Pr"];
-  tempGrad = j["tempGrad"];
   aspectRatio = j["aspectRatio"];
   timeBetweenSaves = j["timeBetweenSaves"];
   totalTime = j["totalTime"];
   saveFolder = j["saveFolder"];
   icFile = j["icFile"];
 #ifdef DDC
-  xiGrad = j["xiGrad"];
   RaXi = j["RaXi"];
   tau = j["tau"];
 #endif
@@ -111,14 +107,12 @@ void Constants::writeJson(const std::string &filePath) const {
   j["initialDt"] = initialDt;
   j["Ra"] = Ra;
   j["Pr"] = Pr;
-  j["tempGrad"] = tempGrad;
   j["aspectRatio"] = aspectRatio;
   j["timeBetweenSaves"] = timeBetweenSaves;
   j["totalTime"] = totalTime;
   j["saveFolder"] = saveFolder;
   j["icFile"] = icFile;
 #ifdef DDC
-  j["xiGrad"] = xiGrad;
   j["RaXi"] = RaXi;
   j["tau"] = tau;
 #endif

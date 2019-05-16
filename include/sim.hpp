@@ -35,8 +35,8 @@ class Sim {
     // Helper functions
     void printMaxOf(real *a, std::string name) const;
     void printBenchmarkData() const;
-    void save();
-    void load(const std::string &icFile);
+    virtual void save();
+    virtual void load(const std::string &icFile);
     void reinit();
     real calcKineticEnergy();
     real calcKineticEnergyForMode(int n);
@@ -55,7 +55,6 @@ class Sim {
     void runNonLinear();
 
     // Linear critical Rayleigh functions
-    void initialLinearConditions();
     bool isCritical(int nCrit);
     real findCriticalRa(int nCrit);
     virtual void runLinearStep();
