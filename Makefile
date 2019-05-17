@@ -5,13 +5,13 @@ SRC_DIR=src
 BUILD_DIR=build
 INCLUDE_DIR=include
 
-SOURCES=src/main.cpp src/sim.cpp src/numerical_methods.cpp src/thomas_algorithm.cpp src/constants.cpp src/variable.cpp src/double_diffusive_sim.cpp
-#SOURCES=$(wildcard $(SRC_DIR)/*.cpp)
+#SOURCES=src/main.cpp src/sim.cpp src/numerical_methods.cpp src/thomas_algorithm.cpp src/constants.cpp src/variable.cpp src/double_diffusive_sim.cpp
+SOURCES=$(wildcard $(SRC_DIR)/*.cpp)
 OBJECTS=$(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SOURCES))
 EXECUTABLE=exe
 
 .PHONY: all
-all: nonlinear
+all: release
 
 $(BUILD_DIR)/$(EXECUTABLE): $(OBJECTS)
 	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
@@ -26,10 +26,10 @@ $(BUILD_DIR):
 clean:
 	rm -rf $(BUILD_DIR)
 
-.PHONY: test
-test:
-	rm -rf test/benchmark
-	test/nonlinear_test.sh
+#.PHONY: test
+#test:
+	#rm -rf test/benchmark
+	#test/nonlinear_test.sh
 
 profile: CFLAGS += -pg
 profile: LDFLAGS += -pg
@@ -42,6 +42,3 @@ release: $(BUILD_DIR) $(BUILD_DIR)/$(EXECUTABLE)
 debug: CFLAGS += -DDEBUG -g -pg -Wall
 debug: LDFLAGS += -pg
 debug: $(BUILD_DIR) $(BUILD_DIR)/$(EXECUTABLE)
-
-ddc: CFLAGS += -DDDC
-ddc: release

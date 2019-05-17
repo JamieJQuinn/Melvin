@@ -16,6 +16,7 @@ class Constants {
     real timeBetweenSaves;
     real totalTime;
     bool isNonlinear;
+    bool isDoubleDiffusion;
 
     // Derived ants
     real dz;

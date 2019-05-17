@@ -13,7 +13,7 @@ DoubleDiffusiveSimulation::DoubleDiffusiveSimulation(const Constants &c_in)
 {}
 
 void DoubleDiffusiveSimulation::save() {
-  std::ofstream file (c.saveFolder+std::string("vars")+strFromNumber(saveNumber++)+std::string(".dat"), std::ios::out | std::ios::binary);
+  std::ofstream file (createSaveFilename(), std::ios::out | std::ios::binary);
   if(file.is_open()) {
     tmp.writeToFile(file);
     omg.writeToFile(file);
@@ -27,6 +27,8 @@ void DoubleDiffusiveSimulation::save() {
     exit(-1);
   }
   file.close();
+
+  ++saveNumber;
 }
 
 void DoubleDiffusiveSimulation::load(const std::string &icFile) {

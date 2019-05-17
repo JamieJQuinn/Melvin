@@ -30,13 +30,16 @@ Sim::~Sim() {
   delete thomasAlgorithm;
 }
 
-void Sim::save() {
+std::string Sim::createSaveFilename() {
   // Format save number
   char buff[10];
   sprintf(buff, "%04d", saveNumber);
-  ++saveNumber;
 
-  std::ofstream file (c.saveFolder+std::string("dump")+std::string(buff)+std::string(".dat"), std::ios::out | std::ios::binary);
+  return c.saveFolder+std::string("dump")+std::string(buff)+std::string(".dat");
+}
+
+void Sim::save() {
+  std::ofstream file (createSaveFilename(), std::ios::out | std::ios::binary);
   if(file.is_open()) {
     tmp.writeToFile(file);
     omg.writeToFile(file);
@@ -48,6 +51,8 @@ void Sim::save() {
     exit(-1);
   }
   file.close();
+
+  ++saveNumber;
 }
 
 void Sim::load(const std::string &icFile) {
@@ -327,9 +332,10 @@ int Sim::testCriticalRayleigh() {
   real Ra_mn = pow(M_PI/c.aspectRatio, 4) * pow(pow(nCritAnalytical,2) + pow(c.aspectRatio,2), 3) / pow(nCritAnalytical,2);
   real RaCrit = Ra_mn;
 
-#ifdef DDC
+  if(c.isDoubleDiffusion) {
+    // This is ONLY for salt-fingering. Semiconvection not implemented
     RaCrit = c.RaXi - Ra_mn;
-#endif
+  }
 
   cout << "Critical mode should be " << nCritAnalytical << endl;
   cout << "Corresponding Ra_mn is " << Ra_mn << endl;
@@ -353,14 +359,11 @@ int Sim::testCriticalRayleigh() {
   }
 
   bool success = false;
-
-#ifndef DDC
-  success = isAboveCritical and (not isBelowCritical);
-#endif
-
-#ifdef DDC
-  success = (not isAboveCritical) and isBelowCritical;
-#endif
+  if(c.isDoubleDiffusion) {
+    success = (not isAboveCritical) and isBelowCritical;
+  } else {
+    success = isAboveCritical and (not isBelowCritical);
+  }
 
   if(success) {
     cout << "Critical Ra FOUND." << endl;

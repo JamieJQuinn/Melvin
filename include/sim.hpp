@@ -36,6 +36,7 @@ class Sim {
     void printMaxOf(real *a, std::string name) const;
     void printBenchmarkData() const;
     virtual void save();
+    std::string createSaveFilename();
     virtual void load(const std::string &icFile);
     void reinit();
     void calcKineticEnergy();

@@ -34,20 +34,20 @@ int main(int argc, char** argv) {
   }
   c.print();
 
-#ifndef DDC
-  Sim simulation(c);
-#endif
+  Sim *simulation;
 
-#ifdef DDC
-  DoubleDiffusiveSimulation simulation(c);
-#endif
+  if(c.isDoubleDiffusion) {
+    simulation = new DoubleDiffusiveSimulation(c);
+  } else {
+    simulation = new Sim(c);
+  }
 
   if(c.isNonlinear) {
     cout << "NONLINEAR" << endl;
-    simulation.runNonLinear();
+    simulation->runNonLinear();
   } else {
     cout << "LINEAR" << endl;
-    return simulation.testCriticalRayleigh();
+    return simulation->testCriticalRayleigh();
   }
 
   cout << "ENDING SIMULATION" << endl;
