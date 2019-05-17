@@ -5,3 +5,4 @@ gmon.out
 build/
 test/benchmark
 initial_conditions/
+nohup.out
