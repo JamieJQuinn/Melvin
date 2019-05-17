@@ -33,7 +33,7 @@ echo "==================== Starting program"
 time build/exe --constants $constants_file | tee $save_folder/log
 
 echo "==================== Comparing results"
-comparison_results=$(python tools/print_variables.py test/benchmark/vars5.dat --max_print_mode 20 --n_modes 51 --n_gridpoints 101 | column -t | diff -q - test/benchmark_t5.txt)
+comparison_results=$(python tools/print_variables.py test/benchmark/dump0005.dat --max_print_mode 20 --n_modes 51 --n_gridpoints 101 | column -t | diff -q - test/benchmark_t5.txt)
 
 if [ -n "$comparison_results" ]; then
   echo "Simulation returned different results!"

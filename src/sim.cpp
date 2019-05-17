@@ -31,7 +31,12 @@ Sim::~Sim() {
 }
 
 void Sim::save() {
-  std::ofstream file (c.saveFolder+std::string("vars")+strFromNumber(saveNumber++)+std::string(".dat"), std::ios::out | std::ios::binary);
+  // Format save number
+  char buff[10];
+  sprintf(buff, "%04d", saveNumber);
+  ++saveNumber;
+
+  std::ofstream file (c.saveFolder+std::string("dump")+std::string(buff)+std::string(".dat"), std::ios::out | std::ios::binary);
   if(file.is_open()) {
     tmp.writeToFile(file);
     omg.writeToFile(file);
@@ -69,7 +74,7 @@ void Sim::reinit() {
 
 void Sim::saveKineticEnergy() {
   // Save total energy
-  std::ofstream file (c.saveFolder+"KineticEnergy.dat", std::ios::out | std::ios::app | std::ios::binary);
+  std::ofstream file (c.saveFolder+"kinetic_energy.dat", std::ios::out | std::ios::app | std::ios::binary);
   for(int i=0; i<kineticEnergies.size(); ++i) {
     file.write(reinterpret_cast<char*>(&kineticEnergies[i]), sizeof(real));
   }
@@ -276,14 +281,19 @@ void Sim::runNonLinear() {
   load(c.icFile);
 
   real saveTime = 0;
+  real KEcalcTime = 0;
   real KEsaveTime = 0;
   real CFLCheckTime = 0;
   real f = 1.0f; // Fractional change in dt (if CFL condition being breached)
   t = 0;
   while (c.totalTime-t>EPSILON) {
-    if(KEsaveTime-t < EPSILON) {
+    if(KEcalcTime-t < EPSILON) {
       calcKineticEnergy();
-      KEsaveTime += 1e3*dt;
+      KEcalcTime += 1e2*dt;
+    }
+    if(KEsaveTime-t < EPSILON) {
+      saveKineticEnergy();
+      KEsaveTime += 1e4*dt;
     }
     if(CFLCheckTime-t < EPSILON) {
       cout << "Checking CFL" << endl;
