@@ -79,7 +79,7 @@ void Sim::reinit() {
 
 void Sim::saveKineticEnergy() {
   // Save total energy
-  std::ofstream file (c.saveFolder+"kinetic_energy.dat", std::ios::out | std::ios::app | std::ios::binary);
+  std::ofstream file (c.saveFolder+"kinetic_energy.dat", std::ios::out | std::ios::binary);
   for(int i=0; i<kineticEnergies.size(); ++i) {
     file.write(reinterpret_cast<char*>(&kineticEnergies[i]), sizeof(real));
   }
