@@ -37,6 +37,7 @@ cat << EOF > $save_folder/constants.js
   "nZ":101,
   "saveFolder":"test/benchmark/",
   "timeBetweenSaves":0.01,
+  "isNonlinear:true,
   "totalTime":10
 }
 EOF
@@ -46,7 +47,7 @@ python tools/make_initial_conditions.py --output $save_folder/ICn1nZ101nN51_SF -
 
 echo "==================== Building program"
 make clean
-make ddcNonlinear
+make ddc
 
 echo "==================== Starting program"
 time build/exe --constants $constants_file | tee $save_folder/log

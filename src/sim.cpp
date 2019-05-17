@@ -322,6 +322,55 @@ real Sim::isFinished() {
   return t > c.totalTime;
 }
 
+int Sim::testCriticalRayleigh() {
+  int nCritAnalytical = c.aspectRatio/sqrt(2) + 0.5;
+  real Ra_mn = pow(M_PI/c.aspectRatio, 4) * pow(pow(nCritAnalytical,2) + pow(c.aspectRatio,2), 3) / pow(nCritAnalytical,2);
+  real RaCrit = Ra_mn;
+
+#ifdef DDC
+    RaCrit = c.RaXi - Ra_mn;
+#endif
+
+  cout << "Critical mode should be " << nCritAnalytical << endl;
+  cout << "Corresponding Ra_mn is " << Ra_mn << endl;
+  cout << "And RaCrit is " << RaCrit << endl;
+
+  c.Ra = RaCrit - 2;
+  cout << "Testing Ra = " << c.Ra << endl;
+  bool isBelowCritical = isCritical(nCritAnalytical);
+  cout << "Below this, critical = " << isBelowCritical << endl;
+  if(isFinished()) {
+    cout << "Total time breached." << endl;
+  }
+
+  c.Ra = RaCrit + 2;
+  cout << "Testing Ra = " << c.Ra << endl;
+  reinit();
+  bool isAboveCritical = isCritical(nCritAnalytical);
+  cout << "Above this, critical = " << isAboveCritical << endl;
+  if(isFinished()) {
+    cout << "Total time breached." << endl;
+  }
+
+  bool success = false;
+
+#ifndef DDC
+  success = isAboveCritical and (not isBelowCritical);
+#endif
+
+#ifdef DDC
+  success = (not isAboveCritical) and isBelowCritical;
+#endif
+
+  if(success) {
+    cout << "Critical Ra FOUND." << endl;
+    return 1;
+  } else {
+    cout << "Critical Ra NOT FOUND." << endl;
+    return -1;
+  }
+}
+
 real Sim::findCriticalRa(int nCrit) {
   load(c.icFile);
 

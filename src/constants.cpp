@@ -33,6 +33,7 @@ void Constants::print() const {
   std::cout << "dt: " << initialDt << std::endl;
   std::cout << "totalTime: " << totalTime << std::endl;
   std::cout << "saveFolder: " << saveFolder << std::endl;
+  std::cout << "is nonlinear? " << saveFolder << std::endl;
   std::cout << "icFile: " << icFile << std::endl;
 }
 
@@ -92,6 +93,7 @@ void Constants::readJson(const std::string &filePath) {
   timeBetweenSaves = j["timeBetweenSaves"];
   totalTime = j["totalTime"];
   saveFolder = j["saveFolder"];
+  isNonlinear = j["isNonlinear"];
   icFile = j["icFile"];
 #ifdef DDC
   RaXi = j["RaXi"];
@@ -113,6 +115,7 @@ void Constants::writeJson(const std::string &filePath) const {
   j["timeBetweenSaves"] = timeBetweenSaves;
   j["totalTime"] = totalTime;
   j["saveFolder"] = saveFolder;
+  j["isNonlinear"] = isNonlinear;
   j["icFile"] = icFile;
 #ifdef DDC
   j["RaXi"] = RaXi;

@@ -15,6 +15,7 @@ class Constants {
     real aspectRatio;
     real timeBetweenSaves;
     real totalTime;
+    bool isNonlinear;
 
     // Derived ants
     real dz;

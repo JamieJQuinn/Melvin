@@ -19,6 +19,7 @@ cat << EOF > $save_folder/constants.js
   "saveFolder":"test/benchmark/",
   "timeBetweenSaves":0.01,
   "totalTime":10,
+  "isNonlinear:false,
   "RaXi":1000,
   "tau":0.1
 }
@@ -29,7 +30,7 @@ python tools/make_initial_conditions.py --output $save_folder/ICn1nZ101nN51_SF -
 
 echo "==================== Building program"
 make clean
-make ddcLinear
+make ddc
 
 echo "==================== Starting program"
 time build/exe --constants $constants_file | tee $save_folder/log

@@ -33,7 +33,7 @@ test:
 
 profile: CFLAGS += -pg
 profile: LDFLAGS += -pg
-profile: nonlinear
+profile: release
 
 release: CFLAGS += -DNDEBUG -O2 -fopenmp
 release: LDFLAGS += -fopenmp
@@ -43,23 +43,5 @@ debug: CFLAGS += -DDEBUG -g -pg -Wall
 debug: LDFLAGS += -pg
 debug: $(BUILD_DIR) $(BUILD_DIR)/$(EXECUTABLE)
 
-ddcLinear: CFLAGS += -DLINEAR -DDDC
-ddcLinear: release
-
-ddcLinearDebug: CFLAGS += -DLINEAR -DDDC
-ddcLinearDebug: debug
-
-linear: CFLAGS += -DLINEAR
-linear: release
-
-linearDebug: CFLAGS += -DLINEAR
-linearDebug: debug
-
-nonlinear: CFLAGS += -DNONLINEAR
-nonlinear: release
-
-ddcNonlinear: CFLAGS += -DDDC
-ddcNonlinear: nonlinear
-
-nonlinearDebug: CFLAGS += -DNONLINEAR
-nonlinearDebug: debug
+ddc: CFLAGS += -DDDC
+ddc: release

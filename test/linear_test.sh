@@ -18,6 +18,7 @@ cat << EOF > $save_folder/constants.js
   "nZ":101,
   "saveFolder":"$save_folder/",
   "timeBetweenSaves":0.01,
+  "isNonlinear":false,
   "totalTime":10
 }
 EOF
@@ -27,7 +28,7 @@ python tools/make_initial_conditions.py --output $save_folder/ICn1nZ101nN51 --n_
 
 echo "==================== Building program"
 make clean
-make linear
+make release
 
 echo "==================== Starting program"
 time build/exe --constants $constants_file | tee $save_folder/log

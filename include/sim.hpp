@@ -56,6 +56,7 @@ class Sim {
 
     // Linear critical Rayleigh functions
     void addAdvectionApproximation();
+    int testCriticalRayleigh();
     bool isCritical(int nCrit);
     real findCriticalRa(int nCrit);
     virtual void runLinearStep();
