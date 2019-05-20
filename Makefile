@@ -26,10 +26,10 @@ $(BUILD_DIR):
 clean:
 	rm -rf $(BUILD_DIR)
 
-#.PHONY: test
-#test:
-	#rm -rf test/benchmark
-	#test/nonlinear_test.sh
+.PHONY: test
+test:
+	test/test_all_linear.sh
+	test/test_all_nonlinear.sh
 
 profile: CFLAGS += -pg
 profile: LDFLAGS += -pg

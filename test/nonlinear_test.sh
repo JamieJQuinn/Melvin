@@ -26,11 +26,11 @@ constants_file=$save_folder/constants.js
 python3 tools/make_initial_conditions.py --output $save_folder/ICn1nZ101nN51 --n_modes 51 --n_gridpoints 101 --modes 1
 
 echo "==================== Building program"
-make clean
+#make clean
 make release
 
 echo "==================== Starting program"
-{ time build/exe --constants $constants_file ; } 2>&1 | tee $save_folder/log
+{ /usr/bin/time build/exe --constants $constants_file ; } 2>&1 | tee $save_folder/log
 
 echo "==================== Comparing results"
 

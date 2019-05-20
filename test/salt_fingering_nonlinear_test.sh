@@ -32,11 +32,11 @@ constants_file=$save_folder/constants.js
 python tools/make_initial_conditions.py --output $save_folder/ICn1nZ101nN51_SF --n_modes 51 --n_gridpoints 101 --modes 1 25 --salt_fingering
 
 echo "==================== Building program"
-make clean
+#make clean
 make release
 
 echo "==================== Starting program"
-{ time build/exe --constants $constants_file ; } 2>&1 | tee $save_folder/log
+{ /usr/bin/time build/exe --constants $constants_file ; } 2>&1 | tee $save_folder/log
 
 echo "==================== Comparing results"
 cat << EOF > $save_folder/benchmark.txt
