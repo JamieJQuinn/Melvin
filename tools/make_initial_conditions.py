@@ -3,6 +3,30 @@
 import argparse
 import numpy as np
 
+def temperature_gradient(is_stable):
+    if is_stable:
+        return 1
+    else:
+        return -1
+
+def xi_gradient(is_stable):
+    if is_stable:
+        return -1
+    else:
+        return 1
+
+def set_temp(data, mode, values):
+    data[0, mode, :] = values
+
+def set_xi(data, mode, values):
+    data[7, mode, :] = values
+
+def set_temperature_background(data, background):
+    set_temp(data, 0, background)
+
+def set_xi_background(data, background):
+    set_xi(data, 0, background)
+
 def main():
     """main function"""
     parser = argparse.ArgumentParser(description='Create initial conditions file')
@@ -20,8 +44,15 @@ def main():
                         help='enables salt fingering conditions')
     parser.add_argument('--combined_convection', action='store_true',
                         help='fully unstable convection in both gradients')
+    parser.add_argument('--thermal_rayleigh_taylor', action='store_true', default=False,
+                        help='sets up thermal Rayleigh-Taylor conditions')
     parser.add_argument('--linear_stability', action='store_true',
                         help='sets up linear stability conditions')
+    parser.add_argument('--step_profile', action='store_true',
+                        help='uses step function instead of linear background')
+    parser.add_argument('--amp', type=float,
+                        help='amplitude of initial disturbance')
+
     args = parser.parse_args()
 
     ddc = args.salt_fingering or args.combined_convection
@@ -33,33 +64,17 @@ def main():
     else:
         n_vars = 7
 
-    # Default to unstable temp gradient
-    temp_grad = -1
-    xi_grad = 1
+    # Default to unstable temperature
+    temp_grad = temperature_gradient(is_stable=False)
+    xi_grad = xi_gradient(is_stable=True)
 
     if args.salt_fingering:
-        temp_grad = 1
-        xi_grad = 1
+        temp_grad = temperature_gradient(is_stable=True)
+        xi_grad = xi_gradient(is_stable=False)
 
     if args.combined_convection:
-        temp_grad = -1
-        xi_grad = 1
-
-    # Stored as temp|omg|psi contiguously
-    data = np.zeros(n_vars*n_modes*n_gridpoints)
-
-    # Set up n=0 linear gradients
-    if not args.periodic:
-        mode = 0
-        varidx = 0*n_modes*n_gridpoints # temperature
-        data[varidx + n_gridpoints*(mode+0):varidx + n_gridpoints*(mode+1)] =\
-                np.linspace(0, 1, n_gridpoints)[::temp_grad]
-
-        if ddc:
-            mode = 0
-            varidx = 7*n_modes*n_gridpoints # xi
-            data[varidx + n_gridpoints*(mode+0):varidx + n_gridpoints*(mode+1)] =\
-                    np.linspace(0, 1, n_gridpoints)[::xi_grad]
+        temp_grad = temperature_gradient(is_stable=False)
+        xi_grad = xi_gradient(is_stable=False)
 
     if args.linear_stability:
         # initialise all modes with a large amplitude
@@ -68,19 +83,39 @@ def main():
     else:
         # initialise chosen modes with a small amplitude
         modes = args.modes
-        amp = 0.01
+        if args.amp:
+            amp = args.amp
+        else:
+            amp = 0.01
 
-    # Initialise modes
+    # Stored as temp|omg|psi contiguously
+    data = np.zeros((n_vars, n_modes, n_gridpoints))
+
+    # Set up n=0 background
+    if args.step_profile:
+        # Step function
+        background = np.zeros(n_gridpoints)
+        background[n_gridpoints/2:] = 1 # Set upper half to 1
+    else:
+        # Linear gradient
+        background = np.linspace(0, 1, n_gridpoints)
+
+    set_temperature_background(data, background[::temp_grad])
+    if ddc:
+        set_xi_background(data, background[::xi_grad])
+
+    # Set up perturbations
+    if args.step_profile:
+        perturbation = np.zeros(n_gridpoints)
+        perturbation[n_gridpoints/2] = amp
+    else:
+        perturbation = amp*np.sin(np.pi*np.linspace(0, 1, n_gridpoints))
+
     for mode in modes:
-        if not ddc:
-            varidx = 0*n_modes*n_gridpoints # temperature
-            data[varidx + n_gridpoints*(mode+0):varidx + n_gridpoints*(mode+1)] =\
-                amp*np.sin(np.pi*np.linspace(0, 1, n_gridpoints))
-
+        if not args.salt_fingering:
+            set_temp(data, mode, perturbation)
         if ddc:
-            varidx = 7*n_modes*n_gridpoints # xi
-            data[varidx + n_gridpoints*(mode+0):varidx + n_gridpoints*(mode+1)] =\
-                amp*np.sin(np.pi*np.linspace(0, 1, n_gridpoints))
+            set_xi(data, mode, perturbation)
 
     data.tofile(args.output)
 
