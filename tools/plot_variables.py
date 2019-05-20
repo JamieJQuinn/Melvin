@@ -1,9 +1,10 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 """Plotting functions for simulation variables"""
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import argparse
+import json
 
 
 def main():
@@ -13,22 +14,20 @@ def main():
     parser.add_argument('filename', help='file to open')
     parser.add_argument('--max_print_mode', type=int,
                         help='modes to print')
-    parser.add_argument('--n_modes', type=int,
-                        help='number of modes in simulation', required=True)
-    parser.add_argument('--n_z_gridpoints', type=int,
-                        help='number of gridpoints in simulation', required=True)
-    parser.add_argument('--aspect_ratio', type=float,
-                        help='aspect ratio of sim', required=True)
     parser.add_argument('--output',
                         help='Output file')
-    parser.add_argument('--ddc', action='store_true', help='Plot xi')
+    parser.add_argument('--constants', help='constants file')
     args = parser.parse_args()
 
-    print(args.filename)
+    constants_file = open(args.constants, "r")
+    constants = json.load(constants_file)
 
-    n_modes = args.n_modes
-    n_z_gridpoints = args.n_z_gridpoints
-    aspect_ratio = args.aspect_ratio
+    is_ddc = constants["isDoubleDiffusion"]
+
+    n_modes = constants["nN"]
+    n_z_gridpoints = constants["nZ"]
+    aspect_ratio = constants["aspectRatio"]
+
     n_x_gridpoints = int(aspect_ratio*n_z_gridpoints)
     x_axis = np.linspace(0, aspect_ratio, num=n_x_gridpoints)
     z_axis = np.linspace(0, 1, num=n_z_gridpoints)
@@ -40,7 +39,7 @@ def main():
                         .reshape(n_modes, n_z_gridpoints))
     psi = np.transpose(data[2*n_modes*n_z_gridpoints:3*n_modes*n_z_gridpoints]\
                        .reshape(n_modes, n_z_gridpoints))
-    if args.ddc:
+    if is_ddc:
         varidx = 7
         xi = np.transpose(data[(varidx)*n_modes*n_z_gridpoints:(varidx+1)*n_modes*n_z_gridpoints]\
                            .reshape(n_modes, n_z_gridpoints))
@@ -58,7 +57,7 @@ def main():
     np.dot(psi, sine, out=psi_actual)
     np.dot(temp, cosine, out=temp_actual)
 
-    if args.ddc:
+    if is_ddc:
         xi_actual = np.zeros((n_z_gridpoints, n_x_gridpoints))
         np.dot(xi, cosine, out=xi_actual)
 
@@ -66,27 +65,28 @@ def main():
     plt.subplot(1, 3, 1)
     plt.gca().set_aspect(1.0)
     plt.yticks([0, 1])
-    plt.xticks(xrange(0, int(aspect_ratio+1)))
+    plt.xticks(range(0, int(aspect_ratio+1)))
     plt.tick_params(axis='x', bottom='off', top='off')
     plt.pcolormesh(x_grid, z_grid, temp_actual, cmap='coolwarm')
     # plt.contour(x_grid, z_grid, temp_actual)
     #plt.savefig(sys.argv[1] +'tmp.png', bbox_inches='tight', pad_inches=0)
 
-    plt.subplot(1, 3, 2)
-    plt.gca().set_aspect(1.0)
-    plt.gca().get_yaxis().set_visible(False)
-    plt.xticks(xrange(0, int(aspect_ratio+1)))
-    plt.tick_params(axis='x', bottom='off', top='off')
-    plt.gcf().tight_layout()
-    plt.contour(x_grid, z_grid, psi_actual, 6, colors='k')
+    if np.any(psi_actual):
+        plt.subplot(1, 3, 2)
+        plt.gca().set_aspect(1.0)
+        plt.gca().get_yaxis().set_visible(False)
+        plt.xticks(range(0, int(aspect_ratio+1)))
+        plt.tick_params(axis='x', bottom='off', top='off')
+        plt.gcf().tight_layout()
+        plt.contour(x_grid, z_grid, psi_actual, 6, colors='k')
 
-    if args.ddc:
+    if is_ddc:
         plt.subplot(1, 3, 3)
         plt.gca().set_aspect(1.0)
         plt.yticks([0, 1])
-        plt.xticks(xrange(0, int(aspect_ratio+1)))
+        plt.xticks(range(0, int(aspect_ratio+1)))
         plt.tick_params(axis='x', bottom='off', top='off')
-        plt.pcolormesh(x_grid, z_grid, xi_actual, cmap='coolwarm')
+        plt.pcolormesh(x_grid, z_grid, xi_actual, cmap='Blues')
 
     if args.output:
         plt.savefig(args.output, bbox_inches='tight', pad_inches=0, dpi=200)
