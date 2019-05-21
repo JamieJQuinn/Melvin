@@ -124,9 +124,8 @@ void Sim::computeLinearDerivatives() {
     for(int k=1; k<c.nZ-1; ++k) {
       dTmpdt(n,k) = tmp.dfdz2(n,k) - pow(n*M_PI/c.aspectRatio, 2)*tmp(n,k);
       dOmgdt(n,k) =
-        c.Pr*(omg.dfdz2(n,k) - pow(n*M_PI/c.aspectRatio, 2)*omg(n,k)
-        + c.Ra*n*M_PI/c.aspectRatio*tmp(n,k)
-        );
+        c.Pr*(omg.dfdz2(n,k) - pow(n*M_PI/c.aspectRatio, 2)*omg(n,k))
+        + c.Pr*c.Ra*(n*M_PI/c.aspectRatio)*tmp(n,k);
     }
   }
 }
