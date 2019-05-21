@@ -44,6 +44,8 @@ def main():
                         help='enables salt fingering conditions')
     parser.add_argument('--combined_convection', action='store_true',
                         help='fully unstable convection in both gradients')
+    parser.add_argument('--fully_stable', action='store_true',
+                        help='fully stable in both gradients')
     parser.add_argument('--thermal_rayleigh_taylor', action='store_true', default=False,
                         help='sets up thermal Rayleigh-Taylor conditions')
     parser.add_argument('--linear_stability', action='store_true',
@@ -55,7 +57,7 @@ def main():
 
     args = parser.parse_args()
 
-    ddc = args.salt_fingering or args.combined_convection
+    ddc = args.salt_fingering or args.combined_convection or args.fully_stable
 
     n_modes = args.n_modes
     n_gridpoints = args.n_gridpoints
@@ -76,13 +78,20 @@ def main():
         temp_grad = temperature_gradient(is_stable=False)
         xi_grad = xi_gradient(is_stable=False)
 
+    if args.fully_stable:
+        temp_grad = temperature_gradient(is_stable=True)
+        xi_grad = xi_gradient(is_stable=True)
+
     if args.linear_stability:
         # initialise all modes with a large amplitude
         modes = range(1, args.n_modes)
         amp = 1.0
     else:
         # initialise chosen modes with a small amplitude
-        modes = args.modes
+        if args.modes:
+            modes = args.modes
+        else:
+            modes = []
         if args.amp:
             amp = args.amp
         else:
