@@ -9,7 +9,7 @@ cat << EOF > $save_folder/constants.js
 {
   "Pr":1,
   "Ra":1e6,
-  "RaXi":1e7,
+  "RaXi":5e7,
   "tau":1e-2,
   "aspectRatio":1.41421356237,
   "initialDt":3e-6,
