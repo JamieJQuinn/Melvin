@@ -10,6 +10,12 @@ SOURCES=$(wildcard $(SRC_DIR)/*.cpp)
 OBJECTS=$(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SOURCES))
 EXECUTABLE=exe
 
+TEST_DIR=unit_test
+TEST_SOURCES=$(wildcard $(TEST_DIR)/*.cpp)
+TEST_OBJECTS=$(patsubst $(TEST_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(TEST_SOURCES))
+
+TEST_EXECUTABLE=test_exe
+
 .PHONY: all
 all: release
 
@@ -26,8 +32,8 @@ $(BUILD_DIR):
 clean:
 	rm -rf $(BUILD_DIR)
 
-.PHONY: test
-test:
+.PHONY: full-test
+full-test:
 	test/test_all_linear.sh
 	test/test_all_nonlinear.sh
 
@@ -42,3 +48,15 @@ release: $(BUILD_DIR) $(BUILD_DIR)/$(EXECUTABLE)
 debug: CFLAGS += -DDEBUG -g -pg -Wall
 debug: LDFLAGS += -pg
 debug: $(BUILD_DIR) $(BUILD_DIR)/$(EXECUTABLE)
+
+.PHONY: test
+test: CFLAGS += -DNDEBUG -O2 -fopenmp
+test: LDFLAGS += -fopenmp
+test: all $(BUILD_DIR)/$(TEST_EXECUTABLE)
+	cd $(BUILD_DIR); ./$(TEST_EXECUTABLE)
+
+$(BUILD_DIR)/%.o: $(TEST_DIR)/%.cpp
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/$(TEST_EXECUTABLE): $(TEST_OBJECTS)
+	$(CC) $(LDFLAGS) $(filter-out $(BUILD_DIR)/main.o, $(OBJECTS)) $(TEST_OBJECTS) -o $@
