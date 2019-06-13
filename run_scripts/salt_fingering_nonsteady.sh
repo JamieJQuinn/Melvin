@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-save_folder="data/salt_fingering_unstable"
+save_folder="data/salt_fingering_nonsteady"
 
 mkdir -p $save_folder
 rm -f $save_folder/*
@@ -29,7 +29,7 @@ cat << EOF > $save_folder/constants.js
 EOF
 
 constants_file=$save_folder/constants.js
-python tools/make_initial_conditions.py --output $save_folder/ICn1nZ101nN51_SF --n_modes 101 --n_gridpoints 201 --modes 1 25 --salt_fingering --step_profile
+python tools/make_initial_conditions.py --output $save_folder/ICn1nZ101nN51_SF --n_modes 101 --n_gridpoints 201 --modes 1 50 --amp 0.01 --salt_fingering
 
 echo "==================== Building program"
 make release
