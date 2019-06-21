@@ -34,6 +34,8 @@ class Variable {
     void writeToFile(std::ofstream& file) const;
     void readFromFile(std::ifstream& file);
 
+    void initialiseData(real initialValue = 0.0);
+
     // totalSteps gives the number of arrays to store, including the current one
     Variable(const Constants &c_in, int totalSteps_in = 1, real initialValue = 0.0);
     ~Variable();

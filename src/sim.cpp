@@ -18,8 +18,25 @@ Sim::Sim(const Constants &c_in)
   , tmp(c_in)
   , dTmpdt(c_in, 2)
   , dOmgdt(c_in, 2)
+  , xi(c_in)
+  , dXidt(c_in, 2)
 {
   saveNumber=0;
+
+  variableList.push_back(&tmp);
+  variableList.push_back(&omg);
+  variableList.push_back(&psi);
+  variableList.push_back(&dTmpdt);
+  variableList.push_back(&dOmgdt);
+
+  if(c.isDoubleDiffusion) {
+    variableList.push_back(&xi);
+    variableList.push_back(&dXidt);
+  }
+
+  for(int i=0; i<variableList.size(); ++i) {
+    variableList[i]->initialiseData();
+  }
 
   dt = c.initialDt;
 
@@ -41,11 +58,9 @@ std::string Sim::createSaveFilename() {
 void Sim::save() {
   std::ofstream file (createSaveFilename(), std::ios::out | std::ios::binary);
   if(file.is_open()) {
-    tmp.writeToFile(file);
-    omg.writeToFile(file);
-    psi.writeToFile(file);
-    dTmpdt.writeToFile(file);
-    dOmgdt.writeToFile(file);
+    for(int i=0; i<variableList.size(); ++i) {
+      variableList[i]->writeToFile(file);
+    }
   } else {
     cout << "Couldn't open " << c.saveFolder << " for writing. Aborting." << endl;
     exit(-1);
@@ -58,11 +73,9 @@ void Sim::save() {
 void Sim::load(const std::string &icFile) {
   std::ifstream file (c.icFile, std::ios::in | std::ios::binary);
   if(file.is_open()) {
-    tmp.readFromFile(file);
-    omg.readFromFile(file);
-    psi.readFromFile(file);
-    dTmpdt.readFromFile(file);
-    dOmgdt.readFromFile(file);
+    for(int i=0; i<variableList.size(); ++i) {
+      variableList[i]->readFromFile(file);
+    }
   } else {
     cout << "Couldn't open " << c.icFile << " for reading. Aborting." << endl;
     exit(-1);
@@ -70,11 +83,9 @@ void Sim::load(const std::string &icFile) {
 }
 
 void Sim::reinit() {
-  tmp.fill(0.0);
-  omg.fill(0.0);
-  psi.fill(0.0);
-  dTmpdt.fill(0.0);
-  dOmgdt.fill(0.0);
+  for(int i=0; i<variableList.size(); ++i) {
+    variableList[i]->fill(0.0);
+  }
 }
 
 void Sim::saveKineticEnergy() {
@@ -118,15 +129,39 @@ void Sim::calcKineticEnergy() {
   kineticEnergies.push_back(ke);
 }
 
-void Sim::computeLinearDerivatives() {
-  // Computes the (linear) derivatives of Tmp and omg
+void Sim::computeLinearTemperatureDerivative() {
   for(int n=0; n<c.nN; ++n) {
     for(int k=1; k<c.nZ-1; ++k) {
       dTmpdt(n,k) = tmp.dfdz2(n,k) - pow(n*M_PI/c.aspectRatio, 2)*tmp(n,k);
+    }
+  }
+}
+
+void Sim::computeLinearVorticityDerivative() {
+  for(int n=0; n<c.nN; ++n) {
+    for(int k=1; k<c.nZ-1; ++k) {
       dOmgdt(n,k) =
         c.Pr*(omg.dfdz2(n,k) - pow(n*M_PI/c.aspectRatio, 2)*omg(n,k))
         + c.Pr*c.Ra*(n*M_PI/c.aspectRatio)*tmp(n,k);
     }
+  }
+}
+
+void Sim::computeLinearXiDerivative() {
+  for(int n=0; n<c.nN; ++n) {
+    for(int k=1; k<c.nZ-1; ++k) {
+      dXidt(n,k) = c.tau*(xi.dfdz2(n,k) - pow(n*M_PI/c.aspectRatio, 2)*xi(n,k));
+      dOmgdt(n,k) += -c.RaXi*c.tau*c.Pr*(n*M_PI/c.aspectRatio)*xi(n,k);
+    }
+  }
+}
+
+void Sim::computeLinearDerivatives() {
+  // Computes the (linear) derivatives of Tmp and omg
+  computeLinearTemperatureDerivative();
+  computeLinearVorticityDerivative();
+  if(c.isDoubleDiffusion) {
+    computeLinearXiDerivative();
   }
 }
 
@@ -141,9 +176,19 @@ void Sim::addAdvectionApproximation() {
       dTmpdt(n,k) += -1*tmp.dfdz(0,k)*n*M_PI/c.aspectRatio * psi(n,k);
     }
   }
+  if(c.isDoubleDiffusion) {
+    for(int k=1; k<c.nZ-1; ++k) {
+      dXidt(0,k) = 0.0;
+    }
+    for(int n=1; n<c.nN; ++n) {
+      for(int k=1; k<c.nZ-1; ++k) {
+        dXidt(n,k) += -1*xi.dfdz(0,k)*n*M_PI/c.aspectRatio * psi(n,k);
+      }
+    }
+  }
 }
 
-void Sim::computeNonLinearDerivatives() {
+void Sim::computeNonlinearTemperatureDerivative(Variable &dTmpdt, const Variable &tmp) {
   for(int n=1; n<c.nN; ++n) {
     for(int k=1; k<c.nZ-1; ++k) {
       // Contribution TO tmp[n=0]
@@ -174,11 +219,6 @@ void Sim::computeNonLinearDerivatives() {
           -m*psi.dfdz(o,k)*tmp(m,k)
           +o*tmp.dfdz(m,k)*psi(o,k)
           );
-        dOmgdt(n,k) +=
-          -M_PI/(2*c.aspectRatio)*(
-          -m*psi.dfdz(o,k)*omg(m,k)
-          +o*omg.dfdz(m,k)*psi(o,k)
-          );
       }
     }
     for(int m=n+1; m<c.nN; ++m){
@@ -191,11 +231,6 @@ void Sim::computeNonLinearDerivatives() {
           -M_PI/(2*c.aspectRatio)*(
           +m*psi.dfdz(o,k)*tmp(m,k)
           +o*tmp.dfdz(m,k)*psi(o,k)
-          );
-        dOmgdt(n,k) +=
-          -M_PI/(2*c.aspectRatio)*(
-          +m*psi.dfdz(o,k)*omg(m,k)
-          +o*omg.dfdz(m,k)*psi(o,k)
           );
       }
     }
@@ -210,6 +245,52 @@ void Sim::computeNonLinearDerivatives() {
           +m*psi.dfdz(o,k)*tmp(m,k)
           +o*tmp.dfdz(m,k)*psi(o,k)
           );
+      }
+    }
+  }
+}
+
+void Sim::computeNonlinearXiDerivative() {
+  // Turns out it's the same for temperature and xi
+  computeNonlinearTemperatureDerivative(dXidt, xi);
+}
+
+void Sim::computeNonlinearVorticityDerivative() {
+  #pragma omp parallel for schedule(dynamic)
+  for(int n=1; n<c.nN; ++n) {
+    int o;
+    for(int m=1; m<n; ++m){
+      // Case n = n' + n''
+      o = n-m;
+      assert(o>0 and o<c.nN);
+      assert(m>0 and m<c.nN);
+      for(int k=1; k<c.nZ-1; ++k) {
+        dOmgdt(n,k) +=
+          -M_PI/(2*c.aspectRatio)*(
+          -m*psi.dfdz(o,k)*omg(m,k)
+          +o*omg.dfdz(m,k)*psi(o,k)
+          );
+      }
+    }
+    for(int m=n+1; m<c.nN; ++m){
+      // Case n = n' - n''
+      o = m-n;
+      assert(o>0 and o<c.nN);
+      assert(m>0 and m<c.nN);
+      for(int k=1; k<c.nZ-1; ++k) {
+        dOmgdt(n,k) +=
+          -M_PI/(2*c.aspectRatio)*(
+          +m*psi.dfdz(o,k)*omg(m,k)
+          +o*omg.dfdz(m,k)*psi(o,k)
+          );
+      }
+    }
+    for(int m=1; m+n<c.nN; ++m){
+      // Case n= n'' - n'
+      o = n+m;
+      assert(o>0 and o<c.nN);
+      assert(m>0 and m<c.nN);
+      for(int k=1; k<c.nZ-1; ++k) {
         dOmgdt(n,k) +=
           +M_PI/(2*c.aspectRatio)*(
           +m*psi.dfdz(o,k)*omg(m,k)
@@ -217,6 +298,14 @@ void Sim::computeNonLinearDerivatives() {
           );
       }
     }
+  }
+}
+
+void Sim::computeNonlinearDerivatives() {
+  computeNonlinearTemperatureDerivative(dTmpdt, tmp);
+  computeNonlinearVorticityDerivative();
+  if(c.isDoubleDiffusion) {
+    computeNonlinearXiDerivative();
   }
 }
 
@@ -265,16 +354,22 @@ void Sim::printBenchmarkData() const {
 void Sim::updateVars(real f) {
   tmp.update(dTmpdt, dt, f);
   omg.update(dOmgdt, dt, f);
+  if(c.isDoubleDiffusion) {
+    xi.update(dTmpdt, dt, f);
+  }
 }
 
 void Sim::advanceDerivatives() {
   dTmpdt.advanceTimestep();
   dOmgdt.advanceTimestep();
+  if(c.isDoubleDiffusion) {
+    dXidt.advanceTimestep();
+  }
 }
 
 void Sim::runNonLinearStep(real f) {
   computeLinearDerivatives();
-  computeNonLinearDerivatives();
+  computeNonlinearDerivatives();
   updateVars(f);
   advanceDerivatives();
   solveForPsi();
@@ -408,6 +503,7 @@ real Sim::findCriticalRa(int nCrit) {
     }
     steps++;
     runLinearStep();
+    t+=dt;
   }
   saveKineticEnergy();
   return 0;
@@ -419,5 +515,4 @@ void Sim::runLinearStep() {
   updateVars();
   advanceDerivatives();
   solveForPsi();
-  t+=dt;
 }

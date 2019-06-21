@@ -4,7 +4,6 @@
 
 #include <sim.hpp>
 #include <precision.hpp>
-#include <double_diffusive_sim.hpp>
 
 #define strVar(variable) #variable
 #define OMEGA 2*M_PI*4
@@ -35,12 +34,7 @@ int main(int argc, char** argv) {
   c.print();
 
   Sim *simulation;
-
-  if(c.isDoubleDiffusion) {
-    simulation = new DoubleDiffusiveSimulation(c);
-  } else {
-    simulation = new Sim(c);
-  }
+  simulation = new Sim(c);
 
   if(c.isNonlinear) {
     cout << "NONLINEAR" << endl;

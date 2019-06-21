@@ -27,6 +27,11 @@ class Sim {
     Variable dTmpdt; // d/dt of temperature
     Variable dOmgdt; // d/dt of vorticty
 
+    Variable xi; // Double diffusive constituent
+    Variable dXidt; // d/dt of xi
+
+    std::vector<Variable*> variableList; // for operations like saving, loading and initialising
+
     ThomasAlgorithm *thomasAlgorithm;
 
     Sim(const Constants &c_in);
@@ -46,7 +51,15 @@ class Sim {
 
     // Simulation functions
     void computeLinearDerivatives();
-    void computeNonLinearDerivatives();
+    void computeLinearTemperatureDerivative();
+    void computeLinearVorticityDerivative();
+    void computeLinearXiDerivative();
+
+    void computeNonlinearDerivatives();
+    void computeNonlinearTemperatureDerivative(Variable &dTmpdt, const Variable &tmp);
+    void computeNonlinearVorticityDerivative();
+    void computeNonlinearXiDerivative();
+
     void solveForPsi();
     void applyBoundaryConditions();
     void updateVars(real f=1.0);

@@ -58,8 +58,13 @@ void Variable::update(const Variable& dVardt, const real dt, const real f) {
   }
 }
 
+void Variable::initialiseData(real initialValue) {
+  data = new real[this->totalSize()];
+  fill(initialValue);
+}
+
 Variable::Variable(const Constants &c_in, int totalSteps_in, real initialValue):
-  data(new real[c_in.nN*c_in.nZ*totalSteps_in]()),
+  data(NULL),
   nN(c_in.nN),
   nZ(c_in.nZ),
   dz(c_in.dz),
@@ -67,10 +72,10 @@ Variable::Variable(const Constants &c_in, int totalSteps_in, real initialValue):
   totalSteps(totalSteps_in),
   current(0),
   previous(1)
-{
-  fill(initialValue);
-}
+{}
 
 Variable::~Variable() {
-  delete [] data;
+  if(data != NULL) {
+    delete [] data;
+  }
 }
