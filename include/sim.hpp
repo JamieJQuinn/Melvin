@@ -50,16 +50,6 @@ class Sim {
     real isFinished();
 
     // Simulation functions
-    void computeLinearDerivatives();
-    void computeLinearTemperatureDerivative();
-    void computeLinearVorticityDerivative();
-    void computeLinearXiDerivative();
-
-    void computeNonlinearDerivatives();
-    void computeNonlinearTemperatureDerivative(Variable &dTmpdt, const Variable &tmp);
-    void computeNonlinearVorticityDerivative();
-    void computeNonlinearXiDerivative();
-
     void solveForPsi();
     void applyBoundaryConditions();
     void updateVars(real f=1.0);
@@ -69,7 +59,6 @@ class Sim {
     virtual void runNonLinearStep(real f=1.0);
 
     // Linear critical Rayleigh functions
-    void addAdvectionApproximation();
     int testCriticalRayleigh();
     bool isCritical(int nCrit);
     real findCriticalRa(int nCrit);

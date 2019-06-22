@@ -40,10 +40,10 @@ class Variable {
     Variable(const Constants &c_in, int totalSteps_in = 1, real initialValue = 0.0);
     ~Variable();
 
-  private:
-    real * data;
     const int nN;
     const int nZ;
+  private:
+    real * data;
     const double dz;
     const double oodz2;
     const int totalSteps;
