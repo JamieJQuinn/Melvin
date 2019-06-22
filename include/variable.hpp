@@ -37,13 +37,13 @@ class Variable {
     void initialiseData(real initialValue = 0.0);
 
     // totalSteps gives the number of arrays to store, including the current one
-    Variable(const Constants &c_in, int totalSteps_in = 1, real initialValue = 0.0);
+    Variable(const Constants &c_in, const int totalSteps_in = 1);
     ~Variable();
 
     const int nN;
     const int nZ;
-  private:
     real * data;
+  protected:
     const double dz;
     const double oodz2;
     const int totalSteps;

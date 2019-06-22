@@ -67,7 +67,8 @@ gpu: CC = nvcc
 gpu: $(BUILD_DIR) $(GPU_OBJECTS) $(BUILD_DIR)/$(EXECUTABLE)
 
 .PHONY: gpu-test
-gpu-test: CFLAGS += -DGPU -ccbin=clang++
+gpu-test: CFLAGS += -DGPU -ccbin=clang++ -pg
+gpu-test: LDFLAGS += -pg
 gpu-test: OBJECTS += $(GPU_OBJECTS)
 gpu-test: TEST_OBJECTS += $(GPU_TEST_OBJECTS)
 gpu-test: CC = nvcc
@@ -75,8 +76,8 @@ gpu-test: $(BUILD_DIR) $(GPU_OBJECTS) $(GPU_TEST_OBJECTS) $(BUILD_DIR)/$(TEST_EX
 	cd $(BUILD_DIR); ./$(TEST_EXECUTABLE)
 
 .PHONY: test
-test: CFLAGS += -DNDEBUG -O2 -fopenmp
-test: LDFLAGS += -fopenmp
+test: CFLAGS += -DNDEBUG -O2 -fopenmp -pg
+test: LDFLAGS += -fopenmp -pg
 test: all $(BUILD_DIR)/$(TEST_EXECUTABLE)
 	cd $(BUILD_DIR); ./$(TEST_EXECUTABLE)
 

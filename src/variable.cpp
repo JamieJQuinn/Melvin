@@ -63,7 +63,7 @@ void Variable::initialiseData(real initialValue) {
   fill(initialValue);
 }
 
-Variable::Variable(const Constants &c_in, int totalSteps_in, real initialValue):
+Variable::Variable(const Constants &c_in, const int totalSteps_in):
   data(NULL),
   nN(c_in.nN),
   nZ(c_in.nZ),
