@@ -9,11 +9,11 @@ using namespace std;
 TEST_CASE( "GPU loads and prints values correctly", "[gpu]" ) {
   int nZ = 5;
 
-  float *rhsGPU;
-  float *solGPU;
+  real *rhsGPU;
+  real *solGPU;
 
-  cudaMallocManaged(&rhsGPU, nZ*sizeof(float));
-  cudaMallocManaged(&solGPU, nZ*sizeof(float));
+  cudaMallocManaged(&rhsGPU, nZ*sizeof(real));
+  cudaMallocManaged(&solGPU, nZ*sizeof(real));
 
   for(int i=0; i<nZ; ++i) {
     rhsGPU[i] = i+1;
@@ -23,7 +23,7 @@ TEST_CASE( "GPU loads and prints values correctly", "[gpu]" ) {
   cudaDeviceSynchronize();
 
   for(int i=0; i<nZ; ++i) {
-    REQUIRE(rhsGPU[i] == float(i+1));
+    REQUIRE(rhsGPU[i] == real(i+1));
   }
 }
 
@@ -34,16 +34,16 @@ TEST_CASE( "GPU Thomas algorithm solves a system correctly", "[gpu]" ) {
   ThomasAlgorithm ta (nZ, nN, 1, 0.01f);
   ThomasAlgorithmGPU taGPU (nZ, nN, 1, 0.01f);
 
-  float rhs [] = {1, 2, 3, 4, 5};
-  float sol [nZ];
+  real rhs [] = {1, 2, 3, 4, 5};
+  real sol [nZ];
 
   ta.solve((real*)sol, (real*)rhs, 2);
 
-  float *rhsGPU;
-  float *solGPU;
+  real *rhsGPU;
+  real *solGPU;
 
-  cudaMallocManaged(&rhsGPU, nZ*sizeof(float));
-  cudaMallocManaged(&solGPU, nZ*sizeof(float));
+  cudaMallocManaged(&rhsGPU, nZ*sizeof(real));
+  cudaMallocManaged(&solGPU, nZ*sizeof(real));
 
   for(int i=0; i<nZ; ++i) {
     rhsGPU[i] = i+1;

@@ -1,7 +1,7 @@
 #include "thomas_algorithm_gpu.hpp"
 
 __global__
-void solveThomasAlgorithm(float *sol, const float *rhs, const float *wk1, const float *wk2, const float *sub, const int n, const int nZ) {
+void solveThomasAlgorithm(real *sol, const real *rhs, const real *wk1, const real *wk2, const real *sub, const int n, const int nZ) {
   int iN = n*nZ;
 
   // Forward Subsitution
@@ -16,7 +16,7 @@ void solveThomasAlgorithm(float *sol, const float *rhs, const float *wk1, const 
 }
 
 void ThomasAlgorithmGPU::solve(real *sol, const real *rhs, const int n) const {
-  solveThomasAlgorithm<<<1,1>>>((float*)sol, (float*)rhs, (float*)wk1, (float*)wk2, (float*)sub, n, nZ);
+  solveThomasAlgorithm<<<1,1>>>((real*)sol, (real*)rhs, (real*)wk1, (real*)wk2, (real*)sub, n, nZ);
 }
 
 void ThomasAlgorithmGPU::formTriDiagonalArraysForN (
