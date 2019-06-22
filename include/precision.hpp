@@ -1,6 +1,6 @@
 #pragma once
 #include <cfloat>
 
-typedef float real;
+typedef double real;
 
 const real EPSILON = DBL_EPSILON;
