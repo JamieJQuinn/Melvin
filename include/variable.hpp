@@ -9,6 +9,10 @@ class Variable {
   // Encapsulates an array representing a variable in the model
   public:
     real * getMode(int n);
+    real * getCurrent();
+    const real * getCurrent() const;
+    real* getPrevious();
+    const real* getPrevious() const;
     real * getPlus(int nSteps=0);
     const real* getPlus(int nSteps) const;
 

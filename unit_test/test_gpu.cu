@@ -245,3 +245,42 @@ TEST_CASE("Vorticity derivative calculates correctly", "[gpu]") {
     }
   }
 }
+
+TEST_CASE("Adams-Bashforth integrator works", "[gpu]") {
+  Constants c;
+  c.nN = 5;
+  c.nZ = 10;
+  c.aspectRatio = 1;
+  c.calculateDerivedConstants();
+
+  // Create GPU variables
+  VariableGPU tmpGPU(c);
+  VariableGPU dTmpdtGPU(c, 2);
+  tmpGPU.initialiseData();
+  dTmpdtGPU.initialiseData();
+
+  // Create CPU variables
+  Variable tmp(c);
+  Variable dTmpdt(c, 2);
+  tmp.initialiseData();
+  dTmpdt.initialiseData();
+
+  // Load both with same test data
+  for(int n=0; n<c.nN; ++n) {
+    for(int k=0; k<c.nZ; ++k) {
+      tmpGPU(n,k) = (float)k;
+      tmp(n,k) = (float)k;
+    }
+  }
+
+  tmp.update(dTmpdt, 0.01, 1.0);
+  tmpGPU.update(dTmpdtGPU, 0.01, 1.0);
+
+  cudaDeviceSynchronize();
+
+  for(int n=0; n<c.nN; ++n) {
+    for(int k=1; k<c.nZ-1; ++k) {
+      CHECK(tmpGPU(n,k) == Approx(tmp(n,k)));
+    }
+  }
+}

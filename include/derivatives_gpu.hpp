@@ -1,13 +1,13 @@
 #pragma once
 
-#include <variable.hpp>
+#include <variable_gpu.hpp>
 #include <constants.hpp>
 
-void computeLinearTemperatureDerivativeGPU(Variable &dTmpdt, const Variable &tmp, const Constants &c);
-void computeLinearVorticityDerivativeGPU(Variable &dOmgdt, const Variable &omg, const Variable &tmp, const Constants &c);
+void computeLinearTemperatureDerivativeGPU(VariableGPU &dTmpdt, const VariableGPU &tmp, const Constants &c);
+void computeLinearVorticityDerivativeGPU(VariableGPU &dOmgdt, const VariableGPU &omg, const VariableGPU &tmp, const Constants &c);
 void addAdvectionApproximationGPU(
-    Variable &dTmpdt, const Variable &tmp,
-    Variable &dOmgdt, const Variable &omg,
-    Variable &dXidt, const Variable &xi,
-    const Variable &psi,
+    VariableGPU &dTmpdt, const VariableGPU &tmp,
+    VariableGPU &dOmgdt, const VariableGPU &omg,
+    VariableGPU &dXidt, const VariableGPU &xi,
+    const VariableGPU &psi,
     const Constants &c);

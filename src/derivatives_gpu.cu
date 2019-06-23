@@ -67,31 +67,31 @@ void gpu_addAdvectionApproximation(
   }
 }
 
-void computeLinearTemperatureDerivativeGPU(Variable &dTmpdt, const Variable &tmp, const Constants &c) {
-  gpu_computeLinearTemperatureDerivative<<<1,1>>>(dTmpdt.data, tmp.data, c.nN, c.nZ, c.aspectRatio, c.oodz2);
+void computeLinearTemperatureDerivativeGPU(VariableGPU &dTmpdt, const VariableGPU &tmp, const Constants &c) {
+  gpu_computeLinearTemperatureDerivative<<<1,1>>>(dTmpdt.getCurrent(), tmp.getCurrent(), c.nN, c.nZ, c.aspectRatio, c.oodz2);
 }
 
-void computeLinearVorticityDerivativeGPU(Variable &dOmgdt, const Variable &omg, const Variable &tmp, const Constants &c) {
-  gpu_computeLinearVorticityDerivative<<<1,1>>>(dOmgdt.data, omg.data, tmp.data,
+void computeLinearVorticityDerivativeGPU(VariableGPU &dOmgdt, const VariableGPU &omg, const VariableGPU &tmp, const Constants &c) {
+  gpu_computeLinearVorticityDerivative<<<1,1>>>(dOmgdt.getCurrent(), omg.getCurrent(), tmp.getCurrent(),
     c.nN, c.nZ, c.aspectRatio, c.Ra, c.Pr, c.oodz2);
 }
 
 void addAdvectionApproximationGPU(
-    Variable &dTmpdt, const Variable &tmp,
-    Variable &dOmgdt, const Variable &omg,
-    Variable &dXidt, const Variable &xi,
-    const Variable &psi,
+    VariableGPU &dTmpdt, const VariableGPU &tmp,
+    VariableGPU &dOmgdt, const VariableGPU &omg,
+    VariableGPU &dXidt, const VariableGPU &xi,
+    const VariableGPU &psi,
     const Constants &c) {
   // Only applies to the linear simulation
-  gpu_fillMode<<<1,1>>>(dOmgdt.data, 0.0, 0, c.nZ);
-  gpu_fillMode<<<1,1>>>(dTmpdt.data, 0.0, 0, c.nZ);
+  gpu_fillMode<<<1,1>>>(dOmgdt.getCurrent(), 0.0, 0, c.nZ);
+  gpu_fillMode<<<1,1>>>(dTmpdt.getCurrent(), 0.0, 0, c.nZ);
   gpu_addAdvectionApproximation<<<1,1>>>(
-      dTmpdt.data, tmp.data, psi.data,
+      dTmpdt.getCurrent(), tmp.getCurrent(), psi.getCurrent(),
       c.nN, c.nZ, c.aspectRatio, 1.0f/c.dz);
   if(c.isDoubleDiffusion) {
-    gpu_fillMode<<<1,1>>>(dXidt.data, 0.0, 0, c.nZ);
+    gpu_fillMode<<<1,1>>>(dXidt.getCurrent(), 0.0, 0, c.nZ);
     gpu_addAdvectionApproximation<<<1,1>>>(
-        dXidt.data, xi.data, psi.data,
+        dXidt.getCurrent(), xi.getCurrent(), psi.getCurrent(),
         c.nN, c.nZ, c.aspectRatio, 1.0f/c.dz);
   }
 }

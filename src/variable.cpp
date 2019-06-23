@@ -4,6 +4,22 @@
 #include <cassert>
 #include <cmath>
 
+real* Variable::getCurrent() {
+  return getPlus(0);
+}
+
+const real* Variable::getCurrent() const {
+  return getPlus(0);
+}
+
+real* Variable::getPrevious() {
+  return data + previous*varSize();
+}
+
+const real* Variable::getPrevious() const {
+  return data + previous*varSize();
+}
+
 real* Variable::getPlus(int nSteps) {
   return data + ((current+nSteps)%totalSteps)*varSize();
 }
