@@ -38,16 +38,30 @@ class Sim {
     ~Sim();
 
     // Helper functions
+    void initialiseThomasAlgorithm();
     void printMaxOf(real *a, std::string name) const;
     void printBenchmarkData() const;
-    virtual void save();
+    void save();
     std::string createSaveFilename();
-    virtual void load(const std::string &icFile);
+    void load(const std::string &icFile);
     void reinit();
     void calcKineticEnergy();
     real calcKineticEnergyForMode(int n);
     void saveKineticEnergy();
     real isFinished();
+
+    // Derivative calculations
+    void computeLinearDerivatives();
+    void computeLinearTemperatureDerivative();
+    void computeLinearVorticityDerivative();
+    void computeLinearXiDerivative();
+    void addAdvectionApproximation();
+
+    void computeNonlinearDerivatives();
+    void computeNonlinearDerivative(Variable &dVardt, const Variable &var);
+    void computeNonlinearTemperatureDerivative();
+    void computeNonlinearXiDerivative();
+    void computeNonlinearVorticityDerivative();
 
     // Simulation functions
     void solveForPsi();
@@ -56,11 +70,11 @@ class Sim {
     void advanceDerivatives();
 
     void runNonLinear();
-    virtual void runNonLinearStep(real f=1.0);
+    void runNonLinearStep(real f=1.0);
 
     // Linear critical Rayleigh functions
     int testCriticalRayleigh();
     bool isCritical(int nCrit);
     real findCriticalRa(int nCrit);
-    virtual void runLinearStep();
+    void runLinearStep();
 };

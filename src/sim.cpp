@@ -8,7 +8,6 @@
 #include <precision.hpp>
 #include <utility.hpp>
 #include <numerical_methods.hpp>
-#include <derivatives.hpp>
 
 using namespace std;
 
@@ -41,11 +40,15 @@ Sim::Sim(const Constants &c_in)
 
   dt = c.initialDt;
 
-  thomasAlgorithm = new ThomasAlgorithm(c.nZ, c.nN, c.aspectRatio, c.oodz2);
+  initialiseThomasAlgorithm();
 }
 
 Sim::~Sim() {
   delete thomasAlgorithm;
+}
+
+void Sim::initialiseThomasAlgorithm() {
+  thomasAlgorithm = new ThomasAlgorithm(c.nZ, c.nN, c.aspectRatio, c.oodz2);
 }
 
 std::string Sim::createSaveFilename() {
@@ -137,33 +140,33 @@ void Sim::solveForPsi(){
   }
 }
 
-void Sim::applyBoundaryConditions() {
-  // Streamfunction
-  for(int n=0; n<c.nN; ++n) {
-    assert(psi(n,0) == 0.0);
-    assert(psi(n,c.nZ-1) == 0.0);
-  }
-  for(int k=0; k<c.nZ; ++k) {
-    assert(psi(0,k) < EPSILON);
-  }
+////void Sim::applyBoundaryConditions() {
+  //// Streamfunction
+  //for(int n=0; n<c.nN; ++n) {
+    //assert(psi(n,0) == 0.0);
+    //assert(psi(n,c.nZ-1) == 0.0);
+  //}
+  //for(int k=0; k<c.nZ; ++k) {
+    //assert(psi(0,k) < EPSILON);
+  //}
 
-  // Temp
-  for(int n=0; n<c.nN; ++n) {
-    if(n>0) {
-      assert(tmp(n, 0) < EPSILON);
-    } else {
-      assert(tmp(n, 0) - 1.0 < EPSILON);
-    }
-    assert(tmp(n, c.nZ-1) < EPSILON);
-  }
+  //// Temp
+  //for(int n=0; n<c.nN; ++n) {
+    //if(n>0) {
+      //assert(tmp(n, 0) < EPSILON);
+    //} else {
+      //assert(tmp(n, 0) - 1.0 < EPSILON);
+    //}
+    //assert(tmp(n, c.nZ-1) < EPSILON);
+  //}
 
-  // Vorticity
-  for(int n=0; n<c.nN; ++n) {
-    // check BCs
-    assert(omg(n, 0) < EPSILON);
-    assert(omg(n, c.nZ-1) < EPSILON);
-  }
-}
+  //// Vorticity
+  //for(int n=0; n<c.nN; ++n) {
+    //// check BCs
+    //assert(omg(n, 0) < EPSILON);
+    //assert(omg(n, c.nZ-1) < EPSILON);
+  //}
+//}
 
 void Sim::printBenchmarkData() const {
   cout << t << " of " << c.totalTime << "(" << t/c.totalTime*100 << ")" << endl;
@@ -171,6 +174,192 @@ void Sim::printBenchmarkData() const {
     printf("%d | %e | %e | %e\n", n, tmp(n,32), omg(n,32), psi(n,32));
   }
 }
+
+void Sim::computeLinearDerivatives() {
+  // Computes the (linear) derivatives of Tmp and omg
+  computeLinearTemperatureDerivative();
+  computeLinearVorticityDerivative();
+  if(c.isDoubleDiffusion) {
+    computeLinearXiDerivative();
+  }
+}
+
+void Sim::computeLinearTemperatureDerivative() {
+  for(int n=0; n<c.nN; ++n) {
+    for(int k=1; k<c.nZ-1; ++k) {
+      dTmpdt(n,k) = tmp.dfdz2(n,k) - pow(n*M_PI/c.aspectRatio, 2)*tmp(n,k);
+    }
+  }
+}
+
+void Sim::computeLinearVorticityDerivative() {
+  for(int n=0; n<c.nN; ++n) {
+    for(int k=1; k<c.nZ-1; ++k) {
+      dOmgdt(n,k) =
+        c.Pr*(omg.dfdz2(n,k) - pow(n*M_PI/c.aspectRatio, 2)*omg(n,k))
+        + c.Pr*c.Ra*(n*M_PI/c.aspectRatio)*tmp(n,k);
+    }
+  }
+}
+
+void Sim::computeLinearXiDerivative() {
+  for(int n=0; n<c.nN; ++n) {
+    for(int k=1; k<c.nZ-1; ++k) {
+      dXidt(n,k) = c.tau*(xi.dfdz2(n,k) - pow(n*M_PI/c.aspectRatio, 2)*xi(n,k));
+      dOmgdt(n,k) += -c.RaXi*c.tau*c.Pr*(n*M_PI/c.aspectRatio)*xi(n,k);
+    }
+  }
+}
+
+void Sim::addAdvectionApproximation() {
+  // Only applies to the linear simulation
+  for(int k=1; k<c.nZ-1; ++k) {
+    dOmgdt(0,k) = 0.0;
+    dTmpdt(0,k) = 0.0;
+  }
+  for(int n=1; n<c.nN; ++n) {
+    for(int k=1; k<c.nZ-1; ++k) {
+      dTmpdt(n,k) += -1*tmp.dfdz(0,k)*n*M_PI/c.aspectRatio * psi(n,k);
+    }
+  }
+  if(c.isDoubleDiffusion) {
+    for(int k=1; k<c.nZ-1; ++k) {
+      dXidt(0,k) = 0.0;
+    }
+    for(int n=1; n<c.nN; ++n) {
+      for(int k=1; k<c.nZ-1; ++k) {
+        dXidt(n,k) += -1*xi.dfdz(0,k)*n*M_PI/c.aspectRatio * psi(n,k);
+      }
+    }
+  }
+}
+
+void Sim::computeNonlinearDerivatives() {
+  computeNonlinearTemperatureDerivative();
+  computeNonlinearVorticityDerivative();
+  if(c.isDoubleDiffusion) {
+    computeNonlinearXiDerivative();
+  }
+}
+
+void Sim::computeNonlinearDerivative(Variable &dVardt, const Variable &var) {
+  for(int n=1; n<c.nN; ++n) {
+    for(int k=1; k<c.nZ-1; ++k) {
+      // Contribution TO var[n=0]
+      dVardt(0,k) +=
+        -M_PI/(2*c.aspectRatio)*n*(
+          psi.dfdz(n,k)*var(n,k) +
+          var.dfdz(n,k)*psi(n,k)
+          );
+    }
+  }
+  #pragma omp parallel for schedule(dynamic)
+  for(int n=1; n<c.nN; ++n) {
+    // Contribution FROM var[n=0]
+    for(int k=1; k<c.nZ-1; ++k) {
+      dVardt(n,k) +=
+        -n*M_PI/c.aspectRatio*psi(n,k)*var.dfdz(0,k);
+    }
+    // Contribution FROM var[n>0] and omg[n>0]
+    int o;
+    for(int m=1; m<n; ++m){
+      // Case n = n' + n''
+      o = n-m;
+      assert(o>0 and o<c.nN);
+      assert(m>0 and m<c.nN);
+      for(int k=1; k<c.nZ-1; ++k) {
+        dVardt(n,k) +=
+          -M_PI/(2*c.aspectRatio)*(
+          -m*psi.dfdz(o,k)*var(m,k)
+          +o*var.dfdz(m,k)*psi(o,k)
+          );
+      }
+    }
+    for(int m=n+1; m<c.nN; ++m){
+      // Case n = n' - n''
+      o = m-n;
+      assert(o>0 and o<c.nN);
+      assert(m>0 and m<c.nN);
+      for(int k=1; k<c.nZ-1; ++k) {
+        dVardt(n,k) +=
+          -M_PI/(2*c.aspectRatio)*(
+          +m*psi.dfdz(o,k)*var(m,k)
+          +o*var.dfdz(m,k)*psi(o,k)
+          );
+      }
+    }
+    for(int m=1; m+n<c.nN; ++m){
+      // Case n= n'' - n'
+      o = n+m;
+      assert(o>0 and o<c.nN);
+      assert(m>0 and m<c.nN);
+      for(int k=1; k<c.nZ-1; ++k) {
+        dVardt(n,k) +=
+          -M_PI/(2*c.aspectRatio)*(
+          +m*psi.dfdz(o,k)*var(m,k)
+          +o*var.dfdz(m,k)*psi(o,k)
+          );
+      }
+    }
+  }
+}
+
+void Sim::computeNonlinearTemperatureDerivative() {
+  computeNonlinearDerivative(dTmpdt, tmp);
+}
+
+void Sim::computeNonlinearXiDerivative() {
+  // Turns out it's the same for temperature and xi
+  computeNonlinearDerivative(dXidt, xi);
+}
+
+void Sim::computeNonlinearVorticityDerivative() {
+  #pragma omp parallel for schedule(dynamic)
+  for(int n=1; n<c.nN; ++n) {
+    int o;
+    for(int m=1; m<n; ++m){
+      // Case n = n' + n''
+      o = n-m;
+      assert(o>0 and o<c.nN);
+      assert(m>0 and m<c.nN);
+      for(int k=1; k<c.nZ-1; ++k) {
+        dOmgdt(n,k) +=
+          -M_PI/(2*c.aspectRatio)*(
+          -m*psi.dfdz(o,k)*omg(m,k)
+          +o*omg.dfdz(m,k)*psi(o,k)
+          );
+      }
+    }
+    for(int m=n+1; m<c.nN; ++m){
+      // Case n = n' - n''
+      o = m-n;
+      assert(o>0 and o<c.nN);
+      assert(m>0 and m<c.nN);
+      for(int k=1; k<c.nZ-1; ++k) {
+        dOmgdt(n,k) +=
+          -M_PI/(2*c.aspectRatio)*(
+          +m*psi.dfdz(o,k)*omg(m,k)
+          +o*omg.dfdz(m,k)*psi(o,k)
+          );
+      }
+    }
+    for(int m=1; m+n<c.nN; ++m){
+      // Case n= n'' - n'
+      o = n+m;
+      assert(o>0 and o<c.nN);
+      assert(m>0 and m<c.nN);
+      for(int k=1; k<c.nZ-1; ++k) {
+        dOmgdt(n,k) +=
+          +M_PI/(2*c.aspectRatio)*(
+          +m*psi.dfdz(o,k)*omg(m,k)
+          +o*omg.dfdz(m,k)*psi(o,k)
+          );
+      }
+    }
+  }
+}
+
+
 
 void Sim::updateVars(real f) {
   tmp.update(dTmpdt, dt, f);
@@ -189,8 +378,8 @@ void Sim::advanceDerivatives() {
 }
 
 void Sim::runNonLinearStep(real f) {
-  computeLinearDerivatives(dTmpdt, tmp, dOmgdt, omg, dXidt, xi, c);
-  computeNonlinearDerivatives(dTmpdt, tmp, dOmgdt, omg, dXidt, xi, psi, c);
+  computeLinearDerivatives();
+  computeNonlinearDerivatives();
   updateVars(f);
   advanceDerivatives();
   solveForPsi();
@@ -331,8 +520,8 @@ real Sim::findCriticalRa(int nCrit) {
 }
 
 void Sim::runLinearStep() {
-  computeLinearDerivatives(dTmpdt, tmp, dOmgdt, omg, dXidt, xi, c);
-  addAdvectionApproximation(dTmpdt, tmp, dOmgdt, omg, dXidt, xi, psi, c);
+  computeLinearDerivatives();
+  addAdvectionApproximation();
   updateVars();
   advanceDerivatives();
   solveForPsi();

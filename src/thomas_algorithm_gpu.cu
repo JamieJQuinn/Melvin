@@ -19,21 +19,6 @@ void ThomasAlgorithmGPU::solve(real *sol, const real *rhs, const int n) const {
   solveThomasAlgorithm<<<1,1>>>((real*)sol, (real*)rhs, (real*)wk1, (real*)wk2, (real*)sub, n, nZ);
 }
 
-void ThomasAlgorithmGPU::formTriDiagonalArraysForN (
-    const real *sub, const real *dia, const real *sup,
-    real* wk1, real *wk2) {
-
-  wk1[0] = 1.0/dia[0];
-  wk2[0] = sup[0]*wk1[0];
-
-  for (int i=1; i<nZ-1; ++i) {
-    wk1[i] = 1.0/(dia[i] - sub[i-1] * wk2[i-1]);
-    wk2[i] = sup[i]*wk1[i];
-  }
-
-  wk1[nZ-1] = 1.0/(dia[nZ-1] - sub[nZ-2]*wk2[nZ-2]);
-}
-
 ThomasAlgorithmGPU::ThomasAlgorithmGPU(const int nZ, const int nN, const int a, const real oodz2):
   nZ(nZ),
   oodz2(oodz2)

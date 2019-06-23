@@ -4,6 +4,7 @@
 
 #include <sim.hpp>
 #include <precision.hpp>
+#include <variable.hpp>
 
 #define strVar(variable) #variable
 #define OMEGA 2*M_PI*4
@@ -33,15 +34,14 @@ int main(int argc, char** argv) {
   }
   c.print();
 
-  Sim *simulation;
-  simulation = new Sim(c);
+  Sim simulation(c);
 
   if(c.isNonlinear) {
     cout << "NONLINEAR" << endl;
-    simulation->runNonLinear();
+    simulation.runNonLinear();
   } else {
     cout << "LINEAR" << endl;
-    return simulation->testCriticalRayleigh();
+    return simulation.testCriticalRayleigh();
   }
 
   cout << "ENDING SIMULATION" << endl;
