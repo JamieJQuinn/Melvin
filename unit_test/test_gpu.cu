@@ -134,6 +134,73 @@ TEST_CASE("Temperature derivative calculates correctly", "[gpu]") {
   }
 }
 
+TEST_CASE("Advection approximation works on the GPU", "[gpu]") {
+  Constants c;
+  c.nN = 5;
+  c.nZ = 10;
+  c.aspectRatio = 1;
+  c.isDoubleDiffusion = true;
+  c.calculateDerivedConstants();
+
+  // Create GPU variables
+  VariableGPU omgGPU(c);
+  VariableGPU tmpGPU(c);
+  VariableGPU psiGPU(c);
+  VariableGPU dOmgdtGPU(c, 2);
+  VariableGPU dTmpdtGPU(c, 2);
+  VariableGPU xiGPU(c);
+  VariableGPU dXidtGPU(c, 2);
+  omgGPU.initialiseData();
+  tmpGPU.initialiseData();
+  psiGPU.initialiseData();
+  dTmpdtGPU.initialiseData();
+  dOmgdtGPU.initialiseData();
+  xiGPU.initialiseData();
+  dXidtGPU.initialiseData();
+
+  // Create CPU variables
+  Variable omg(c);
+  Variable tmp(c);
+  Variable psi(c);
+  Variable dOmgdt(c, 2);
+  Variable dTmpdt(c, 2);
+  Variable xi(c);
+  Variable dXidt(c, 2);
+  omg.initialiseData();
+  tmp.initialiseData();
+  psi.initialiseData();
+  dTmpdt.initialiseData();
+  dOmgdt.initialiseData();
+  xi.initialiseData();
+  dXidt.initialiseData();
+
+  // Load both with same test data
+  for(int n=0; n<c.nN; ++n) {
+    for(int k=0; k<c.nZ; ++k) {
+      omgGPU(n,k) = (float)k;
+      tmpGPU(n,k) = (float)k/c.nZ;
+      psiGPU(n,k) = (float)k/c.nN;
+      xiGPU(n,k) = (float)k/c.nN;
+      omg(n,k) = (float)k;
+      tmp(n,k) = (float)k/c.nZ;
+      psi(n,k) = (float)k/c.nN;
+      xi(n,k) = (float)k/c.nN;
+    }
+  }
+
+  addAdvectionApproximationGPU(dTmpdtGPU, tmpGPU, dOmgdtGPU, omgGPU, dXidtGPU, xiGPU, psiGPU, c);
+  addAdvectionApproximation(dTmpdt, tmp, dOmgdt, omg, dXidt, xi, psi, c);
+
+  cudaDeviceSynchronize();
+
+  for(int n=0; n<c.nN; ++n) {
+    for(int k=1; k<c.nZ-1; ++k) {
+      CHECK(dTmpdtGPU(n,k) == Approx(dTmpdt(n,k)));
+      CHECK(dXidtGPU(n,k) == Approx(dXidt(n,k)));
+    }
+  }
+}
+
 TEST_CASE("Vorticity derivative calculates correctly", "[gpu]") {
   Constants c;
   c.nN = 5;

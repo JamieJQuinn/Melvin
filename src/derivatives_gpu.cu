@@ -47,38 +47,22 @@ void gpu_computeLinearVorticityDerivative(real *dOmgdt, const real *omg, const r
 }
 
 __global__
-void gpu_addAdvectionApproximation(
-    real *dTmpdt, const real *tmp,
-    real *dOmgdt, const real *omg,
-    const real *psi,
-    const int nN, const int nZ, const real aspectRatio, const real oodz) {
-  // Only applies to the linear simulation
-  for(int k=1; k<nZ-1; ++k) {
-    int i=k+0*nZ;
-    dOmgdt[i] = 0.0;
-    dTmpdt[i] = 0.0;
-  }
-  for(int n=1; n<nN; ++n) {
-    for(int k=1; k<nZ-1; ++k) {
-      int i=k+n*nZ;
-      dTmpdt[i] += -1*dfdz(tmp,0,k,nZ,oodz)*n*M_PI/aspectRatio * psi[i];
-    }
+void gpu_fillMode(real *data, const real value, const int n, const int nZ) {
+  for(int k=0; k<nZ; ++k) {
+    int i=k+n*nZ;
+    data[i] = value;
   }
 }
 
-__global__ 
-void gpu_addAdvectionApproximationToXi(
-    real *dXidt, const real *xi,
+__global__
+void gpu_addAdvectionApproximation(
+    real *dVardt, const real *var,
     const real *psi,
     const int nN, const int nZ, const real aspectRatio, const real oodz) {
-  for(int k=1; k<nZ-1; ++k) {
-    int i=k+0*nZ;
-    dXidt[i] = 0.0;
-  }
   for(int n=1; n<nN; ++n) {
     for(int k=1; k<nZ-1; ++k) {
       int i=k+n*nZ;
-      dXidt[i] += -1*dfdz(xi,0,k,nZ,oodz)*n*M_PI/aspectRatio * psi[i];
+      dVardt[i] += -1*dfdz(var,0,k,nZ,oodz)*n*M_PI/aspectRatio * psi[i];
     }
   }
 }
@@ -98,11 +82,15 @@ void addAdvectionApproximationGPU(
     Variable &dXidt, const Variable &xi,
     const Variable &psi,
     const Constants &c) {
+  // Only applies to the linear simulation
+  gpu_fillMode<<<1,1>>>(dOmgdt.data, 0.0, 0, c.nZ);
+  gpu_fillMode<<<1,1>>>(dTmpdt.data, 0.0, 0, c.nZ);
   gpu_addAdvectionApproximation<<<1,1>>>(
-      dTmpdt.data, tmp.data, dOmgdt.data, omg.data, psi.data,
+      dTmpdt.data, tmp.data, psi.data,
       c.nN, c.nZ, c.aspectRatio, 1.0f/c.dz);
   if(c.isDoubleDiffusion) {
-    gpu_addAdvectionApproximationToXi<<<1,1>>>(
+    gpu_fillMode<<<1,1>>>(dXidt.data, 0.0, 0, c.nZ);
+    gpu_addAdvectionApproximation<<<1,1>>>(
         dXidt.data, xi.data, psi.data,
         c.nN, c.nZ, c.aspectRatio, 1.0f/c.dz);
   }
