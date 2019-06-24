@@ -4,8 +4,8 @@
 #include "constants.hpp"
 #include "variable.hpp"
 #include "variable_gpu.hpp"
-#include "derivatives_gpu.hpp"
-#include "derivatives.hpp"
+#include "sim.hpp"
+#include "sim_gpu.hpp"
 
 #include <iostream>
 
@@ -95,7 +95,7 @@ TEST_CASE("GPU variable works", "[gpu]") {
   REQUIRE(tmp.data[5] == Approx(1.0f));
 }
 
-TEST_CASE("Temperature derivative calculates correctly", "[gpu]") {
+TEST_CASE("Multiple GPU variables work", "[gpu]") {
   Constants c;
   c.nN = 5;
   c.nZ = 10;
@@ -103,184 +103,78 @@ TEST_CASE("Temperature derivative calculates correctly", "[gpu]") {
   c.calculateDerivedConstants();
 
   // Create GPU variables
-  VariableGPU tmpGPU(c);
-  VariableGPU dTmpdtGPU(c, 2);
-  tmpGPU.initialiseData();
-  dTmpdtGPU.initialiseData();
+  Variables<VariableGPU> vars(c);
 
-  // Create CPU variables
-  Variable tmp(c);
-  Variable dTmpdt(c, 2);
-  tmp.initialiseData();
-  dTmpdt.initialiseData();
+  vars.reinit(0.0);
 
-  // Load both with same test data
-  for(int n=0; n<c.nN; ++n) {
-    for(int k=0; k<c.nZ; ++k) {
-      tmpGPU(n,k) = (float)k;
-      tmp(n,k) = (float)k;
-    }
-  }
-
-  computeLinearTemperatureDerivativeGPU(dTmpdtGPU, tmpGPU, c);
-  computeLinearTemperatureDerivative(dTmpdt, tmp, c);
-
-  cudaDeviceSynchronize();
-
-  for(int n=0; n<c.nN; ++n) {
-    for(int k=1; k<c.nZ-1; ++k) {
-      CHECK(dTmpdtGPU(n,k) == Approx(dTmpdt(n,k)));
-    }
-  }
+  vars.tmp(0,0) = 1.0;
 }
 
-TEST_CASE("Advection approximation works on the GPU", "[gpu]") {
+TEST_CASE("SimGPU initialises OK", "[gpu]") {
   Constants c;
   c.nN = 5;
   c.nZ = 10;
   c.aspectRatio = 1;
-  c.isDoubleDiffusion = true;
   c.calculateDerivedConstants();
 
   // Create GPU variables
-  VariableGPU omgGPU(c);
-  VariableGPU tmpGPU(c);
-  VariableGPU psiGPU(c);
-  VariableGPU dOmgdtGPU(c, 2);
-  VariableGPU dTmpdtGPU(c, 2);
-  VariableGPU xiGPU(c);
-  VariableGPU dXidtGPU(c, 2);
-  omgGPU.initialiseData();
-  tmpGPU.initialiseData();
-  psiGPU.initialiseData();
-  dTmpdtGPU.initialiseData();
-  dOmgdtGPU.initialiseData();
-  xiGPU.initialiseData();
-  dXidtGPU.initialiseData();
+  SimGPU sim(c);
 
-  // Create CPU variables
-  Variable omg(c);
-  Variable tmp(c);
-  Variable psi(c);
-  Variable dOmgdt(c, 2);
-  Variable dTmpdt(c, 2);
-  Variable xi(c);
-  Variable dXidt(c, 2);
-  omg.initialiseData();
-  tmp.initialiseData();
-  psi.initialiseData();
-  dTmpdt.initialiseData();
-  dOmgdt.initialiseData();
-  xi.initialiseData();
-  dXidt.initialiseData();
+  sim.vars.reinit(2.0);
 
-  // Load both with same test data
-  for(int n=0; n<c.nN; ++n) {
-    for(int k=0; k<c.nZ; ++k) {
-      omgGPU(n,k) = (float)k;
-      tmpGPU(n,k) = (float)k/c.nZ;
-      psiGPU(n,k) = (float)k/c.nN;
-      xiGPU(n,k) = (float)k/c.nN;
-      omg(n,k) = (float)k;
-      tmp(n,k) = (float)k/c.nZ;
-      psi(n,k) = (float)k/c.nN;
-      xi(n,k) = (float)k/c.nN;
-    }
-  }
+  sim.vars.tmp(0,0) = 1.0;
 
-  addAdvectionApproximationGPU(dTmpdtGPU, tmpGPU, dOmgdtGPU, omgGPU, dXidtGPU, xiGPU, psiGPU, c);
-  addAdvectionApproximation(dTmpdt, tmp, dOmgdt, omg, dXidt, xi, psi, c);
-
-  cudaDeviceSynchronize();
-
-  for(int n=0; n<c.nN; ++n) {
-    for(int k=1; k<c.nZ-1; ++k) {
-      CHECK(dTmpdtGPU(n,k) == Approx(dTmpdt(n,k)));
-      CHECK(dXidtGPU(n,k) == Approx(dXidt(n,k)));
-    }
-  }
+  REQUIRE(sim.vars.tmp(0,0) == Approx(1.0));
+  REQUIRE(sim.vars.tmp(0,1) == Approx(2.0));
 }
 
-TEST_CASE("Vorticity derivative calculates correctly", "[gpu]") {
+TEST_CASE("Linear step calculates correctly", "[gpu]") {
   Constants c;
   c.nN = 5;
   c.nZ = 10;
-  c.aspectRatio = 1;
+  c.aspectRatio = 1.3;
+  c.Pr = 1.0;
+  c.Ra = 2.5;
+  c.RaXi = 2.0;
+  c.tau = 0.01;
   c.calculateDerivedConstants();
 
-  // Create GPU variables
-  VariableGPU omgGPU(c);
-  VariableGPU tmpGPU(c);
-  VariableGPU dOmgdtGPU(c, 2);
-  omgGPU.initialiseData();
-  tmpGPU.initialiseData();
-  dOmgdtGPU.initialiseData();
-
-  // Create CPU variables
-  Variable omg(c);
-  Variable tmp(c);
-  Variable dOmgdt(c, 2);
-  omg.initialiseData();
-  tmp.initialiseData();
-  dOmgdt.initialiseData();
+  Sim s(c);
+  SimGPU sGPU(c);
 
   // Load both with same test data
   for(int n=0; n<c.nN; ++n) {
     for(int k=0; k<c.nZ; ++k) {
-      omgGPU(n,k) = (float)k;
-      tmpGPU(n,k) = (float)k/c.nZ;
-      omg(n,k) = (float)k;
-      tmp(n,k) = (float)k/c.nZ;
+      s.vars.omg(n,k) = (float)k;
+      s.vars.tmp(n,k) = (float)k/c.nZ;
+      s.vars.psi(n,k) = (float)k/c.nN;
+      s.vars.xi(n,k) = (float)k/c.nN;
     }
   }
 
-  computeLinearVorticityDerivativeGPU(dOmgdtGPU, omgGPU, tmpGPU, c);
-  computeLinearVorticityDerivative(dOmgdt, omg, tmp, c);
+  for(int n=0; n<c.nN; ++n) {
+    for(int k=0; k<c.nZ; ++k) {
+      sGPU.vars.omg(n,k) = (float)k;
+      sGPU.vars.tmp(n,k) = (float)k/c.nZ;
+      sGPU.vars.psi(n,k) = (float)k/c.nN;
+      sGPU.vars.xi(n,k) = (float)k/c.nN;
+    }
+  }
+
+  s.runLinearStep();
+  sGPU.runLinearStep();
 
   cudaDeviceSynchronize();
 
   for(int n=0; n<c.nN; ++n) {
     for(int k=1; k<c.nZ-1; ++k) {
-      CHECK(dOmgdtGPU(n,k) == Approx(dOmgdt(n,k)));
-    }
-  }
-}
-
-TEST_CASE("Adams-Bashforth integrator works", "[gpu]") {
-  Constants c;
-  c.nN = 5;
-  c.nZ = 10;
-  c.aspectRatio = 1;
-  c.calculateDerivedConstants();
-
-  // Create GPU variables
-  VariableGPU tmpGPU(c);
-  VariableGPU dTmpdtGPU(c, 2);
-  tmpGPU.initialiseData();
-  dTmpdtGPU.initialiseData();
-
-  // Create CPU variables
-  Variable tmp(c);
-  Variable dTmpdt(c, 2);
-  tmp.initialiseData();
-  dTmpdt.initialiseData();
-
-  // Load both with same test data
-  for(int n=0; n<c.nN; ++n) {
-    for(int k=0; k<c.nZ; ++k) {
-      tmpGPU(n,k) = (float)k;
-      tmp(n,k) = (float)k;
-    }
-  }
-
-  tmp.update(dTmpdt, 0.01, 1.0);
-  tmpGPU.update(dTmpdtGPU, 0.01, 1.0);
-
-  cudaDeviceSynchronize();
-
-  for(int n=0; n<c.nN; ++n) {
-    for(int k=1; k<c.nZ-1; ++k) {
-      CHECK(tmpGPU(n,k) == Approx(tmp(n,k)));
+      CHECK(sGPU.vars.dOmgdt(n,k) == Approx(s.vars.dOmgdt(n,k)));
+      CHECK(sGPU.vars.dTmpdt(n,k) == Approx(s.vars.dTmpdt(n,k)));
+      CHECK(sGPU.vars.dXidt(n,k) == Approx(s.vars.dXidt(n,k)));
+      CHECK(sGPU.vars.tmp(n,k) == Approx(s.vars.tmp(n,k)));
+      CHECK(sGPU.vars.psi(n,k) == Approx(s.vars.psi(n,k)));
+      CHECK(sGPU.vars.omg(n,k) == Approx(s.vars.omg(n,k)));
+      CHECK(sGPU.vars.xi(n,k) == Approx(s.vars.xi(n,k)));
     }
   }
 }

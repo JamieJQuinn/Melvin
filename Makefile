@@ -61,13 +61,13 @@ debug: LDFLAGS += -pg
 debug: $(BUILD_DIR) $(BUILD_DIR)/$(EXECUTABLE)
 
 .PHONY: gpu
-gpu: CFLAGS += -DGPU -ccbin=clang++
+gpu: CFLAGS += -DCUDA -ccbin=clang++
 gpu: OBJECTS += $(GPU_OBJECTS)
 gpu: CC = nvcc
 gpu: $(BUILD_DIR) $(GPU_OBJECTS) $(BUILD_DIR)/$(EXECUTABLE)
 
 .PHONY: gpu-test
-gpu-test: CFLAGS += -DGPU -ccbin=clang++ -pg
+gpu-test: CFLAGS += -DCUDA -ccbin=clang++ -pg
 gpu-test: LDFLAGS += -pg
 gpu-test: OBJECTS += $(GPU_OBJECTS)
 gpu-test: TEST_OBJECTS += $(GPU_TEST_OBJECTS)

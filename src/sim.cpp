@@ -18,15 +18,11 @@ Sim::Sim(const Constants &c_in)
 {
   dt = c.initialDt;
 
-  initialiseThomasAlgorithm();
+  thomasAlgorithm = new ThomasAlgorithm(c.nZ, c.nN, c.aspectRatio, c.oodz2);
 }
 
 Sim::~Sim() {
   delete thomasAlgorithm;
-}
-
-void Sim::initialiseThomasAlgorithm() {
-  thomasAlgorithm = new ThomasAlgorithm(c.nZ, c.nN, c.aspectRatio, c.oodz2);
 }
 
 void Sim::solveForPsi(){

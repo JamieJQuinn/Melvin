@@ -26,7 +26,7 @@ class Sim {
     Constants c;
 
     // Variable arrays
-    Variables vars;
+    Variables<Variable> vars;
 
     ThomasAlgorithm *thomasAlgorithm;
 
@@ -34,7 +34,6 @@ class Sim {
     ~Sim();
 
     // Helper functions
-    void initialiseThomasAlgorithm();
     void printMaxOf(real *a, std::string name) const;
     void printBenchmarkData() const;
     real isFinished();
