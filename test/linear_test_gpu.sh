@@ -24,7 +24,8 @@ cat << EOF > $save_folder/constants.js
   "totalTime":10,
 
   "isNonlinear":false,
-  "isDoubleDiffusion":false
+  "isDoubleDiffusion":false,
+  "isCudaEnabled":true
 }
 EOF
 
@@ -32,7 +33,8 @@ constants_file=$save_folder/constants.js
 python tools/make_initial_conditions.py --output $save_folder/ICn1nZ101nN51 --n_modes 51 --n_gridpoints 101 --linear_stability
 
 echo "==================== Building program"
-make release
+make clean
+make gpu
 
 echo "==================== Starting program"
 { /usr/bin/time build/exe --constants $constants_file ; } 2>&1 | tee $save_folder/log

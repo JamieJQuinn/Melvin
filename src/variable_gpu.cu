@@ -22,6 +22,19 @@ void VariableGPU::update(const Variable& dVardt, const real dt, const real f) {
       nN, nZ);
 }
 
+void VariableGPU::readFromFile(std::ifstream& file) {
+  real *tempData = new real [totalSize()];
+  file.read(reinterpret_cast<char*>(tempData), sizeof(tempData[0])*totalSize());
+  for(int i=0; i<totalSteps; ++i) {
+    for(int k=0; k<nZ; ++k) {
+      for(int n=0; n<nN; ++n) {
+        getPlus(i)[k+n*nZ] = tempData[i*nN*nZ + n*nZ + k];
+      }
+    }
+  }
+  delete [] tempData;
+}
+
 VariableGPU::VariableGPU(const Constants &c_in, int totalSteps_in):
   Variable(c_in, totalSteps_in)
 {}

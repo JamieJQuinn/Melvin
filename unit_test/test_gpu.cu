@@ -4,6 +4,7 @@
 #include "constants.hpp"
 #include "variable.hpp"
 #include "variable_gpu.hpp"
+#include "variables.hpp"
 #include "sim.hpp"
 #include "sim_gpu.hpp"
 
@@ -169,3 +170,58 @@ TEST_CASE("Linear step calculates correctly", "[gpu]") {
     }
   }
 }
+
+TEST_CASE("Variable loads from file", "[gpu]") {
+  Constants c;
+  c.nN = 5;
+  c.nZ = 10;
+  c.aspectRatio = 1;
+  c.calculateDerivedConstants();
+
+  // Create GPU variables
+  Variables<VariableGPU> varsGPU(c);
+  Variables<Variable> vars(c);
+
+  varsGPU.load("../test/benchmark/ICn1nZ101nN51");
+  vars.load("../test/benchmark/ICn1nZ101nN51");
+
+  for(int n=0; n<c.nN; ++n) {
+    for(int k=0; k<c.nZ; ++k) {
+      CHECK(varsGPU.tmp(n, k) == Approx(vars.tmp(n, k)));
+      CHECK(varsGPU.dTmpdt(n, k) == Approx(vars.dTmpdt(n, k)));
+    }
+  }
+}
+
+/*TEST_CASE("Rayleigh crit checker works with GPU", "[gpu]") {*/
+  /*Constants c;*/
+  /*c.nN = 5;*/
+  /*c.nZ = 10;*/
+  /*c.aspectRatio = 1.3;*/
+  /*c.Pr = 1.0;*/
+  /*c.Ra = 2.5;*/
+  /*c.RaXi = 2.0;*/
+  /*c.tau = 0.01;*/
+  /*c.isDoubleDiffusion = true;*/
+  /*c.isCudaEnabled = true;*/
+  /*c.calculateDerivedConstants();*/
+
+  /*CriticalRayleighChecker crc(c);*/
+
+  /*s.runLinearStep();*/
+  /*sGPU.runLinearStep();*/
+
+  /*cudaDeviceSynchronize();*/
+
+  /*for(int n=0; n<c.nN; ++n) {*/
+    /*for(int k=1; k<c.nZ-1; ++k) {*/
+      /*CHECK(sGPU.vars.dOmgdt(n,k) == Approx(s.vars.dOmgdt(n,k)));*/
+      /*CHECK(sGPU.vars.dTmpdt(n,k) == Approx(s.vars.dTmpdt(n,k)));*/
+      /*CHECK(sGPU.vars.dXidt(n,k) == Approx(s.vars.dXidt(n,k)));*/
+      /*CHECK(sGPU.vars.tmp(n,k) == Approx(s.vars.tmp(n,k)));*/
+      /*CHECK(sGPU.vars.psi(n,k) == Approx(s.vars.psi(n,k)));*/
+      /*CHECK(sGPU.vars.omg(n,k) == Approx(s.vars.omg(n,k)));*/
+      /*CHECK(sGPU.vars.xi(n,k) == Approx(s.vars.xi(n,k)));*/
+    /*}*/
+  /*}*/
+/*}*/

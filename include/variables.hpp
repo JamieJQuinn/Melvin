@@ -116,13 +116,13 @@ void Variables<varType>::save() {
 
 template<class varType>
 void Variables<varType>::load(const std::string &icFile) {
-  std::ifstream file (c.icFile, std::ios::in | std::ios::binary);
+  std::ifstream file (icFile, std::ios::in | std::ios::binary);
   if(file.is_open()) {
     for(int i=0; i<variableList.size(); ++i) {
       variableList[i]->readFromFile(file);
     }
   } else {
-    std::cout << "Couldn't open " << c.icFile << " for reading. Aborting." << std::endl;
+    std::cout << "Couldn't open " << icFile << " for reading. Aborting." << std::endl;
     exit(-1);
   }
 }
