@@ -31,6 +31,7 @@ void Constants::print() const {
   std::cout << "saveFolder: " << saveFolder << std::endl;
   std::cout << "is nonlinear? " << isNonlinear << std::endl;
   std::cout << "is double diffusion? " << isDoubleDiffusion << std::endl;
+  std::cout << "is CUDA enabled? " << isCudaEnabled << std::endl;
   std::cout << "icFile: " << icFile << std::endl;
 
   if(isDoubleDiffusion) {
@@ -99,6 +100,11 @@ void Constants::readJson(const std::string &filePath) {
   saveFolder = j["saveFolder"];
   isNonlinear = j["isNonlinear"];
   isDoubleDiffusion = j["isDoubleDiffusion"];
+  if (j.find("isCudaEnabled") != j.end()) {
+    isCudaEnabled = j["isCudaEnabled"];
+  } else {
+    isCudaEnabled = false;
+  }
   icFile = j["icFile"];
 
   if(isDoubleDiffusion) {
@@ -122,6 +128,7 @@ void Constants::writeJson(const std::string &filePath) const {
   j["totalTime"] = totalTime;
   j["saveFolder"] = saveFolder;
   j["isNonlinear"] = isNonlinear;
+  j["isCudaEnabled"] = isCudaEnabled;
   j["icFile"] = icFile;
   if(isDoubleDiffusion) {
     j["RaXi"] = RaXi;

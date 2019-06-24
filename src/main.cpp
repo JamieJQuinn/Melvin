@@ -5,6 +5,7 @@
 #include <sim.hpp>
 #include <precision.hpp>
 #include <variable.hpp>
+#include <critical_rayleigh_checker.hpp>
 
 #define strVar(variable) #variable
 #define OMEGA 2*M_PI*4
@@ -34,14 +35,14 @@ int main(int argc, char** argv) {
   }
   c.print();
 
-  Sim simulation(c);
-
   if(c.isNonlinear) {
     cout << "NONLINEAR" << endl;
+    Sim simulation(c);
     simulation.runNonLinear();
   } else {
     cout << "LINEAR" << endl;
-    return simulation.testCriticalRayleigh();
+    CriticalRayleighChecker crChecker(c);
+    crChecker.testCriticalRayleigh();
   }
 
   cout << "ENDING SIMULATION" << endl;

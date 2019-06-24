@@ -17,6 +17,7 @@ class Constants {
     real totalTime;
     bool isNonlinear;
     bool isDoubleDiffusion;
+    bool isCudaEnabled;
 
     // Derived ants
     real dz;
