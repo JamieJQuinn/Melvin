@@ -33,26 +33,26 @@ TEST_CASE( "GPU loads and prints values correctly", "[gpu]" ) {
 }
 
 TEST_CASE( "GPU Thomas algorithm solves a system correctly", "[gpu]" ) {
-  int nZ = 5;
+  int nZ = 10;
   int nN = 5;
 
   ThomasAlgorithm ta (nZ, nN, 1, 0.01f);
   ThomasAlgorithmGPU taGPU (nZ, nN, 1, 0.01f);
 
-  real rhs [] = {1, 2, 3, 4, 5};
+  real rhs [nZ];
   real sol [nZ];
-
-  ta.solve((real*)sol, (real*)rhs, 2);
 
   real *rhsGPU;
   real *solGPU;
 
-  cudaMallocManaged(&rhsGPU, nZ*sizeof(real));
-  cudaMallocManaged(&solGPU, nZ*sizeof(real));
+  cudaMallocManaged(&rhsGPU, nN*nZ*sizeof(real));
+  cudaMallocManaged(&solGPU, nN*nZ*sizeof(real));
 
   for(int i=0; i<nZ; ++i) {
-    rhsGPU[i] = i+1;
-    solGPU[i] = 0.0;
+    rhsGPU[i+2*nZ] = i+1;
+    solGPU[i+2*nZ] = 0.0;
+    rhs[i] = i+1;
+    sol[i] = 0.0;
   }
 
   // Check precalculation works
@@ -70,12 +70,17 @@ TEST_CASE( "GPU Thomas algorithm solves a system correctly", "[gpu]" ) {
     }
   }
 
-  taGPU.solve((real*)solGPU, (real*)rhsGPU, 2);
+  ta.solve((real*)sol, (real*)rhs, 2);
+  taGPU.solve((real*)solGPU, (real*)rhsGPU);
 
   cudaDeviceSynchronize();
 
   for(int i=0; i<nZ; ++i) {
-    REQUIRE(solGPU[i] == sol[i]);
+    CHECK(solGPU[i+2*nZ] == Approx(sol[i]));
+    CHECK(solGPU[i+0*nZ] == Approx(0.0));
+    CHECK(solGPU[i+1*nZ] == Approx(0.0));
+    CHECK(solGPU[i+3*nZ] == Approx(0.0));
+    CHECK(solGPU[i+4*nZ] == Approx(0.0));
   }
 }
 
@@ -93,21 +98,6 @@ TEST_CASE("GPU variable works", "[gpu]") {
   tmp.data[5] = 1.0f;
 
   REQUIRE(tmp.data[5] == Approx(1.0f));
-}
-
-TEST_CASE("Multiple GPU variables work", "[gpu]") {
-  Constants c;
-  c.nN = 5;
-  c.nZ = 10;
-  c.aspectRatio = 1;
-  c.calculateDerivedConstants();
-
-  // Create GPU variables
-  Variables<VariableGPU> vars(c);
-
-  vars.reinit(0.0);
-
-  vars.tmp(0,0) = 1.0;
 }
 
 TEST_CASE("SimGPU initialises OK", "[gpu]") {
@@ -137,6 +127,7 @@ TEST_CASE("Linear step calculates correctly", "[gpu]") {
   c.Ra = 2.5;
   c.RaXi = 2.0;
   c.tau = 0.01;
+  c.isDoubleDiffusion = true;
   c.calculateDerivedConstants();
 
   Sim s(c);

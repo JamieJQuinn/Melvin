@@ -133,9 +133,7 @@ void SimGPU::addAdvectionApproximation() {
 
 void SimGPU::solveForPsi(){
   // Solve for Psi using Thomas algorithm
-  for(int n=0; n<c.nN; ++n) {
-    thomasAlgorithm->solve(vars.psi.getMode(n), vars.omg.getMode(n), n);
-  }
+  thomasAlgorithm->solve(vars.psi.getCurrent(), vars.omg.getCurrent());
 }
 
 void SimGPU::runLinearStep() {

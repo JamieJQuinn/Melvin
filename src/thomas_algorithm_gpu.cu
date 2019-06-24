@@ -1,22 +1,26 @@
 #include "thomas_algorithm_gpu.hpp"
 
 __global__
-void solveThomasAlgorithm(real *sol, const real *rhs, const real *wk1, const real *wk2, const real *sub, const int n, const int nZ) {
-  int iN = n*nZ;
+void solveThomasAlgorithm(real *sol, const real *rhs, const real *wk1, const real *wk2, const real *sub, const int nN, const int nZ) {
+  int mode = threadIdx.x;
+  int stride = blockDim.x;
+  for(int n=mode; n<nN; n+=stride) {
+    int iN = n*nZ;
 
-  // Forward Subsitution
-  sol[0] = rhs[0]*wk1[0+iN];
-  for (int i=1; i<nZ; ++i) {
-    sol[i] = (rhs[i] - sub[i-1]*sol[i-1])*wk1[i+iN];
-  }
-  // Backward Substitution
-  for (int i=nZ-2; i>=0; --i) {
-    sol[i] -= wk2[i+iN]*sol[i+1];
+    // Forward Subsitution
+    sol[0+iN] = rhs[0+iN]*wk1[0+iN];
+    for (int i=1; i<nZ; ++i) {
+      sol[i+iN] = (rhs[i+iN] - sub[i-1]*sol[i-1+iN])*wk1[i+iN];
+    }
+    // Backward Substitution
+    for (int i=nZ-2; i>=0; --i) {
+      sol[i+iN] -= wk2[i+iN]*sol[i+1+iN];
+    }
   }
 }
 
-void ThomasAlgorithmGPU::solve(real *sol, const real *rhs, const int n) const {
-  solveThomasAlgorithm<<<1,1>>>((real*)sol, (real*)rhs, (real*)wk1, (real*)wk2, (real*)sub, n, nZ);
+void ThomasAlgorithmGPU::solve(real *sol, const real *rhs) const {
+  solveThomasAlgorithm<<<1,256>>>((real*)sol, (real*)rhs, (real*)wk1, (real*)wk2, (real*)sub, nN, nZ);
 }
 
 void ThomasAlgorithmGPU::formTriDiagonalArraysForN (
@@ -36,6 +40,7 @@ void ThomasAlgorithmGPU::formTriDiagonalArraysForN (
 
 ThomasAlgorithmGPU::ThomasAlgorithmGPU(const int nZ, const int nN, const int a, const real oodz2):
   nZ(nZ),
+  nN(nN),
   oodz2(oodz2)
   {
   cudaMallocManaged(&wk1, nZ*nN*sizeof(real));
