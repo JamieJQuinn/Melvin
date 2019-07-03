@@ -39,7 +39,6 @@ bool CriticalRayleighChecker::isCritical(const real testRa, const int nCrit) {
   int steps = 0;
   real t=0.0;
   while (t<c.totalTime) {
-    std::cout << t << std::endl;
     if(steps%500 == 0) {
       real logTmp = std::log(std::abs(sim.vars.tmp(nCrit,32))) - std::log(std::abs(tmpPrev));
       real logOmg = std::log(std::abs(sim.vars.omg(nCrit,32))) - std::log(std::abs(omgPrev));

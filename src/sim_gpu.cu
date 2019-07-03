@@ -2,6 +2,7 @@
 
 #include <precision.hpp>
 #include <math.h>
+#include <iostream>
 
 __device__
 real dfdz2(const real *data, const int n, const int k, const int nZ, const int oodz2) {
@@ -112,21 +113,21 @@ SimGPU::~SimGPU() {
 }
 
 void SimGPU::computeLinearTemperatureDerivative() {
-  dim3 threadsPerBlock(8,16);
-  dim3 numBlocks((c.nN + 8 - 1)/8, (c.nZ - 2 + 16 - 1)/16);
+  dim3 threadsPerBlock(c.threadsPerBlock_x,c.threadsPerBlock_y);
+  dim3 numBlocks((c.nN + threadsPerBlock.x - 1)/threadsPerBlock.x, (c.nZ - 2 + threadsPerBlock.y - 1)/threadsPerBlock.y);
   gpu_computeLinearTemperatureDerivative<<<numBlocks,threadsPerBlock>>>(vars.dTmpdt.getCurrent(), vars.tmp.getCurrent(), c.nN, c.nZ, c.aspectRatio, c.oodz2);
 }
 
 void SimGPU::computeLinearVorticityDerivative() {
-  dim3 threadsPerBlock(8,16);
-  dim3 numBlocks((c.nN + 8 - 1)/8, (c.nZ - 2 + 16 - 1)/16);
+  dim3 threadsPerBlock(c.threadsPerBlock_x,c.threadsPerBlock_y);
+  dim3 numBlocks((c.nN + threadsPerBlock.x - 1)/threadsPerBlock.x, (c.nZ - 2 + threadsPerBlock.y - 1)/threadsPerBlock.y);
   gpu_computeLinearVorticityDerivative<<<numBlocks,threadsPerBlock>>>(vars.dOmgdt.getCurrent(), vars.omg.getCurrent(), vars.tmp.getCurrent(),
     c.nN, c.nZ, c.aspectRatio, c.Ra, c.Pr, c.oodz2);
 }
 
 void SimGPU::computeLinearXiDerivative() {
-  dim3 threadsPerBlock(8,16);
-  dim3 numBlocks((c.nN + 8 - 1)/8, (c.nZ - 2 + 16 - 1)/16);
+  dim3 threadsPerBlock(c.threadsPerBlock_x,c.threadsPerBlock_y);
+  dim3 numBlocks((c.nN + threadsPerBlock.x - 1)/threadsPerBlock.x, (c.nZ - 2 + threadsPerBlock.y - 1)/threadsPerBlock.y);
   gpu_computeLinearXiDerivative<<<numBlocks,threadsPerBlock>>>(vars.dXidt.getCurrent(), vars.xi.getCurrent(), vars.dOmgdt.getCurrent(), vars.omg.getCurrent(),
     c.nN, c.nZ, c.tau, c.aspectRatio, c.RaXi, c.Pr, c.oodz2);
 }
@@ -142,16 +143,16 @@ void SimGPU::computeLinearDerivatives() {
 
 void SimGPU::addAdvectionApproximation() {
   // Only applies to the linear simulation
-  dim3 threadsPerBlock(8,16);
-  dim3 numBlocks((c.nN -1 + 8 - 1)/8, (c.nZ + 16 - 1)/16);
-  gpu_fillMode<<<1,256>>>(vars.dOmgdt.getCurrent(), 0.0, 0, c.nZ);
-  gpu_fillMode<<<1,256>>>(vars.dTmpdt.getCurrent(), 0.0, 0, c.nZ);
+  dim3 threadsPerBlock(c.threadsPerBlock_x,c.threadsPerBlock_y);
+  dim3 numBlocks((c.nN - 1 + threadsPerBlock.x - 1)/threadsPerBlock.x, (c.nZ - 2 + threadsPerBlock.y - 1)/threadsPerBlock.y);
+  gpu_fillMode<<<1,c.threadsPerBlock_x*c.threadsPerBlock_y>>>(vars.dOmgdt.getCurrent(), 0.0, 0, c.nZ);
+  gpu_fillMode<<<1,c.threadsPerBlock_x*c.threadsPerBlock_y>>>(vars.dTmpdt.getCurrent(), 0.0, 0, c.nZ);
   gpu_addAdvectionApproximation<<<numBlocks,threadsPerBlock>>>(
       vars.dTmpdt.getCurrent(), vars.tmp.getCurrent(), vars.psi.getCurrent(),
       c.nN, c.nZ, c.aspectRatio, 1.0f/c.dz);
   if(c.isDoubleDiffusion) {
     gpu_fillMode<<<1,256>>>(vars.dXidt.getCurrent(), 0.0, 0, c.nZ);
-    gpu_addAdvectionApproximation<<<1,1>>>(
+    gpu_addAdvectionApproximation<<<numBlocks,threadsPerBlock>>>(
         vars.dXidt.getCurrent(), vars.xi.getCurrent(), vars.psi.getCurrent(),
         c.nN, c.nZ, c.aspectRatio, 1.0f/c.dz);
   }

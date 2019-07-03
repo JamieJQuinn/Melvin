@@ -25,7 +25,9 @@ cat << EOF > $save_folder/constants.js
 
   "isNonlinear":false,
   "isDoubleDiffusion":false,
-  "isCudaEnabled":true
+  "isCudaEnabled":true,
+  "threadsPerBlock_x":16,
+  "threadsPerBlock_y":32
 }
 EOF
 

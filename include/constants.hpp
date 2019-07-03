@@ -19,6 +19,10 @@ class Constants {
     bool isDoubleDiffusion;
     bool isCudaEnabled;
 
+    // cuda stuff
+    int threadsPerBlock_x;
+    int threadsPerBlock_y;
+
     // Derived ants
     real dz;
     real dx;

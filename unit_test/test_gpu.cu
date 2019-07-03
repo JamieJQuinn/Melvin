@@ -8,9 +8,17 @@
 #include "sim.hpp"
 #include "sim_gpu.hpp"
 
+#include <chrono>
+#include <thread>
 #include <iostream>
 
 using namespace std;
+
+using Clock = std::chrono::high_resolution_clock;
+using std::chrono::time_point;
+using std::chrono::duration_cast;
+using std::chrono::milliseconds;
+using namespace std::literals::chrono_literals;
 
 TEST_CASE( "GPU loads and prints values correctly", "[gpu]" ) {
   int nZ = 5;
@@ -155,7 +163,6 @@ TEST_CASE("Linear step calculates correctly", "[gpu]") {
 
   s.runLinearStep();
   sGPU.runLinearStep();
-
   cudaDeviceSynchronize();
 
   for(int n=0; n<c.nN; ++n) {
@@ -208,20 +215,130 @@ TEST_CASE("Variable loads from file", "[gpu]") {
 
   /*CriticalRayleighChecker crc(c);*/
 
-  /*s.runLinearStep();*/
-  /*sGPU.runLinearStep();*/
-
-  /*cudaDeviceSynchronize();*/
-
-  /*for(int n=0; n<c.nN; ++n) {*/
-    /*for(int k=1; k<c.nZ-1; ++k) {*/
-      /*CHECK(sGPU.vars.dOmgdt(n,k) == Approx(s.vars.dOmgdt(n,k)));*/
-      /*CHECK(sGPU.vars.dTmpdt(n,k) == Approx(s.vars.dTmpdt(n,k)));*/
-      /*CHECK(sGPU.vars.dXidt(n,k) == Approx(s.vars.dXidt(n,k)));*/
-      /*CHECK(sGPU.vars.tmp(n,k) == Approx(s.vars.tmp(n,k)));*/
-      /*CHECK(sGPU.vars.psi(n,k) == Approx(s.vars.psi(n,k)));*/
-      /*CHECK(sGPU.vars.omg(n,k) == Approx(s.vars.omg(n,k)));*/
-      /*CHECK(sGPU.vars.xi(n,k) == Approx(s.vars.xi(n,k)));*/
-    /*}*/
-  /*}*/
 /*}*/
+
+TEST_CASE("Benchmarking the linear step", "[gpu]") {
+  Constants c;
+  c.nN = 512;
+  c.nZ = 1024;
+  c.aspectRatio = 1.3;
+  c.Pr = 1.0;
+  c.Ra = 2.5;
+  c.RaXi = 2.0;
+  c.tau = 0.01;
+  c.isDoubleDiffusion = true;
+  c.calculateDerivedConstants();
+
+  Sim s(c);
+
+  c.isCudaEnabled = true;
+  c.threadsPerBlock_x = 16;
+  c.threadsPerBlock_y = 32;
+  SimGPU sGPU(c);
+
+  // Load both with same test data
+  for(int n=0; n<c.nN; ++n) {
+    for(int k=0; k<c.nZ; ++k) {
+      s.vars.omg(n,k) = (float)k;
+      s.vars.tmp(n,k) = (float)k/c.nZ;
+      s.vars.psi(n,k) = (float)k/c.nN;
+      s.vars.xi(n,k) = (float)k/c.nN;
+    }
+  }
+
+  for(int n=0; n<c.nN; ++n) {
+    for(int k=0; k<c.nZ; ++k) {
+      sGPU.vars.omg(n,k) = (float)k;
+      sGPU.vars.tmp(n,k) = (float)k/c.nZ;
+      sGPU.vars.psi(n,k) = (float)k/c.nN;
+      sGPU.vars.xi(n,k) = (float)k/c.nN;
+    }
+  }
+
+  time_point<Clock> start = Clock::now();
+  s.computeLinearDerivatives();
+  s.addAdvectionApproximation();
+  s.vars.updateVars(s.dt);
+  s.vars.advanceDerivatives();
+  s.solveForPsi();
+  time_point<Clock> end = Clock::now();
+  std::chrono::duration<int64_t, std::nano> diff = end-start;
+  cout << "CPU version of full linear step: " << diff.count() << endl;
+
+  start = Clock::now();
+  sGPU.computeLinearDerivatives();
+  sGPU.addAdvectionApproximation();
+  sGPU.vars.updateVars(sGPU.dt);
+  sGPU.vars.advanceDerivatives();
+  sGPU.solveForPsi();
+  cudaDeviceSynchronize();
+  end = Clock::now();
+  diff = end-start;
+  cout << "GPU version of full linear step: " << diff.count() << endl;
+
+  start = Clock::now();
+  s.computeLinearDerivatives();
+  end = Clock::now();
+  diff = end-start;
+  cout << "CPU version of linear derivatives calculation: " << diff.count() << endl;
+
+  start = Clock::now();
+  sGPU.computeLinearDerivatives();
+  cudaDeviceSynchronize();
+  end = Clock::now();
+  diff = end-start;
+  cout << "GPU version of linear derivatives calculation: " << diff.count() << endl;
+
+  start = Clock::now();
+  s.addAdvectionApproximation();
+  end = Clock::now();
+  diff = end-start;
+  cout << "CPU version of advection calculation: " << diff.count() << endl;
+
+  start = Clock::now();
+  sGPU.addAdvectionApproximation();
+  cudaDeviceSynchronize();
+  end = Clock::now();
+  diff = end-start;
+  cout << "GPU version of advection calculation: " << diff.count() << endl;
+
+  start = Clock::now();
+  s.vars.updateVars(s.dt);
+  end = Clock::now();
+  diff = end-start;
+  cout << "CPU version of updating vars: " << diff.count() << endl;
+
+  start = Clock::now();
+  sGPU.vars.updateVars(sGPU.dt);
+  cudaDeviceSynchronize();
+  end = Clock::now();
+  diff = end-start;
+  cout << "GPU version of updating vars: " << diff.count() << endl;
+
+  start = Clock::now();
+  s.vars.advanceDerivatives();
+  end = Clock::now();
+  diff = end-start;
+  cout << "CPU version of advancing derivatives: " << diff.count() << endl;
+
+  start = Clock::now();
+  sGPU.vars.advanceDerivatives();
+  cudaDeviceSynchronize();
+  end = Clock::now();
+  diff = end-start;
+  cout << "GPU version of advancing derivatives: " << diff.count() << endl;
+
+  start = Clock::now();
+  s.solveForPsi();
+  end = Clock::now();
+  diff = end-start;
+  cout << "CPU version of Thomas algorithm: " << diff.count() << endl;
+
+  start = Clock::now();
+  sGPU.solveForPsi();
+  cudaDeviceSynchronize();
+  end = Clock::now();
+  diff = end-start;
+  cout << "GPU version of Thomas algorithm: " << diff.count() << endl;
+}
+

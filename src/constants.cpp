@@ -33,6 +33,8 @@ void Constants::print() const {
   std::cout << "is double diffusion? " << isDoubleDiffusion << std::endl;
   std::cout << "is CUDA enabled? " << isCudaEnabled << std::endl;
   std::cout << "icFile: " << icFile << std::endl;
+  std::cout << "CUDA threads per x: " << threadsPerBlock_x << std::endl;
+  std::cout << "CUDA threads per y: " << threadsPerBlock_y << std::endl;
 
   if(isDoubleDiffusion) {
     std::cout << "RaXi: " << RaXi << std::endl;
@@ -105,6 +107,10 @@ void Constants::readJson(const std::string &filePath) {
   } else {
     isCudaEnabled = false;
   }
+  if(isCudaEnabled) {
+    threadsPerBlock_x = j["threadsPerBlock_x"];
+    threadsPerBlock_y = j["threadsPerBlock_y"];
+  }
   icFile = j["icFile"];
 
   if(isDoubleDiffusion) {
@@ -130,6 +136,10 @@ void Constants::writeJson(const std::string &filePath) const {
   j["isNonlinear"] = isNonlinear;
   j["isCudaEnabled"] = isCudaEnabled;
   j["icFile"] = icFile;
+  if(isCudaEnabled) {
+    j["threadsPerBlock_x"] = threadsPerBlock_x;
+    j["threadsPerBlock_y"] = threadsPerBlock_y;
+  }
   if(isDoubleDiffusion) {
     j["RaXi"] = RaXi;
     j["tau"] = tau;

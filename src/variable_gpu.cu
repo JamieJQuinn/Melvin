@@ -4,8 +4,12 @@
 __global__
 void gpu_update(real *var, const real *dVardt, const real *dVardtPrevious, const real dt, const real frac,
     const int nN, const int nZ) {
-  for(int n=0; n<nN; ++n) {
-    for(int k=0; k<nZ; ++k) {
+  int n_index = blockIdx.x*blockDim.x + threadIdx.x;
+  int n_stride = blockDim.x*gridDim.x;
+  int k_index = blockIdx.y*blockDim.y + threadIdx.y;
+  int k_stride = blockDim.y*gridDim.y;
+  for(int n=n_index; n<nN; n+=n_stride) {
+    for(int k=k_index; k<nZ; k+=k_stride) {
       int i=k+n*nZ;
       var[i] += ((2.0+frac)*dVardt[i] - frac*dVardtPrevious[i])*dt*0.5;
     }
@@ -18,7 +22,9 @@ void VariableGPU::initialiseData(real initialValue) {
 }
 
 void VariableGPU::update(const Variable& dVardt, const real dt, const real f) {
-  gpu_update<<<1,1>>>(this->getPlus(), dVardt.getCurrent(), dVardt.getPrevious(), dt, f,
+  dim3 threadsPerBlock(threadsPerBlock_x,threadsPerBlock_y);
+  dim3 numBlocks((nN + threadsPerBlock.x - 1)/threadsPerBlock.x, (nZ - 2 + threadsPerBlock.y - 1)/threadsPerBlock.y);
+  gpu_update<<<numBlocks,threadsPerBlock>>>(this->getPlus(), dVardt.getCurrent(), dVardt.getPrevious(), dt, f,
       nN, nZ);
 }
 
@@ -37,6 +43,8 @@ void VariableGPU::readFromFile(std::ifstream& file) {
 
 VariableGPU::VariableGPU(const Constants &c_in, int totalSteps_in):
   Variable(c_in, totalSteps_in)
+  , threadsPerBlock_x(c_in.threadsPerBlock_x)
+  , threadsPerBlock_y(c_in.threadsPerBlock_y)
 {}
 
 VariableGPU::~VariableGPU() {

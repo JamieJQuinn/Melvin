@@ -3,6 +3,9 @@
 #include <variable.hpp>
 
 class VariableGPU: public Variable {
+  const int threadsPerBlock_x;
+  const int threadsPerBlock_y;
+
   public:
     void initialiseData(real initialValue = 0.0);
     VariableGPU(const Constants &c_in, int totalSteps_in=1);
