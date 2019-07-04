@@ -27,11 +27,19 @@ class SimGPU {
     void computeLinearVorticityDerivative();
     void computeLinearXiDerivative();
 
+    void computeNonlinearDerivatives();
+    void computeNonlinearTemperatureDerivative();
+    void computeNonlinearXiDerivative();
+    void computeNonlinearVorticityDerivative();
+
     void solveForPsi();
 
     void addAdvectionApproximation();
 
     void runLinearStep();
+    void runNonLinearStep(real f=1.0);
+
+    void runNonLinear();
 
   private:
     ThomasAlgorithmGPU *thomasAlgorithm;

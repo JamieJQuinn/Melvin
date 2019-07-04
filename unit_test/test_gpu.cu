@@ -140,6 +140,10 @@ TEST_CASE("Linear step calculates correctly", "[gpu]") {
   c.calculateDerivedConstants();
 
   Sim s(c);
+
+  c.isCudaEnabled = true;
+  c.threadsPerBlock_x = 16;
+  c.threadsPerBlock_y = 32;
   SimGPU sGPU(c);
 
   // Load both with same test data
@@ -166,7 +170,7 @@ TEST_CASE("Linear step calculates correctly", "[gpu]") {
   cudaDeviceSynchronize();
 
   for(int n=0; n<c.nN; ++n) {
-    for(int k=1; k<c.nZ-1; ++k) {
+    for(int k=0; k<c.nZ; ++k) {
       CHECK(sGPU.vars.dOmgdt(n,k) == Approx(s.vars.dOmgdt(n,k)));
       CHECK(sGPU.vars.dTmpdt(n,k) == Approx(s.vars.dTmpdt(n,k)));
       CHECK(sGPU.vars.dXidt(n,k) == Approx(s.vars.dXidt(n,k)));
@@ -174,6 +178,128 @@ TEST_CASE("Linear step calculates correctly", "[gpu]") {
       CHECK(sGPU.vars.psi(n,k) == Approx(s.vars.psi(n,k)));
       CHECK(sGPU.vars.omg(n,k) == Approx(s.vars.omg(n,k)));
       CHECK(sGPU.vars.xi(n,k) == Approx(s.vars.xi(n,k)));
+    }
+  }
+}
+
+TEST_CASE("Nonlinear step calculates correctly", "[gpu]") {
+  Constants c;
+  c.nN = 64;
+  c.nZ = 128;
+  c.aspectRatio = 1.3;
+  c.Pr = 1.0;
+  c.Ra = 2.5;
+  c.RaXi = 2.0;
+  c.tau = 0.01;
+  c.isDoubleDiffusion = true;
+  c.calculateDerivedConstants();
+
+  Sim s(c);
+
+  c.isCudaEnabled = true;
+  c.threadsPerBlock_x = 16;
+  c.threadsPerBlock_y = 32;
+  SimGPU sGPU(c);
+
+  // Load both with same test data
+  for(int n=0; n<c.nN; ++n) {
+    for(int k=0; k<c.nZ; ++k) {
+      s.vars.omg(n,k) = (float)k;
+      s.vars.tmp(n,k) = (float)k/c.nZ;
+      s.vars.psi(n,k) = (float)k/c.nN;
+      s.vars.xi(n,k) = (float)k/c.nN;
+    }
+  }
+
+  for(int n=0; n<c.nN; ++n) {
+    for(int k=0; k<c.nZ; ++k) {
+      sGPU.vars.omg(n,k) = (float)k;
+      sGPU.vars.tmp(n,k) = (float)k/c.nZ;
+      sGPU.vars.psi(n,k) = (float)k/c.nN;
+      sGPU.vars.xi(n,k) = (float)k/c.nN;
+    }
+  }
+
+  time_point<Clock> start = Clock::now();
+  s.runNonLinearStep();
+  time_point<Clock> end = Clock::now();
+  std::chrono::duration<int64_t, std::nano> diff = end-start;
+  cout << "CPU version of nonlinear step: " << diff.count() << endl;
+
+  start = Clock::now();
+  sGPU.runNonLinearStep();
+  cudaDeviceSynchronize();
+  end = Clock::now();
+  diff = end-start;
+  cout << "GPU version of nonlinear nonlinear step: " << diff.count() << endl;
+
+  for(int n=0; n<c.nN; ++n) {
+    for(int k=0; k<c.nZ; ++k) {
+      CHECK(sGPU.vars.dOmgdt(n,k) == Approx(s.vars.dOmgdt(n,k)));
+      CHECK(sGPU.vars.dTmpdt(n,k) == Approx(s.vars.dTmpdt(n,k)));
+      CHECK(sGPU.vars.dXidt(n,k) == Approx(s.vars.dXidt(n,k)));
+      CHECK(sGPU.vars.tmp(n,k) == Approx(s.vars.tmp(n,k)));
+      CHECK(sGPU.vars.psi(n,k) == Approx(s.vars.psi(n,k)));
+      CHECK(sGPU.vars.omg(n,k) == Approx(s.vars.omg(n,k)));
+      CHECK(sGPU.vars.xi(n,k) == Approx(s.vars.xi(n,k)));
+    }
+  }
+}
+
+TEST_CASE("Nonlinear temperature derivative calculates correctly", "[gpu]") {
+  Constants c;
+  c.nN = 64;
+  c.nZ = 128;
+  c.aspectRatio = 1.3;
+  c.Pr = 1.0;
+  c.Ra = 2.5;
+  c.RaXi = 2.0;
+  c.tau = 0.01;
+  c.isDoubleDiffusion = true;
+  c.calculateDerivedConstants();
+
+  Sim s(c);
+
+  c.isCudaEnabled = true;
+  c.threadsPerBlock_x = 16;
+  c.threadsPerBlock_y = 32;
+  SimGPU sGPU(c);
+
+  // Load both with same test data
+  for(int n=0; n<c.nN; ++n) {
+    for(int k=0; k<c.nZ; ++k) {
+      s.vars.omg(n,k) = (float)k;
+      s.vars.tmp(n,k) = (float)k/c.nZ;
+      s.vars.psi(n,k) = (float)k/c.nN;
+      s.vars.xi(n,k) = (float)k/c.nN;
+    }
+  }
+
+  for(int n=0; n<c.nN; ++n) {
+    for(int k=0; k<c.nZ; ++k) {
+      sGPU.vars.omg(n,k) = (float)k;
+      sGPU.vars.tmp(n,k) = (float)k/c.nZ;
+      sGPU.vars.psi(n,k) = (float)k/c.nN;
+      sGPU.vars.xi(n,k) = (float)k/c.nN;
+    }
+  }
+
+  time_point<Clock> start = Clock::now();
+  s.computeNonlinearTemperatureDerivative();
+  time_point<Clock> end = Clock::now();
+  std::chrono::duration<int64_t, std::nano> diff = end-start;
+  cout << "CPU version of nonlinear derivatives calculation: " << diff.count() << endl;
+
+  start = Clock::now();
+  sGPU.computeNonlinearTemperatureDerivative();
+  cudaDeviceSynchronize();
+  end = Clock::now();
+  diff = end-start;
+  cout << "GPU version of nonlinear derivatives calculation: " << diff.count() << endl;
+
+  for(int n=0; n<c.nN; ++n) {
+    for(int k=0; k<c.nZ; ++k) {
+      CHECK(sGPU.vars.dTmpdt(n,k) == Approx(s.vars.dTmpdt(n,k)));
     }
   }
 }
