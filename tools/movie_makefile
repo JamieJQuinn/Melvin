@@ -1,0 +1,11 @@
+# Used to make a video out of .dat files
+
+DAT_FILES=$(wildcard *.dat)
+
+all: output.mp4
+
+output.mp4: $(DAT_FILES)
+	ffmpeg -framerate 20 -i dump%04d.dat.png -c:v libx264 -s:v 1228x180 -profile:v high -crf 20 -pix_fmt yuv420p output.mp4
+
+dump%.dat.png: dump%.dat
+	python2 ../../tools/plot_variables.py --constants constants.js $< --output $@
