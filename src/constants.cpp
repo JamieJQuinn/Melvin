@@ -17,6 +17,7 @@ void Constants::calculateDerivedConstants() {
   dz = 1.0/(nZ-1);
   dx = real(aspectRatio)/(nX-1);
   oodz2 = pow(1.0/dz, 2);
+  oodz = 1.0/dz;
 }
 
 void Constants::print() const {

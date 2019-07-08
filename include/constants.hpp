@@ -28,6 +28,7 @@ class Constants {
     real dx;
     int nX;
     real oodz2;
+    real oodz;
 
     // I/O files
     std::string saveFolder;

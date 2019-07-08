@@ -1,5 +1,5 @@
-CC=clang++
-CFLAGS=-c -I$(INCLUDE_DIR)
+CC=g++
+CFLAGS=-c -I$(INCLUDE_DIR) --std=c++14
 LDFLAGS=
 SRC_DIR=src
 BUILD_DIR=build
@@ -20,6 +20,7 @@ GPU_TEST_SOURCES=$(wildcard $(TEST_DIR)/*.cu)
 GPU_TEST_OBJECTS=$(patsubst $(TEST_DIR)/%.cu,$(BUILD_DIR)/%.o,$(GPU_TEST_SOURCES))
 
 TEST_EXECUTABLE=test_exe
+GPU_TEST_EXECUTABLE=test_exe_gpu
 
 .PHONY: all
 all: release
@@ -61,19 +62,19 @@ debug: LDFLAGS += -pg
 debug: $(BUILD_DIR) $(BUILD_DIR)/$(EXECUTABLE)
 
 .PHONY: gpu
-gpu: CFLAGS += -DCUDA -ccbin=clang++
+gpu: CFLAGS += -DCUDA
 gpu: OBJECTS += $(GPU_OBJECTS)
 gpu: CC = nvcc
 gpu: $(BUILD_DIR) $(GPU_OBJECTS) $(BUILD_DIR)/$(EXECUTABLE)
 
 .PHONY: gpu-test
-gpu-test: CFLAGS += -DCUDA -ccbin=clang++ -pg
+gpu-test: CFLAGS += -DCUDA -pg
 gpu-test: LDFLAGS += -pg
-gpu-test: OBJECTS += $(GPU_OBJECTS)
-gpu-test: TEST_OBJECTS += $(GPU_TEST_OBJECTS)
 gpu-test: CC = nvcc
-gpu-test: $(BUILD_DIR) $(GPU_OBJECTS) $(GPU_TEST_OBJECTS) $(BUILD_DIR)/$(TEST_EXECUTABLE)
-	cd $(BUILD_DIR); ./$(TEST_EXECUTABLE)
+gpu-test: $(BUILD_DIR) $(BUILD_DIR)/$(GPU_TEST_EXECUTABLE)
+	python3 tools/make_initial_conditions.py --output $(BUILD_DIR)/ICn1nZ101nN51 --salt_fingering --n_modes 51 --n_gridpoints 101 --modes 1 2 3 4 5 6 7 8 9 10
+	cd $(BUILD_DIR); ../test/print_test_constants.sh
+	cd $(BUILD_DIR); ./$(GPU_TEST_EXECUTABLE)
 
 .PHONY: test
 test: CFLAGS += -DNDEBUG -O2 -fopenmp -pg
@@ -86,6 +87,9 @@ $(BUILD_DIR)/%.o: $(TEST_DIR)/%.cpp
 
 $(BUILD_DIR)/%.o: $(TEST_DIR)/%.cu
 	nvcc $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/$(GPU_TEST_EXECUTABLE): $(OBJECTS) $(GPU_OBJECTS) $(GPU_TEST_OBJECTS) $(TEST_OBJECTS)
+	$(CC) $(LDFLAGS) $(filter-out $(BUILD_DIR)/main.o, $(OBJECTS)) $(GPU_OBJECTS) $(GPU_TEST_OBJECTS) $(TEST_OBJECTS) -o $@
 
 $(BUILD_DIR)/$(TEST_EXECUTABLE): $(OBJECTS) $(TEST_OBJECTS)
 	$(CC) $(LDFLAGS) $(filter-out $(BUILD_DIR)/main.o, $(OBJECTS)) $(TEST_OBJECTS) -o $@

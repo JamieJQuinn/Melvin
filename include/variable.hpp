@@ -48,8 +48,9 @@ class Variable {
     const int nZ;
     real * data;
   protected:
-    const double dz;
-    const double oodz2;
+    const real dz;
+    const real oodz2;
+    const real oodz;
     const int totalSteps;
     int current; // index pointing to slice of array representing current time
     int previous;
@@ -103,7 +104,7 @@ inline real Variable::dfdz(int n, int k) const {
   // Avoid derivatives at the edge
   assert(k>0);
   assert(k<nZ-1);
-  return ((*this)(n, k+1) - (*this)(n, k-1))/(2*this->dz);
+  return ((*this)(n, k+1) - (*this)(n, k-1))*this->oodz*0.5;
 }
 
 inline real Variable::dfdz2(int n, int k) const {

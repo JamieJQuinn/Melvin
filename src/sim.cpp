@@ -134,7 +134,7 @@ void Sim::computeNonlinearDerivatives() {
   }
 }
 
-void Sim::computeNonlinearDerivative(Variable &dVardt, const Variable &var) {
+void Sim::computeNonlinearDerivativeN0(Variable &dVardt, const Variable &var) {
   for(int n=1; n<c.nN; ++n) {
     for(int k=1; k<c.nZ-1; ++k) {
       // Contribution TO var[n=0]
@@ -147,11 +147,18 @@ void Sim::computeNonlinearDerivative(Variable &dVardt, const Variable &var) {
   }
   #pragma omp parallel for schedule(dynamic)
   for(int n=1; n<c.nN; ++n) {
-    // Contribution FROM var[n=0]
     for(int k=1; k<c.nZ-1; ++k) {
+    // Contribution FROM var[n=0]
       dVardt(n,k) +=
         -n*M_PI/c.aspectRatio*vars.psi(n,k)*var.dfdz(0,k);
     }
+  }
+}
+
+void Sim::computeNonlinearDerivative(Variable &dVardt, const Variable &var, const int vorticityFactor) {
+  // Vorticity factor should be -1 for temp & xt and 1 for vorticity
+  #pragma omp parallel for schedule(dynamic)
+  for(int n=1; n<c.nN; ++n) {
     // Contribution FROM var[n>0] and vars.omg[n>0]
     int o;
     for(int m=1; m<n; ++m){
@@ -187,7 +194,7 @@ void Sim::computeNonlinearDerivative(Variable &dVardt, const Variable &var) {
       assert(m>0 and m<c.nN);
       for(int k=1; k<c.nZ-1; ++k) {
         dVardt(n,k) +=
-          -M_PI/(2*c.aspectRatio)*(
+          vorticityFactor*M_PI/(2*c.aspectRatio)*(
           +m*vars.psi.dfdz(o,k)*var(m,k)
           +o*var.dfdz(m,k)*vars.psi(o,k)
           );
@@ -197,58 +204,18 @@ void Sim::computeNonlinearDerivative(Variable &dVardt, const Variable &var) {
 }
 
 void Sim::computeNonlinearTemperatureDerivative() {
-  computeNonlinearDerivative(vars.dTmpdt, vars.tmp);
+  computeNonlinearDerivativeN0(vars.dTmpdt, vars.tmp);
+  computeNonlinearDerivative(vars.dTmpdt, vars.tmp, -1);
 }
 
 void Sim::computeNonlinearXiDerivative() {
   // Turns out it's the same for temperature and vars.xi
-  computeNonlinearDerivative(vars.dXidt, vars.xi);
+  computeNonlinearDerivativeN0(vars.dXidt, vars.xi);
+  computeNonlinearDerivative(vars.dXidt, vars.xi, -1);
 }
 
 void Sim::computeNonlinearVorticityDerivative() {
-  #pragma omp parallel for schedule(dynamic)
-  for(int n=1; n<c.nN; ++n) {
-    int o;
-    for(int m=1; m<n; ++m){
-      // Case n = n' + n''
-      o = n-m;
-      assert(o>0 and o<c.nN);
-      assert(m>0 and m<c.nN);
-      for(int k=1; k<c.nZ-1; ++k) {
-        vars.dOmgdt(n,k) +=
-          -M_PI/(2*c.aspectRatio)*(
-          -m*vars.psi.dfdz(o,k)*vars.omg(m,k)
-          +o*vars.omg.dfdz(m,k)*vars.psi(o,k)
-          );
-      }
-    }
-    for(int m=n+1; m<c.nN; ++m){
-      // Case n = n' - n''
-      o = m-n;
-      assert(o>0 and o<c.nN);
-      assert(m>0 and m<c.nN);
-      for(int k=1; k<c.nZ-1; ++k) {
-        vars.dOmgdt(n,k) +=
-          -M_PI/(2*c.aspectRatio)*(
-          +m*vars.psi.dfdz(o,k)*vars.omg(m,k)
-          +o*vars.omg.dfdz(m,k)*vars.psi(o,k)
-          );
-      }
-    }
-    for(int m=1; m+n<c.nN; ++m){
-      // Case n= n'' - n'
-      o = n+m;
-      assert(o>0 and o<c.nN);
-      assert(m>0 and m<c.nN);
-      for(int k=1; k<c.nZ-1; ++k) {
-        vars.dOmgdt(n,k) +=
-          +M_PI/(2*c.aspectRatio)*(
-          +m*vars.psi.dfdz(o,k)*vars.omg(m,k)
-          +o*vars.omg.dfdz(m,k)*vars.psi(o,k)
-          );
-      }
-    }
-  }
+  computeNonlinearDerivative(vars.dOmgdt, vars.omg, 1);
 }
 
 void Sim::runNonLinearStep(real f) {

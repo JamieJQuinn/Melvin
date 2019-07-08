@@ -46,7 +46,9 @@ class Sim {
     void addAdvectionApproximation();
 
     void computeNonlinearDerivatives();
+    void computeNonlinearDerivativeN0(Variable &dVardt, const Variable &var);
     void computeNonlinearDerivative(Variable &dVardt, const Variable &var);
+    void computeNonlinearDerivative(Variable &dVardt, const Variable &var, const int vorticityFactor);
     void computeNonlinearTemperatureDerivative();
     void computeNonlinearXiDerivative();
     void computeNonlinearVorticityDerivative();

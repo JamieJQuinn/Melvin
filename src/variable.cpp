@@ -85,6 +85,7 @@ Variable::Variable(const Constants &c_in, const int totalSteps_in):
   nZ(c_in.nZ),
   dz(c_in.dz),
   oodz2(c_in.oodz2),
+  oodz(c_in.oodz),
   totalSteps(totalSteps_in),
   current(0),
   previous(1)
