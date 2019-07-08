@@ -2,6 +2,8 @@
 """Plotting functions for simulation variables"""
 import sys
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import argparse
 import json
