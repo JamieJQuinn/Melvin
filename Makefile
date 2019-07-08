@@ -72,7 +72,7 @@ gpu-test: CFLAGS += -DCUDA -pg
 gpu-test: LDFLAGS += -pg
 gpu-test: CC = nvcc
 gpu-test: $(BUILD_DIR) $(BUILD_DIR)/$(GPU_TEST_EXECUTABLE)
-	python3 tools/make_initial_conditions.py --output $(BUILD_DIR)/ICn1nZ101nN51 --salt_fingering --n_modes 51 --n_gridpoints 101 --modes 1 2 3 4 5 6 7 8 9 10
+	python3 tools/make_initial_conditions.py --output $(BUILD_DIR)/ICn1nZ101nN51 --salt_fingering --n_modes 64 --n_gridpoints 128 --modes $(shell seq 1 63)
 	cd $(BUILD_DIR); ../test/print_test_constants.sh
 	cd $(BUILD_DIR); ./$(GPU_TEST_EXECUTABLE)
 

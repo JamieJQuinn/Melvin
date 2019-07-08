@@ -287,7 +287,6 @@ void SimGPU::computeNonlinearXiDerivative() {
 }
 
 void SimGPU::computeNonlinearVorticityDerivative() {
-  // Calculate other modes
   dim3 threadsPerBlock(c.threadsPerBlock_x,c.threadsPerBlock_y);
   dim3 numBlocks((c.nN - 1 + threadsPerBlock.x - 1)/threadsPerBlock.x, (c.nZ - 2 + threadsPerBlock.y - 1)/threadsPerBlock.y);
   gpu_computeNonlinearDerivative<<<numBlocks,threadsPerBlock>>>(vars.dOmgdt.getCurrent(), vars.omg.getCurrent(), vars.psi.getCurrent(), 

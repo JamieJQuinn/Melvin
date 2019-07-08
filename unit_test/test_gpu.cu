@@ -24,10 +24,10 @@ void test_main_vars(const Constants &c, const SimGPU &sGPU, const Sim &s) {
   for(int n=0; n<c.nN; ++n) {
     for(int k=0; k<c.nZ; ++k) {
       /*cout << n << ", " << k << endl;*/
-      CHECK(sGPU.vars.tmp(n,k) == Approx(s.vars.tmp(n,k)));
-      CHECK(sGPU.vars.psi(n,k) == Approx(s.vars.psi(n,k)));
-      CHECK(sGPU.vars.omg(n,k) == Approx(s.vars.omg(n,k)));
-      CHECK(sGPU.vars.xi(n,k) == Approx(s.vars.xi(n,k)));
+      REQUIRE(sGPU.vars.tmp(n,k) == Approx(s.vars.tmp(n,k)));
+      REQUIRE(sGPU.vars.psi(n,k) == Approx(s.vars.psi(n,k)));
+      REQUIRE(sGPU.vars.omg(n,k) == Approx(s.vars.omg(n,k)));
+      REQUIRE(sGPU.vars.xi(n,k) == Approx(s.vars.xi(n,k)));
     }
   }
 }
@@ -37,18 +37,18 @@ void test_derivatives(const Constants &c, const SimGPU &sGPU, const Sim &s) {
   for(int n=0; n<c.nN; ++n) {
     for(int k=1; k<c.nZ-1; ++k) {
       /*cout << n << ", " << k << endl;*/
-      CHECK(sGPU.vars.dOmgdt(n,k) == Approx(s.vars.dOmgdt(n,k)));
-      CHECK(sGPU.vars.dTmpdt(n,k) == Approx(s.vars.dTmpdt(n,k)));
-      CHECK(sGPU.vars.dXidt(n,k) == Approx(s.vars.dXidt(n,k)));
+      REQUIRE(sGPU.vars.dOmgdt(n,k) == Approx(s.vars.dOmgdt(n,k)));
+      REQUIRE(sGPU.vars.dTmpdt(n,k) == Approx(s.vars.dTmpdt(n,k)));
+      REQUIRE(sGPU.vars.dXidt(n,k) == Approx(s.vars.dXidt(n,k)));
     }
   }
   /*cout << "Testing previous derivatives" << endl;*/
   for(int n=0; n<c.nN; ++n) {
     for(int k=1; k<c.nZ-1; ++k) {
       /*cout << n << ", " << k << endl;*/
-      CHECK(sGPU.vars.dOmgdt.getPrev(n,k) == Approx(s.vars.dOmgdt.getPrev(n,k)));
-      CHECK(sGPU.vars.dTmpdt.getPrev(n,k) == Approx(s.vars.dTmpdt.getPrev(n,k)));
-      CHECK(sGPU.vars.dXidt.getPrev(n,k) == Approx(s.vars.dXidt.getPrev(n,k)));
+      REQUIRE(sGPU.vars.dOmgdt.getPrev(n,k) == Approx(s.vars.dOmgdt.getPrev(n,k)));
+      REQUIRE(sGPU.vars.dTmpdt.getPrev(n,k) == Approx(s.vars.dTmpdt.getPrev(n,k)));
+      REQUIRE(sGPU.vars.dXidt.getPrev(n,k) == Approx(s.vars.dXidt.getPrev(n,k)));
     }
   }
 }
@@ -131,7 +131,7 @@ TEST_CASE( "GPU Thomas algorithm solves a system correctly", "[gpu]" ) {
   }
 }
 
-TEST_CASE("GPU variable works", "[gpu]") {
+TEST_CASE("GPU variable class loads data", "[gpu]") {
   Constants c;
   c.nN = 5;
   c.nZ = 10;
@@ -259,7 +259,7 @@ TEST_CASE("Linear derivatives calculate correctly", "[gpu]") {
   test_all_vars(c, sGPU, s);
 }
 
-TEST_CASE("GPU vars load from file", "[gpu]") {
+TEST_CASE("GPU Variables class load from file", "[gpu]") {
   Constants c("test_constants_gpu.json");
 
   Sim s(c);
@@ -284,35 +284,35 @@ TEST_CASE("Nonlinear step calculates correctly", "[gpu]") {
   s.runNonLinearStep();
   time_point<Clock> end = Clock::now();
   std::chrono::duration<int64_t, std::nano> diff = end-start;
-  cout << "CPU version of nonlinear step: " << diff.count() << endl;
+  cout << "CPU version of full nonlinear step: " << diff.count() << endl;
 
   start = Clock::now();
   sGPU.runNonLinearStep();
   cudaDeviceSynchronize();
   end = Clock::now();
   diff = end-start;
-  cout << "GPU version of nonlinear nonlinear step: " << diff.count() << endl;
+  cout << "GPU version of full nonlinear step: " << diff.count() << endl;
 
   test_main_vars(c, sGPU, s);
 }
 
-/*TEST_CASE("Nonlinear step calculates correctly over multiple timesteps", "[gpu]") {*/
-  /*Constants c("test_constants_gpu.json");*/
+TEST_CASE("Nonlinear step calculates correctly over multiple timesteps", "[gpu]") {
+  Constants c("test_constants_gpu.json");
 
-  /*Sim s(c);*/
-  /*SimGPU sGPU(c);*/
+  Sim s(c);
+  SimGPU sGPU(c);
 
-  /*s.vars.load(c.icFile);*/
-  /*sGPU.vars.load(c.icFile);*/
+  s.vars.load(c.icFile);
+  sGPU.vars.load(c.icFile);
 
-  /*for(int i=0; i<10; ++i) {*/
-    /*s.runNonLinearStep();*/
-    /*sGPU.runNonLinearStep();*/
-    /*cudaDeviceSynchronize();*/
-  /*}*/
+  for(int i=0; i<3; ++i) {
+    s.runNonLinearStep();
+    sGPU.runNonLinearStep();
+    cudaDeviceSynchronize();
+  }
 
-  /*test_main_vars(c, sGPU, s);*/
-/*}*/
+  test_main_vars(c, sGPU, s);
+}
 
 /*TEST_CASE("Bits of the nonlinear step calculate correctly", "[gpu]") {*/
   /*Constants c("test_constants_gpu.json");*/
@@ -423,8 +423,8 @@ TEST_CASE("Nonlinear temperature derivative calculates correctly", "[gpu]") {
 
 TEST_CASE("Nonlinear vorticity derivative calculates correctly", "[gpu]") {
   Constants c;
-  c.nN = 16;
-  c.nZ = 32;
+  c.nN = 64;
+  c.nZ = 128;
   c.aspectRatio = 1.3;
   c.Pr = 1.0;
   c.Ra = 2.5;
@@ -460,15 +460,15 @@ TEST_CASE("Nonlinear vorticity derivative calculates correctly", "[gpu]") {
   }
 
   time_point<Clock> start = Clock::now();
+  s.computeLinearVorticityDerivative();
   s.computeNonlinearVorticityDerivative();
-  s.computeNonlinearTemperatureDerivative();
   time_point<Clock> end = Clock::now();
   std::chrono::duration<int64_t, std::nano> diff = end-start;
   cout << "CPU version of nonlinear vorticity derivatives calculation: " << diff.count() << endl;
 
   start = Clock::now();
+  sGPU.computeLinearVorticityDerivative();
   sGPU.computeNonlinearVorticityDerivative();
-  sGPU.computeNonlinearTemperatureDerivative();
   cudaDeviceSynchronize();
   end = Clock::now();
   diff = end-start;
@@ -476,8 +476,6 @@ TEST_CASE("Nonlinear vorticity derivative calculates correctly", "[gpu]") {
 
   for(int n=0; n<c.nN; ++n) {
     for(int k=0; k<c.nZ; ++k) {
-      /*cout << n << ", " << k << endl;*/
-      REQUIRE(sGPU.vars.dTmpdt(n,k) == Approx(s.vars.dTmpdt(n,k)));
       REQUIRE(sGPU.vars.dOmgdt(n,k) == Approx(s.vars.dOmgdt(n,k)));
     }
   }

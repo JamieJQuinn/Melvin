@@ -168,7 +168,7 @@ void Sim::computeNonlinearDerivative(Variable &dVardt, const Variable &var, cons
       assert(m>0 and m<c.nN);
       for(int k=1; k<c.nZ-1; ++k) {
         dVardt(n,k) +=
-          -M_PI/(2*c.aspectRatio)*(
+          -M_PI/(2.0*c.aspectRatio)*(
           -m*vars.psi.dfdz(o,k)*var(m,k)
           +o*var.dfdz(m,k)*vars.psi(o,k)
           );
@@ -181,7 +181,7 @@ void Sim::computeNonlinearDerivative(Variable &dVardt, const Variable &var, cons
       assert(m>0 and m<c.nN);
       for(int k=1; k<c.nZ-1; ++k) {
         dVardt(n,k) +=
-          -M_PI/(2*c.aspectRatio)*(
+          -M_PI/(2.0*c.aspectRatio)*(
           +m*vars.psi.dfdz(o,k)*var(m,k)
           +o*var.dfdz(m,k)*vars.psi(o,k)
           );
@@ -194,7 +194,7 @@ void Sim::computeNonlinearDerivative(Variable &dVardt, const Variable &var, cons
       assert(m>0 and m<c.nN);
       for(int k=1; k<c.nZ-1; ++k) {
         dVardt(n,k) +=
-          vorticityFactor*M_PI/(2*c.aspectRatio)*(
+          vorticityFactor*M_PI/(2.0*c.aspectRatio)*(
           +m*vars.psi.dfdz(o,k)*var(m,k)
           +o*var.dfdz(m,k)*vars.psi(o,k)
           );
