@@ -5,7 +5,7 @@ save_folder="test/benchmark"
 mkdir -p $save_folder
 rm -f $save_folder/*
 
-cat << EOF > $save_folder/constants.js
+cat << EOF > $save_folder/constants.json
 {
   "Pr":0.5,
   "Ra":50000,
@@ -24,7 +24,7 @@ cat << EOF > $save_folder/constants.js
 }
 EOF
 
-constants_file=$save_folder/constants.js
+constants_file=$save_folder/constants.json
 python tools/make_initial_conditions.py --output $save_folder/ICn1nZ101nN51_SF --n_modes 51 --n_gridpoints 101 --modes 1 --combined_convection
 
 echo "==================== Building program"
@@ -32,7 +32,7 @@ make clean
 make release
 
 echo "==================== Starting program"
-{ time build/exe --constants $constants_file ; } 2>&1 | tee $save_folder/log
+{ /user/bin/time build/exe --constants $constants_file ; } 2>&1 | tee $save_folder/log
 
 echo "==================== Comparing results"
 
@@ -60,7 +60,7 @@ cat << EOF > $save_folder/benchmark.txt
 #20  7.38886E-72   5.11045E-65   -6.49594E-69
 EOF
 
-comparison_results=$(python3 tools/print_variables.py $save_folder/dump0005.dat --max_print_mode 20 --n_modes 51 --n_gridpoints 101 | column -t | diff - $save_folder/benchmark.txt)
+comparison_results=$(python3 tools/print_variables.py $save_folder/dump0005.dat --max_print_mode 20 --constants $save_folder/constants.json | column -t | diff - $save_folder/benchmark.txt)
 
 if [ "$comparison_results" ]; then
   echo "Simulation returned different results!"

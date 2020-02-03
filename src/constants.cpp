@@ -34,8 +34,11 @@ void Constants::print() const {
   std::cout << "is double diffusion? " << isDoubleDiffusion << std::endl;
   std::cout << "is CUDA enabled? " << isCudaEnabled << std::endl;
   std::cout << "icFile: " << icFile << std::endl;
-  std::cout << "CUDA threads per x: " << threadsPerBlock_x << std::endl;
-  std::cout << "CUDA threads per y: " << threadsPerBlock_y << std::endl;
+
+  if(isCudaEnabled) {
+    std::cout << "CUDA threads per x: " << threadsPerBlock_x << std::endl;
+    std::cout << "CUDA threads per y: " << threadsPerBlock_y << std::endl;
+  }
 
   if(isDoubleDiffusion) {
     std::cout << "RaXi: " << RaXi << std::endl;

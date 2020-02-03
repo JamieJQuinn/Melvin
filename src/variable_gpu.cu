@@ -24,8 +24,7 @@ void VariableGPU::initialiseData(real initialValue) {
 void VariableGPU::update(const Variable& dVardt, const real dt, const real f) {
   dim3 threadsPerBlock(threadsPerBlock_x,threadsPerBlock_y);
   dim3 numBlocks((nN + threadsPerBlock.x - 1)/threadsPerBlock.x, (nZ - 2 + threadsPerBlock.y - 1)/threadsPerBlock.y);
-  gpu_update<<<numBlocks,threadsPerBlock>>>(this->getPlus(), dVardt.getCurrent(), dVardt.getPrevious(), dt, f,
-      nN, nZ);
+  gpu_update<<<numBlocks,threadsPerBlock>>>(this->getPlus(), dVardt.getCurrent(), dVardt.getPrevious(), dt, f, nN, nZ);
 }
 
 void VariableGPU::readFromFile(std::ifstream& file) {

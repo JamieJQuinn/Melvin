@@ -69,7 +69,7 @@ void Variables<varType>::updateVars(const real dt, const real f) {
   tmp.update(dTmpdt, dt, f);
   omg.update(dOmgdt, dt, f);
   if(c.isDoubleDiffusion) {
-    xi.update(dTmpdt, dt, f);
+    xi.update(dXidt, dt, f);
   }
 }
 

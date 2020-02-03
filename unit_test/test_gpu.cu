@@ -20,14 +20,24 @@ using std::chrono::duration_cast;
 using std::chrono::milliseconds;
 using namespace std::literals::chrono_literals;
 
+bool is_equal(const real x, const real y) {
+  return x == Approx(y).margin(1e-10);
+}
+
 void test_main_vars(const Constants &c, const SimGPU &sGPU, const Sim &s) {
   for(int n=0; n<c.nN; ++n) {
     for(int k=0; k<c.nZ; ++k) {
       /*cout << n << ", " << k << endl;*/
-      REQUIRE(sGPU.vars.tmp(n,k) == Approx(s.vars.tmp(n,k)));
-      REQUIRE(sGPU.vars.psi(n,k) == Approx(s.vars.psi(n,k)));
-      REQUIRE(sGPU.vars.omg(n,k) == Approx(s.vars.omg(n,k)));
-      REQUIRE(sGPU.vars.xi(n,k) == Approx(s.vars.xi(n,k)));
+      REQUIRE(is_equal(sGPU.vars.tmp(n,k), s.vars.tmp(n,k)));
+      REQUIRE(is_equal(sGPU.vars.psi(n,k), s.vars.psi(n,k)));
+      REQUIRE(is_equal(sGPU.vars.omg(n,k), s.vars.omg(n,k)));
+    }
+  }
+  if(c.isDoubleDiffusion) {
+    for(int n=0; n<c.nN; ++n) {
+      for(int k=0; k<c.nZ; ++k) {
+        REQUIRE(is_equal(sGPU.vars.xi(n,k), s.vars.xi(n,k)));
+      }
     }
   }
 }
@@ -36,19 +46,30 @@ void test_derivatives(const Constants &c, const SimGPU &sGPU, const Sim &s) {
   /*cout << "Testing derivatives" << endl;*/
   for(int n=0; n<c.nN; ++n) {
     for(int k=1; k<c.nZ-1; ++k) {
-      /*cout << n << ", " << k << endl;*/
-      REQUIRE(sGPU.vars.dOmgdt(n,k) == Approx(s.vars.dOmgdt(n,k)));
-      REQUIRE(sGPU.vars.dTmpdt(n,k) == Approx(s.vars.dTmpdt(n,k)));
-      REQUIRE(sGPU.vars.dXidt(n,k) == Approx(s.vars.dXidt(n,k)));
+      REQUIRE(is_equal(sGPU.vars.dOmgdt(n,k), s.vars.dOmgdt(n,k)));
+      REQUIRE(is_equal(sGPU.vars.dTmpdt(n,k), s.vars.dTmpdt(n,k)));
+    }
+  }
+  if(c.isDoubleDiffusion) {
+    for(int n=0; n<c.nN; ++n) {
+      for(int k=1; k<c.nZ-1; ++k) {
+        REQUIRE(is_equal(sGPU.vars.dXidt(n,k), s.vars.dXidt(n,k)));
+      }
     }
   }
   /*cout << "Testing previous derivatives" << endl;*/
   for(int n=0; n<c.nN; ++n) {
     for(int k=1; k<c.nZ-1; ++k) {
       /*cout << n << ", " << k << endl;*/
-      REQUIRE(sGPU.vars.dOmgdt.getPrev(n,k) == Approx(s.vars.dOmgdt.getPrev(n,k)));
-      REQUIRE(sGPU.vars.dTmpdt.getPrev(n,k) == Approx(s.vars.dTmpdt.getPrev(n,k)));
-      REQUIRE(sGPU.vars.dXidt.getPrev(n,k) == Approx(s.vars.dXidt.getPrev(n,k)));
+      REQUIRE(is_equal(sGPU.vars.dOmgdt.getPrev(n,k), s.vars.dOmgdt.getPrev(n,k)));
+      REQUIRE(is_equal(sGPU.vars.dTmpdt.getPrev(n,k), s.vars.dTmpdt.getPrev(n,k)));
+    }
+  }
+  if(c.isDoubleDiffusion) {
+    for(int n=0; n<c.nN; ++n) {
+      for(int k=1; k<c.nZ-1; ++k) {
+        REQUIRE(is_equal(sGPU.vars.dXidt.getPrev(n,k), s.vars.dXidt.getPrev(n,k)));
+      }
     }
   }
 }
@@ -147,6 +168,19 @@ TEST_CASE("GPU variable class loads data", "[gpu]") {
   REQUIRE(tmp.data[5] == Approx(1.0f));
 }
 
+TEST_CASE("GPU Variables class load from file", "[gpu]") {
+  Constants c("test_constants_ddc.json");
+
+  Sim s(c);
+  SimGPU sGPU(c);
+
+  s.vars.load(c.icFile);
+  sGPU.vars.load(c.icFile);
+
+  test_all_vars(c, sGPU, s);
+}
+
+
 TEST_CASE("SimGPU initialises OK", "[gpu]") {
   Constants c;
   c.nN = 5;
@@ -165,43 +199,14 @@ TEST_CASE("SimGPU initialises OK", "[gpu]") {
   REQUIRE(sim.vars.tmp(0,1) == Approx(2.0));
 }
 
-TEST_CASE("Linear step calculates correctly", "[gpu]") {
-  Constants c;
-  c.nN = 5;
-  c.nZ = 10;
-  c.aspectRatio = 1.3;
-  c.Pr = 1.0;
-  c.Ra = 2.5;
-  c.RaXi = 2.0;
-  c.tau = 0.01;
-  c.isDoubleDiffusion = true;
-  c.calculateDerivedConstants();
+TEST_CASE("Double diffusive linear step calculates correctly", "[gpu]") {
+  Constants c("test_constants_ddc.json");
 
   Sim s(c);
-
-  c.isCudaEnabled = true;
-  c.threadsPerBlock_x = 16;
-  c.threadsPerBlock_y = 32;
   SimGPU sGPU(c);
 
-  // Load both with same test data
-  for(int n=0; n<c.nN; ++n) {
-    for(int k=0; k<c.nZ; ++k) {
-      s.vars.omg(n,k) = (float)k;
-      s.vars.tmp(n,k) = (float)k/c.nZ;
-      s.vars.psi(n,k) = (float)k/c.nN;
-      s.vars.xi(n,k) = (float)k/c.nN;
-    }
-  }
-
-  for(int n=0; n<c.nN; ++n) {
-    for(int k=0; k<c.nZ; ++k) {
-      sGPU.vars.omg(n,k) = (float)k;
-      sGPU.vars.tmp(n,k) = (float)k/c.nZ;
-      sGPU.vars.psi(n,k) = (float)k/c.nN;
-      sGPU.vars.xi(n,k) = (float)k/c.nN;
-    }
-  }
+  s.vars.load(c.icFile);
+  sGPU.vars.load(c.icFile);
 
   for(int i=0; i<10; ++i) {
     s.runLinearStep();
@@ -212,45 +217,14 @@ TEST_CASE("Linear step calculates correctly", "[gpu]") {
   test_all_vars(c, sGPU, s);
 }
 
-TEST_CASE("Linear derivatives calculate correctly", "[gpu]") {
-  Constants c;
-  c.nN = 5;
-  c.nZ = 10;
-  c.aspectRatio = 1.3;
-  c.Pr = 1.0;
-  c.Ra = 2.5;
-  c.RaXi = 2.0;
-  c.tau = 0.01;
-  c.isDoubleDiffusion = true;
-  c.calculateDerivedConstants();
+TEST_CASE("Double diffusive linear derivatives calculate correctly", "[gpu]") {
+  Constants c("test_constants_ddc.json");
 
   Sim s(c);
-
-  c.isCudaEnabled = true;
-  c.threadsPerBlock_x = 16;
-  c.threadsPerBlock_y = 32;
   SimGPU sGPU(c);
 
-  // Load both with same test data
-  for(int n=0; n<c.nN; ++n) {
-    for(int k=0; k<c.nZ; ++k) {
-      s.vars.omg(n,k) = (float)k;
-      s.vars.tmp(n,k) = (float)k/c.nZ;
-      s.vars.psi(n,k) = (float)k/c.nN;
-      s.vars.xi(n,k) = (float)k/c.nN;
-    }
-  }
-
-  for(int n=0; n<c.nN; ++n) {
-    for(int k=0; k<c.nZ; ++k) {
-      sGPU.vars.omg(n,k) = (float)k;
-      sGPU.vars.tmp(n,k) = (float)k/c.nZ;
-      sGPU.vars.psi(n,k) = (float)k/c.nN;
-      sGPU.vars.xi(n,k) = (float)k/c.nN;
-    }
-  }
-
-  test_all_vars(c, sGPU, s);
+  s.vars.load(c.icFile);
+  sGPU.vars.load(c.icFile);
 
   s.computeLinearDerivatives();
   sGPU.computeLinearDerivatives();
@@ -259,20 +233,8 @@ TEST_CASE("Linear derivatives calculate correctly", "[gpu]") {
   test_all_vars(c, sGPU, s);
 }
 
-TEST_CASE("GPU Variables class load from file", "[gpu]") {
-  Constants c("test_constants_gpu.json");
-
-  Sim s(c);
-  SimGPU sGPU(c);
-
-  s.vars.load(c.icFile);
-  sGPU.vars.load(c.icFile);
-
-  test_all_vars(c, sGPU, s);
-}
-
-TEST_CASE("Nonlinear step calculates correctly", "[gpu]") {
-  Constants c("test_constants_gpu.json");
+TEST_CASE("Double diffusive nonlinear step calculates correctly", "[gpu]") {
+  Constants c("test_constants_ddc.json");
 
   Sim s(c);
   SimGPU sGPU(c);
@@ -296,8 +258,8 @@ TEST_CASE("Nonlinear step calculates correctly", "[gpu]") {
   test_main_vars(c, sGPU, s);
 }
 
-TEST_CASE("Nonlinear step calculates correctly over multiple timesteps", "[gpu]") {
-  Constants c("test_constants_gpu.json");
+TEST_CASE("Linear step calculates correctly", "[gpu]") {
+  Constants c("test_constants.json");
 
   Sim s(c);
   SimGPU sGPU(c);
@@ -305,63 +267,55 @@ TEST_CASE("Nonlinear step calculates correctly over multiple timesteps", "[gpu]"
   s.vars.load(c.icFile);
   sGPU.vars.load(c.icFile);
 
-  for(int i=0; i<3; ++i) {
-    s.runNonLinearStep();
-    sGPU.runNonLinearStep();
+  for(int i=0; i<10; ++i) {
+    s.runLinearStep();
+    sGPU.runLinearStep();
     cudaDeviceSynchronize();
   }
 
-  test_main_vars(c, sGPU, s);
+  test_all_vars(c, sGPU, s);
 }
 
-/*TEST_CASE("Bits of the nonlinear step calculate correctly", "[gpu]") {*/
-  /*Constants c("test_constants_gpu.json");*/
+TEST_CASE("Linear derivatives calculate correctly", "[gpu]") {
+  Constants c("test_constants.json");
 
-  /*Sim s(c);*/
-  /*SimGPU sGPU(c);*/
+  Sim s(c);
+  SimGPU sGPU(c);
 
-  /*s.vars.load(c.icFile);*/
-  /*sGPU.vars.load(c.icFile);*/
+  s.vars.load(c.icFile);
+  sGPU.vars.load(c.icFile);
 
-  /*for(int i=0; i<2; ++i) {*/
-    /*cout << i << endl;*/
+  s.computeLinearDerivatives();
+  sGPU.computeLinearDerivatives();
+  cudaDeviceSynchronize();
 
-    /*cout << "Computing linear derivatives" << endl;*/
-    /*s.computeLinearDerivatives();*/
-    /*sGPU.computeLinearDerivatives();*/
-    /*cudaDeviceSynchronize();*/
+  test_all_vars(c, sGPU, s);
+}
 
-    /*test_derivatives(c, sGPU, s);*/
+TEST_CASE("Nonlinear step calculates correctly", "[gpu]") {
+  Constants c("test_constants.json");
 
-    /*cout << "Computing nonlinear derivatives" << endl;*/
-    /*s.computeNonlinearDerivatives();*/
-    /*sGPU.computeNonlinearDerivatives();*/
-    /*cudaDeviceSynchronize();*/
+  Sim s(c);
+  SimGPU sGPU(c);
 
-    /*test_derivatives(c, sGPU, s);*/
+  s.vars.load(c.icFile);
+  sGPU.vars.load(c.icFile);
 
-    /*cout << "Updating variables" << endl;*/
-    /*s.vars.updateVars(s.dt);*/
-    /*sGPU.vars.updateVars(sGPU.dt);*/
-    /*cudaDeviceSynchronize();*/
+  time_point<Clock> start = Clock::now();
+  s.runNonLinearStep();
+  time_point<Clock> end = Clock::now();
+  std::chrono::duration<int64_t, std::nano> diff = end-start;
+  cout << "CPU version of full nonlinear step: " << diff.count() << endl;
 
-    /*test_main_vars(c, sGPU, s);*/
+  start = Clock::now();
+  sGPU.runNonLinearStep();
+  cudaDeviceSynchronize();
+  end = Clock::now();
+  diff = end-start;
+  cout << "GPU version of full nonlinear step: " << diff.count() << endl;
 
-    /*cout << "Advancing derivatives" << endl;*/
-    /*s.vars.advanceDerivatives();*/
-    /*sGPU.vars.advanceDerivatives();*/
-    /*cudaDeviceSynchronize();*/
-
-    /*test_derivatives(c, sGPU, s);*/
-
-    /*cout << "Solving for Phi" << endl;*/
-    /*s.solveForPsi();*/
-    /*sGPU.solveForPsi();*/
-    /*cudaDeviceSynchronize();*/
-
-    /*test_main_vars(c, sGPU, s);*/
-  /*}*/
-/*}*/
+  test_all_vars(c, sGPU, s);
+}
 
 TEST_CASE("Nonlinear temperature derivative calculates correctly", "[gpu]") {
   Constants c;

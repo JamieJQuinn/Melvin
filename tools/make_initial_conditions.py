@@ -104,7 +104,7 @@ def main():
     if args.step_profile:
         # Step function
         background = np.zeros(n_gridpoints)
-        background[n_gridpoints/2:] = 1 # Set upper half to 1
+        background[int(n_gridpoints/2):] = 1 # Set upper half to 1
     else:
         # Linear gradient
         background = np.linspace(0, 1, n_gridpoints)
@@ -116,7 +116,7 @@ def main():
     # Set up perturbations
     if args.step_profile:
         perturbation = np.zeros(n_gridpoints)
-        perturbation[n_gridpoints/2] = amp
+        perturbation[int(n_gridpoints/2)] = amp
     else:
         perturbation = amp*np.sin(np.pi*np.linspace(0, 1, n_gridpoints))
 

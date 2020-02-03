@@ -299,6 +299,7 @@ void SimGPU::runNonLinearStep(real f) {
   vars.updateVars(dt, f);
   vars.advanceDerivatives();
   solveForPsi();
+  cudaDeviceSynchronize();
 }
 
 void SimGPU::computeNonlinearDerivatives() {
@@ -332,6 +333,7 @@ void SimGPU::runNonLinear() {
       cout << "Checking CFL" << endl;
       CFLCheckTime += 1e4*dt;
       f = checkCFL(vars.psi, c.dz, c.dx, dt, c.aspectRatio, c.nN, c.nX, c.nZ);
+      dt*=f;
     }
     if(saveTime-t < EPSILON) {
       cout << t << " of " << c.totalTime << "(" << t/c.totalTime*100 << "%)" << endl;

@@ -68,7 +68,7 @@ def main():
     plt.gca().set_aspect(1.0)
     plt.yticks([0, 1])
     plt.xticks(range(0, int(aspect_ratio+1)))
-    plt.tick_params(axis='x', bottom='off', top='off')
+    plt.tick_params(axis='x', bottom=False, top=False)
     plt.pcolormesh(x_grid, z_grid, temp_actual, cmap='coolwarm')
     # plt.contour(x_grid, z_grid, temp_actual)
     #plt.savefig(sys.argv[1] +'tmp.png', bbox_inches='tight', pad_inches=0)
@@ -78,7 +78,7 @@ def main():
         plt.gca().set_aspect(1.0)
         plt.gca().get_yaxis().set_visible(False)
         plt.xticks(range(0, int(aspect_ratio+1)))
-        plt.tick_params(axis='x', bottom='off', top='off')
+        plt.tick_params(axis='x', bottom=False, top=False)
         plt.gcf().tight_layout()
         plt.contour(x_grid, z_grid, psi_actual, 6, colors='k')
 
@@ -87,7 +87,7 @@ def main():
         plt.gca().set_aspect(1.0)
         plt.yticks([0, 1])
         plt.xticks(range(0, int(aspect_ratio+1)))
-        plt.tick_params(axis='x', bottom='off', top='off')
+        plt.tick_params(axis='x', bottom=False, top=False)
         plt.pcolormesh(x_grid, z_grid, xi_actual, cmap='Blues')
 
     if args.output:

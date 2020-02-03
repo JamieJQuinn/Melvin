@@ -24,7 +24,11 @@ cat << EOF > $save_folder/constants.json
   "totalTime":0.05,
 
   "isNonlinear":true,
-  "isDoubleDiffusion":true
+  "isDoubleDiffusion":true,
+
+  "isCudaEnabled":true,
+  "threadsPerBlock_x":16,
+  "threadsPerBlock_y":32
 }
 EOF
 
@@ -33,7 +37,7 @@ python tools/make_initial_conditions.py --output $save_folder/ICn1nZ101nN51_SF -
 
 echo "==================== Building program"
 #make clean
-make release
+make gpu
 
 echo "==================== Starting program"
 { /usr/bin/time build/exe --constants $constants_file ; } 2>&1 | tee $save_folder/log
