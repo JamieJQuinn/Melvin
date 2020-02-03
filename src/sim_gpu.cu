@@ -299,7 +299,6 @@ void SimGPU::runNonLinearStep(real f) {
   vars.updateVars(dt, f);
   vars.advanceDerivatives();
   solveForPsi();
-  cudaDeviceSynchronize();
 }
 
 void SimGPU::computeNonlinearDerivatives() {
@@ -322,6 +321,7 @@ void SimGPU::runNonLinear() {
   t = 0;
   while (c.totalTime-t>EPSILON) {
     if(KEcalcTime-t < EPSILON) {
+      cudaDeviceSynchronize();
       keTracker.calcKineticEnergy(vars.psi);
       KEcalcTime += 1e2*dt;
     }
@@ -332,18 +332,21 @@ void SimGPU::runNonLinear() {
     if(CFLCheckTime-t < EPSILON) {
       cout << "Checking CFL" << endl;
       CFLCheckTime += 1e4*dt;
+      cudaDeviceSynchronize();
       f = checkCFL(vars.psi, c.dz, c.dx, dt, c.aspectRatio, c.nN, c.nX, c.nZ);
       dt*=f;
     }
     if(saveTime-t < EPSILON) {
       cout << t << " of " << c.totalTime << "(" << t/c.totalTime*100 << "%)" << endl;
       saveTime+=c.timeBetweenSaves;
+      cudaDeviceSynchronize();
       vars.save();
     }
     runNonLinearStep(f);
     t+=dt;
     f=1.0f;
-  } 
+  }
+  cudaDeviceSynchronize();
   printf("%e of %e (%.2f%%)\n", t, c.totalTime, t/c.totalTime*100);
   vars.save();
   keTracker.saveKineticEnergy();
