@@ -27,8 +27,8 @@ cat << EOF > $save_folder/constants.json
   "isDoubleDiffusion":true,
 
   "isCudaEnabled":true,
-  "threadsPerBlock_x":16,
-  "threadsPerBlock_y":32
+  "threadsPerBlock_x":64,
+  "threadsPerBlock_y":2
 }
 EOF
 
