@@ -3,6 +3,7 @@
 #include <numerical_methods.hpp>
 #include <cassert>
 #include <cmath>
+#include <iostream>
 
 real* Variable::getCurrent() {
   return getPlus(0);
@@ -30,7 +31,7 @@ const real* Variable::getPlus(int nSteps) const {
 
 real *Variable::getMode(int n) {
   // Exposes entire mode for the Thomas algorithm
-  return data + current*nN*nZ + n*nZ;
+  return getCurrent() + calcIndex(n, 0);
 }
 
 void Variable::advanceTimestep(int nSteps) {
@@ -50,14 +51,20 @@ bool Variable::anyNan() const {
 
 void Variable::writeToFile(std::ofstream& file) const {
   for(int i=0; i<totalSteps; ++i) {
-    file.write(reinterpret_cast<const char*>(getPlus(i)), sizeof(data[0])*varSize());
+    for(int n=0; n<nN; ++n) {
+      file.write(reinterpret_cast<const char*>(getPlus(i)+calcIndex(n,0)), sizeof(data[0])*nZ);
+    }
   }
 }
 
 void Variable::readFromFile(std::ifstream& file) {
   for(int i=0; i<totalSteps; ++i) {
-    file.read(reinterpret_cast<char*>(getPlus(i)), sizeof(data[0])*varSize());
+    for(int n=0; n<nN; ++n) {
+      file.read(reinterpret_cast<char*>(getPlus(i)+calcIndex(n,0)), sizeof(data[0])*nZ);
+    }
   }
+  topBoundary = (*this)(0,nZ-1);
+  bottomBoundary = (*this)(0,0);
 }
 
 void Variable::fill(real value) {
@@ -79,16 +86,34 @@ void Variable::initialiseData(real initialValue) {
   fill(initialValue);
 }
 
+void Variable::applyBoundaryConditions() {
+  if(boundaryConditions == BoundaryConditions::dirichlet) {
+    for(int n=0; n<nN; ++n) {
+      (*this)(n,0) = 0.0;
+      (*this)(n,nZ-1) = 0.0;
+    }
+    (*this)(0,nZ-1) = topBoundary;
+    (*this)(0,0) = bottomBoundary;
+  } else if(boundaryConditions == BoundaryConditions::periodic) {
+    for(int n=0; n<nN; ++n) {
+      (*this)(n,-1) = (*this)(n, nZ-1);
+      (*this)(n,nZ) = (*this)(n, 0);
+    }
+  }
+}
+
 Variable::Variable(const Constants &c_in, const int totalSteps_in):
   data(NULL),
   nN(c_in.nN),
   nZ(c_in.nZ),
   dz(c_in.dz),
+  boundaryConditions(c_in.verticalBoundaryConditions),
   oodz2(c_in.oodz2),
   oodz(c_in.oodz),
   totalSteps(totalSteps_in),
   current(0),
-  previous(1)
+  previous(1),
+  nG(c_in.nG)
 {}
 
 Variable::~Variable() {

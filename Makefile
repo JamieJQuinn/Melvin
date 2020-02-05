@@ -49,7 +49,7 @@ full-test:
 .PHONY: profile
 profile: CFLAGS += -pg
 profile: LDFLAGS += -pg
-profile: release
+profile: $(BUILD_DIR) $(BUILD_DIR)/$(EXECUTABLE)
 
 .PHONY: release
 release: CFLAGS += -DNDEBUG -O2 -fopenmp

@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
 save_folder="test/benchmark"
+nN=51
+nZ=101
 
 mkdir -p $save_folder
 rm -f $save_folder/*
@@ -12,8 +14,8 @@ cat << EOF > $save_folder/constants.json
   "aspectRatio":3,
   "icFile":"$save_folder/ICn1nZ101nN51",
   "initialDt":3e-06,
-  "nN":51,
-  "nZ":101,
+  "nN":$nN,
+  "nZ":$nZ,
   "saveFolder":"$save_folder/",
   "timeBetweenSaves":0.01,
   "isNonlinear":true,
@@ -23,11 +25,11 @@ cat << EOF > $save_folder/constants.json
 EOF
 
 constants_file=$save_folder/constants.json
-python3 tools/make_initial_conditions.py --output $save_folder/ICn1nZ101nN51 --n_modes 51 --n_gridpoints 101 --modes 1
+python3 tools/make_initial_conditions.py --output $save_folder/ICn1nZ101nN51 --n_modes $nN --n_gridpoints $nZ --modes 1
 
 echo "==================== Building program"
 #make clean
-make release
+make -j4 release
 
 echo "==================== Starting program"
 { /usr/bin/time build/exe --constants $constants_file ; } 2>&1 | tee $save_folder/log

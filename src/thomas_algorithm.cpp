@@ -6,16 +6,39 @@ ThomasAlgorithm::~ThomasAlgorithm() {
   delete[] wk1;
   delete[] wk2;
   delete[] sub;
+  if(sol2 != nullptr) {
+    delete [] sol2;
+  }
+  if(rhs2 != nullptr) {
+    delete [] rhs2;
+  }
 }
 
-ThomasAlgorithm::ThomasAlgorithm(const int nZ, const int nN, const int a, const real oodz2) :
-nZ {nZ},
-oodz2 {oodz2}
+ThomasAlgorithm::ThomasAlgorithm(const int nZ_in, const int nN_in, const int a_in, const real oodz2, bool isPeriodic_in) :
+  nZ {nZ_in},
+  nN {nN_in},
+  a {a_in},
+  isPeriodic {isPeriodic_in},
+  oodz2 {oodz2},
+  sol2 {nullptr},
+  rhs2 {nullptr}
 {
   wk1 = new real [nN*nZ];
   wk2 = new real [nN*nZ];
   sub = new real [nZ];
 
+  if(isPeriodic) {
+    sol2 = new real[nZ-1];
+    rhs2 = new real[nZ-1];
+    for(int k=0; k<nZ-1; ++k) {
+      rhs2[k] = 0.0;
+    }
+  }
+
+  precalculate();
+}
+
+void ThomasAlgorithm::precalculate() {
   // Precalculate tridiagonal arrays
   real * dia = new real [nZ];
   real * sup = new real [nZ];
@@ -26,8 +49,11 @@ oodz2 {oodz2}
     for(int k=0; k<nZ; ++k){
       dia[k] = pow(M_PI/a*n, 2) + 2*oodz2;
     }
-    dia[0] = dia[nZ-1] = 1.0;
-    sub[nZ-2] = sup[0] = 0.0;
+    if(not isPeriodic) {
+      // This encodes impermeable vertical boundary conditions
+      dia[0] = dia[nZ-1] = 1.0;
+      sub[nZ-2] = sup[0] = 0.0;
+    }
     formTriDiagonalArraysForN(
     sub, dia, sup,
     wk1+n*nZ, wk2+n*nZ);
@@ -61,7 +87,7 @@ void ThomasAlgorithm::formTriDiagonalArraysForN (
   wk1[nZ-1] = 1.0/(dia[nZ-1] - sub[nZ-2]*wk2[nZ-2]);
 }
 
-void ThomasAlgorithm::solve(real *sol, const real *rhs, const int n) const {
+void ThomasAlgorithm::solveSystem(real *sol, const real *rhs, const int matrixN, const int n) const {
   // Solves the tridiagonal system represented by sub, dia and sup.
   // If sub, dia and sup do not change, they can be rolled into wk1 and wk2
   // using formTridiArrays() and simply saved
@@ -69,20 +95,38 @@ void ThomasAlgorithm::solve(real *sol, const real *rhs, const int n) const {
   int iN = n*nZ;
 
   // Forward Subsitution
-  assert(!std::isnan(wk1[0+iN]));
-  assert(!std::isnan(rhs[0]));
   sol[0] = rhs[0]*wk1[0+iN];
-  for (int i=1; i<nZ; ++i) {
+  for (int i=1; i<matrixN; ++i) {
     sol[i] = (rhs[i] - sub[i-1]*sol[i-1])*wk1[i+iN];
-
-    assert(!std::isnan(rhs[i]));
-    assert(!std::isnan(sub[i-1]));
-    assert(!std::isnan(sol[i-1]));
-    assert(!std::isnan(wk1[i+iN]));
-    assert(!std::isnan(sol[i]));
   }
   // Backward Substitution
-  for (int i=nZ-2; i>=0; --i) {
+  for (int i=matrixN-2; i>=0; --i) {
     sol[i] -= wk2[i+iN]*sol[i+1];
+  }
+}
+
+void ThomasAlgorithm::solvePeriodicSystem(real *sol, const real *rhs, const int n) const {
+  solveSystem(sol, rhs, nZ-1, n);
+
+  real a, b, c;
+  a = c = -oodz2;
+  b = pow(M_PI/a*n, 2) + 2*oodz2;
+  rhs2[0] = -a;
+  rhs2[nZ-2] = -c;
+  solveSystem(sol2, rhs2, nZ-1, n);
+
+  real x_last = (rhs[nZ-1] - c*sol[0] - a*sol[nZ-2])/(b + a*sol2[nZ-2] + c*sol2[0]);
+
+  for(int k=0; k<nZ-1; ++k) {
+    sol[k] += x_last*sol2[k];
+  }
+  sol[nZ-1] = x_last;
+}
+
+void ThomasAlgorithm::solve(real *sol, const real *rhs, const int n) const {
+  if(isPeriodic) {
+    solvePeriodicSystem(sol, rhs, n);
+  } else {
+    solveSystem(sol, rhs, nZ, n);
   }
 }

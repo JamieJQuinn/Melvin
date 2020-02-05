@@ -100,12 +100,14 @@ def main():
     # Stored as temp|omg|psi contiguously
     data = np.zeros((n_vars, n_modes, n_gridpoints))
 
+    background = np.zeros(n_gridpoints)
+
     # Set up n=0 background
     if args.step_profile:
         # Step function
         background = np.zeros(n_gridpoints)
         background[int(n_gridpoints/2):] = 1 # Set upper half to 1
-    else:
+    elif not args.periodic:
         # Linear gradient
         background = np.linspace(0, 1, n_gridpoints)
 

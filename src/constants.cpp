@@ -18,6 +18,12 @@ void Constants::calculateDerivedConstants() {
   dx = real(aspectRatio)/(nX-1);
   oodz2 = pow(1.0/dz, 2);
   oodz = 1.0/dz;
+  nG = 1;
+  if(boundaryConditions_in == "dirichlet") {
+    verticalBoundaryConditions = BoundaryConditions::dirichlet;
+  } else if (boundaryConditions_in == "periodic") {
+    verticalBoundaryConditions = BoundaryConditions::periodic;
+  }
 }
 
 void Constants::print() const {
@@ -34,6 +40,14 @@ void Constants::print() const {
   std::cout << "is double diffusion? " << isDoubleDiffusion << std::endl;
   std::cout << "is CUDA enabled? " << isCudaEnabled << std::endl;
   std::cout << "icFile: " << icFile << std::endl;
+  std::cout << "boundary conditions: " << boundaryConditions_in << std::endl;
+
+  if(boundaryConditions_in == "periodic") {
+    std::cout << "temperature gradient: " << temperatureGradient << std::endl;
+    if(isDoubleDiffusion) {
+      std::cout << "salinity gradient: " << salinityGradient << std::endl;
+    }
+  }
 
   if(isCudaEnabled) {
     std::cout << "CUDA threads per x: " << threadsPerBlock_x << std::endl;
@@ -77,6 +91,12 @@ bool Constants::isValid() const {
     }
   }
 
+  if(boundaryConditions_in != "dirichlet"
+      and boundaryConditions_in != "periodic") {
+    std::cout << "Boundary conditions must either be \"dirichlet\" or \"periodic\"" << std::endl;
+    return -1;
+  }
+
   if(saveFolder == "" or icFile == "") {
     std::cout <<"Save folder and initial conditions file should be present.\n" << std::endl;
     return -1;
@@ -117,9 +137,22 @@ void Constants::readJson(const std::string &filePath) {
   }
   icFile = j["icFile"];
 
+  if (j.find("boundaryConditions") != j.end()) {
+    boundaryConditions_in = j["boundaryConditions"];
+  } else {
+    boundaryConditions_in = "dirichlet";
+  }
+
   if(isDoubleDiffusion) {
     RaXi = j["RaXi"];
     tau = j["tau"];
+  }
+
+  if(boundaryConditions_in == "periodic") {
+    temperatureGradient = j["temperatureGradient"];
+    if(isDoubleDiffusion) {
+      salinityGradient = j["salinityGradient"];
+    }
   }
 
   calculateDerivedConstants();
@@ -140,6 +173,13 @@ void Constants::writeJson(const std::string &filePath) const {
   j["isNonlinear"] = isNonlinear;
   j["isCudaEnabled"] = isCudaEnabled;
   j["icFile"] = icFile;
+  j["boundaryConditions"] = boundaryConditions_in;
+  if(boundaryConditions_in == "periodic") {
+    j["temperatureGradient"] = temperatureGradient;
+    if(isDoubleDiffusion) {
+      j["salinityGradient"] = salinityGradient;
+    }
+  }
   if(isCudaEnabled) {
     j["threadsPerBlock_x"] = threadsPerBlock_x;
     j["threadsPerBlock_y"] = threadsPerBlock_y;

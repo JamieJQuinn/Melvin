@@ -19,6 +19,7 @@ def main():
     parser.add_argument('--output',
                         help='Output file')
     parser.add_argument('--constants', help='constants file')
+    # parser.add_argument('--plot_vorticity', action="store_true")
     args = parser.parse_args()
 
     constants_file = open(args.constants, "r")
@@ -39,8 +40,10 @@ def main():
     data = np.fromfile(args.filename, dtype=np.dtype(np.float64))
     temp = np.transpose(data[:n_modes*n_z_gridpoints]\
                         .reshape(n_modes, n_z_gridpoints))
-    psi = np.transpose(data[2*n_modes*n_z_gridpoints:3*n_modes*n_z_gridpoints]\
-                       .reshape(n_modes, n_z_gridpoints))
+    # omg = np.transpose(data[1*n_modes*n_z_gridpoints:2*n_modes*n_z_gridpoints]\
+                       # .reshape(n_modes, n_z_gridpoints))
+    # psi = np.transpose(data[2*n_modes*n_z_gridpoints:3*n_modes*n_z_gridpoints]\
+                       # .reshape(n_modes, n_z_gridpoints))
     if is_ddc:
         varidx = 7
         xi = np.transpose(data[(varidx)*n_modes*n_z_gridpoints:(varidx+1)*n_modes*n_z_gridpoints]\
@@ -53,18 +56,22 @@ def main():
 
     # Convert from spectral space to real space
     temp_actual = np.zeros((n_z_gridpoints, n_x_gridpoints))
-    psi_actual = np.zeros((n_z_gridpoints, n_x_gridpoints))
+    # psi_actual = np.zeros((n_z_gridpoints, n_x_gridpoints))
     cosine = np.cos(np.pi/aspect_ratio*np.outer(np.arange(n_modes), x_axis))
-    sine = np.sin(np.pi/aspect_ratio*np.outer(np.arange(n_modes), x_axis))
-    np.dot(psi, sine, out=psi_actual)
+    # sine = np.sin(np.pi/aspect_ratio*np.outer(np.arange(n_modes), x_axis))
+    # np.dot(psi, sine, out=psi_actual)
     np.dot(temp, cosine, out=temp_actual)
+
+    # if args.plot_vorticity:
+        # omg_actual = np.zeros((n_z_gridpoints, n_x_gridpoints))
+        # np.dot(omg, cosine, out=omg_actual)
 
     if is_ddc:
         xi_actual = np.zeros((n_z_gridpoints, n_x_gridpoints))
         np.dot(xi, cosine, out=xi_actual)
 
     # Plot
-    plt.subplot(1, 3, 1)
+    plt.subplot(1, 2, 1)
     plt.gca().set_aspect(1.0)
     plt.yticks([0, 1])
     plt.xticks(range(0, int(aspect_ratio+1)))
@@ -73,22 +80,30 @@ def main():
     # plt.contour(x_grid, z_grid, temp_actual)
     #plt.savefig(sys.argv[1] +'tmp.png', bbox_inches='tight', pad_inches=0)
 
-    if np.any(psi_actual):
-        plt.subplot(1, 3, 2)
-        plt.gca().set_aspect(1.0)
-        plt.gca().get_yaxis().set_visible(False)
-        plt.xticks(range(0, int(aspect_ratio+1)))
-        plt.tick_params(axis='x', bottom=False, top=False)
-        plt.gcf().tight_layout()
-        plt.contour(x_grid, z_grid, psi_actual, 6, colors='k')
+    # if np.any(psi_actual):
+        # plt.subplot(1, 4, 3)
+        # plt.gca().set_aspect(1.0)
+        # plt.gca().get_yaxis().set_visible(False)
+        # plt.xticks(range(0, int(aspect_ratio+1)))
+        # plt.tick_params(axis='x', bottom=False, top=False)
+        # plt.gcf().tight_layout()
+        # plt.contour(x_grid, z_grid, psi_actual, 3, colors='k')
 
     if is_ddc:
-        plt.subplot(1, 3, 3)
+        plt.subplot(1, 2, 2)
         plt.gca().set_aspect(1.0)
         plt.yticks([0, 1])
         plt.xticks(range(0, int(aspect_ratio+1)))
         plt.tick_params(axis='x', bottom=False, top=False)
         plt.pcolormesh(x_grid, z_grid, xi_actual, cmap='Blues')
+
+    # if args.plot_vorticity:
+        # plt.subplot(1, 4, 2)
+        # plt.gca().set_aspect(1.0)
+        # plt.yticks([0, 1])
+        # plt.xticks(range(0, int(aspect_ratio+1)))
+        # plt.tick_params(axis='x', bottom=False, top=False)
+        # plt.pcolormesh(x_grid, z_grid, omg_actual, cmap='Reds')
 
     if args.output:
         plt.savefig(args.output, bbox_inches='tight', pad_inches=0, dpi=200)

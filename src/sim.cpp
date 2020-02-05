@@ -8,6 +8,7 @@
 #include <precision.hpp>
 #include <utility.hpp>
 #include <numerical_methods.hpp>
+#include <boundary_conditions.hpp>
 
 using namespace std;
 
@@ -18,7 +19,7 @@ Sim::Sim(const Constants &c_in)
 {
   dt = c.initialDt;
 
-  thomasAlgorithm = new ThomasAlgorithm(c.nZ, c.nN, c.aspectRatio, c.oodz2);
+  thomasAlgorithm = new ThomasAlgorithm(c.nZ, c.nN, c.aspectRatio, c.oodz2, c.verticalBoundaryConditions == BoundaryConditions::periodic);
 }
 
 Sim::~Sim() {
@@ -78,7 +79,7 @@ void Sim::computeLinearDerivatives() {
 
 void Sim::computeLinearTemperatureDerivative() {
   for(int n=0; n<c.nN; ++n) {
-    for(int k=1; k<c.nZ-1; ++k) {
+    for(int k=0; k<c.nZ; ++k) {
       vars.dTmpdt(n,k) = vars.tmp.dfdz2(n,k) - pow(n*M_PI/c.aspectRatio, 2)*vars.tmp(n,k);
     }
   }
@@ -86,7 +87,7 @@ void Sim::computeLinearTemperatureDerivative() {
 
 void Sim::computeLinearVorticityDerivative() {
   for(int n=0; n<c.nN; ++n) {
-    for(int k=1; k<c.nZ-1; ++k) {
+    for(int k=0; k<c.nZ; ++k) {
       vars.dOmgdt(n,k) =
         c.Pr*(vars.omg.dfdz2(n,k) - pow(n*M_PI/c.aspectRatio, 2)*vars.omg(n,k))
         + c.Pr*c.Ra*(n*M_PI/c.aspectRatio)*vars.tmp(n,k);
@@ -96,7 +97,7 @@ void Sim::computeLinearVorticityDerivative() {
 
 void Sim::computeLinearXiDerivative() {
   for(int n=0; n<c.nN; ++n) {
-    for(int k=1; k<c.nZ-1; ++k) {
+    for(int k=0; k<c.nZ; ++k) {
       vars.dXidt(n,k) = c.tau*(vars.xi.dfdz2(n,k) - pow(n*M_PI/c.aspectRatio, 2)*vars.xi(n,k));
       vars.dOmgdt(n,k) += -c.RaXi*c.tau*c.Pr*(n*M_PI/c.aspectRatio)*vars.xi(n,k);
     }
@@ -105,21 +106,21 @@ void Sim::computeLinearXiDerivative() {
 
 void Sim::addAdvectionApproximation() {
   // Only applies to the linear simulation
-  for(int k=1; k<c.nZ-1; ++k) {
+  for(int k=0; k<c.nZ; ++k) {
     vars.dOmgdt(0,k) = 0.0;
     vars.dTmpdt(0,k) = 0.0;
   }
   for(int n=1; n<c.nN; ++n) {
-    for(int k=1; k<c.nZ-1; ++k) {
+    for(int k=0; k<c.nZ; ++k) {
       vars.dTmpdt(n,k) += -1*vars.tmp.dfdz(0,k)*n*M_PI/c.aspectRatio * vars.psi(n,k);
     }
   }
   if(c.isDoubleDiffusion) {
-    for(int k=1; k<c.nZ-1; ++k) {
+    for(int k=0; k<c.nZ; ++k) {
       vars.dXidt(0,k) = 0.0;
     }
     for(int n=1; n<c.nN; ++n) {
-      for(int k=1; k<c.nZ-1; ++k) {
+      for(int k=0; k<c.nZ; ++k) {
         vars.dXidt(n,k) += -1*vars.xi.dfdz(0,k)*n*M_PI/c.aspectRatio * vars.psi(n,k);
       }
     }
@@ -136,7 +137,7 @@ void Sim::computeNonlinearDerivatives() {
 
 void Sim::computeNonlinearDerivativeN0(Variable &dVardt, const Variable &var) {
   for(int n=1; n<c.nN; ++n) {
-    for(int k=1; k<c.nZ-1; ++k) {
+    for(int k=0; k<c.nZ; ++k) {
       // Contribution TO var[n=0]
       dVardt(0,k) +=
         -M_PI/(2*c.aspectRatio)*n*(
@@ -147,7 +148,7 @@ void Sim::computeNonlinearDerivativeN0(Variable &dVardt, const Variable &var) {
   }
   #pragma omp parallel for schedule(dynamic)
   for(int n=1; n<c.nN; ++n) {
-    for(int k=1; k<c.nZ-1; ++k) {
+    for(int k=0; k<c.nZ; ++k) {
     // Contribution FROM var[n=0]
       dVardt(n,k) +=
         -n*M_PI/c.aspectRatio*vars.psi(n,k)*var.dfdz(0,k);
@@ -166,7 +167,7 @@ void Sim::computeNonlinearDerivative(Variable &dVardt, const Variable &var, cons
       o = n-m;
       assert(o>0 and o<c.nN);
       assert(m>0 and m<c.nN);
-      for(int k=1; k<c.nZ-1; ++k) {
+      for(int k=0; k<c.nZ; ++k) {
         dVardt(n,k) +=
           -M_PI/(2.0*c.aspectRatio)*(
           -m*vars.psi.dfdz(o,k)*var(m,k)
@@ -179,7 +180,7 @@ void Sim::computeNonlinearDerivative(Variable &dVardt, const Variable &var, cons
       o = m-n;
       assert(o>0 and o<c.nN);
       assert(m>0 and m<c.nN);
-      for(int k=1; k<c.nZ-1; ++k) {
+      for(int k=0; k<c.nZ; ++k) {
         dVardt(n,k) +=
           -M_PI/(2.0*c.aspectRatio)*(
           +m*vars.psi.dfdz(o,k)*var(m,k)
@@ -192,7 +193,7 @@ void Sim::computeNonlinearDerivative(Variable &dVardt, const Variable &var, cons
       o = n+m;
       assert(o>0 and o<c.nN);
       assert(m>0 and m<c.nN);
-      for(int k=1; k<c.nZ-1; ++k) {
+      for(int k=0; k<c.nZ; ++k) {
         dVardt(n,k) +=
           vorticityFactor*M_PI/(2.0*c.aspectRatio)*(
           +m*vars.psi.dfdz(o,k)*var(m,k)
@@ -221,9 +222,22 @@ void Sim::computeNonlinearVorticityDerivative() {
 void Sim::runNonLinearStep(real f) {
   computeLinearDerivatives();
   computeNonlinearDerivatives();
+  if(c.verticalBoundaryConditions == BoundaryConditions::periodic) {
+    for(int k=0; k<c.nZ; ++k) {
+      vars.dTmpdt(0,k) = vars.tmp.topBoundary - vars.tmp.bottomBoundary;
+    }
+    if(c.isDoubleDiffusion) {
+      for(int k=0; k<c.nZ; ++k) {
+        vars.dXidt(0,k) = vars.xi.topBoundary - vars.xi.bottomBoundary;
+      }
+    }
+  }
   vars.updateVars(dt, f);
+  vars.tmp.applyBoundaryConditions();
+  vars.omg.applyBoundaryConditions();
   vars.advanceDerivatives();
   solveForPsi();
+  vars.psi.applyBoundaryConditions();
 }
 
 void Sim::runNonLinear() {
@@ -249,6 +263,7 @@ void Sim::runNonLinear() {
       cout << "Checking CFL" << endl;
       CFLCheckTime += 1e4*dt;
       f = checkCFL(vars.psi, c.dz, c.dx, dt, c.aspectRatio, c.nN, c.nX, c.nZ);
+      dt *= f;
     }
     if(saveTime-t < EPSILON) {
       cout << t << " of " << c.totalTime << "(" << t/c.totalTime*100 << "%)" << endl;
@@ -268,6 +283,9 @@ void Sim::runLinearStep() {
   computeLinearDerivatives();
   addAdvectionApproximation();
   vars.updateVars(dt);
+  vars.tmp.applyBoundaryConditions();
+  vars.omg.applyBoundaryConditions();
   vars.advanceDerivatives();
   solveForPsi();
+  vars.psi.applyBoundaryConditions();
 }

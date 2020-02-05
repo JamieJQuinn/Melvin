@@ -2,11 +2,13 @@
 
 #include <string>
 #include <precision.hpp>
+#include <boundary_conditions.hpp>
 
 class Constants {
   public:
     int nZ;
     int nN;
+    int nG;
     real initialDt;
     real Ra;
     real RaXi;
@@ -18,6 +20,11 @@ class Constants {
     bool isNonlinear;
     bool isDoubleDiffusion;
     bool isCudaEnabled;
+
+    // Boundary conditions
+    BoundaryConditions verticalBoundaryConditions;
+    real temperatureGradient;
+    real salinityGradient;
 
     // cuda stuff
     int threadsPerBlock_x;
@@ -45,4 +52,7 @@ class Constants {
 
     void readJson(const std::string &filePath);
     void writeJson(const std::string &filePath) const;
+
+  private:
+    std::string boundaryConditions_in;
 };
