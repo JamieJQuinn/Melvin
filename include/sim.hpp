@@ -27,6 +27,7 @@ class Sim {
 
     // Variable arrays
     Variables<Variable> vars;
+    Variable nonlinearTerm;
 
     ThomasAlgorithm *thomasAlgorithm;
 
@@ -46,9 +47,8 @@ class Sim {
     void addAdvectionApproximation();
 
     void computeNonlinearDerivatives();
-    void computeNonlinearDerivativeN0(Variable &dVardt, const Variable &var);
-    void computeNonlinearDerivative(Variable &dVardt, const Variable &var);
-    void computeNonlinearDerivative(Variable &dVardt, const Variable &var, const int vorticityFactor);
+    void applyPhysicalBoundaryConditions();
+    void computeNonlinearDerivative(Variable &dVardt, const Variable &var, const bool useSinTransform);
     void computeNonlinearTemperatureDerivative();
     void computeNonlinearXiDerivative();
     void computeNonlinearVorticityDerivative();
@@ -56,6 +56,9 @@ class Sim {
     // Simulation functions
     void solveForPsi();
     void applyBoundaryConditions();
+    void applyTemperatureBoundaryConditions();
+    void applyVorticityBoundaryConditions();
+    void applyPsiBoundaryConditions();
 
     void runNonLinear();
     void runNonLinearStep(real f=1.0);

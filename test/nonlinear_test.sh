@@ -17,7 +17,7 @@ cat << EOF > $save_folder/constants.json
   "nN":$nN,
   "nZ":$nZ,
   "saveFolder":"$save_folder/",
-  "timeBetweenSaves":0.01,
+  "timeBetweenSaves":0.001,
   "isNonlinear":true,
   "isDoubleDiffusion":false,
   "totalTime":0.05

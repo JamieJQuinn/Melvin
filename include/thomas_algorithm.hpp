@@ -1,6 +1,7 @@
 #pragma once
 
 #include <precision.hpp>
+#include <variable.hpp>
 
 class ThomasAlgorithm {
   private:
@@ -9,7 +10,8 @@ class ThomasAlgorithm {
     void precalculate();
 
     void solveSystem(real *sol, const real *rhs, const int matrixN, const int n) const;
-    void solvePeriodicSystem(real *sol, const real *rhs, const int n) const;
+    void solveSystem(Variable& sol, const Variable& rhs, const int matrixN, const int n) const;
+    void solvePeriodicSystem(Variable& sol, const Variable& rhs, const int n) const;
 
     int nZ;
     const int nN;
@@ -25,7 +27,7 @@ class ThomasAlgorithm {
     real *wk2;
     real *sub;
 
-    void solve(real *sol, const real *rhs, const int n) const;
+    void solve(Variable& sol, const Variable& rhs, const int n) const;
     ThomasAlgorithm(const int nZ, const int nN, const int a, const real oodz2, bool isPeriodic);
     ~ThomasAlgorithm();
 };

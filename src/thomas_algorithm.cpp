@@ -105,7 +105,25 @@ void ThomasAlgorithm::solveSystem(real *sol, const real *rhs, const int matrixN,
   }
 }
 
-void ThomasAlgorithm::solvePeriodicSystem(real *sol, const real *rhs, const int n) const {
+void ThomasAlgorithm::solveSystem(Variable& sol, const Variable& rhs, const int matrixN, const int n) const {
+  // Solves the tridiagonal system represented by sub, dia and sup.
+  // If sub, dia and sup do not change, they can be rolled into wk1 and wk2
+  // using formTridiArrays() and simply saved
+
+  int iN = n*nZ;
+
+  // Forward Subsitution
+  sol(n,0) = rhs(n,0)*wk1[0+iN];
+  for (int i=1; i<matrixN; ++i) {
+    sol(n,i) = (rhs(n,i) - sub[i-1]*sol(n,i-1))*wk1[i+iN];
+  }
+  // Backward Substitution
+  for (int i=matrixN-2; i>=0; --i) {
+    sol(n,i) -= wk2[i+iN]*sol(n,i+1);
+  }
+}
+
+void ThomasAlgorithm::solvePeriodicSystem(Variable& sol, const Variable& rhs, const int n) const {
   solveSystem(sol, rhs, nZ-1, n);
 
   real a, b, c;
@@ -115,15 +133,15 @@ void ThomasAlgorithm::solvePeriodicSystem(real *sol, const real *rhs, const int 
   rhs2[nZ-2] = -c;
   solveSystem(sol2, rhs2, nZ-1, n);
 
-  real x_last = (rhs[nZ-1] - c*sol[0] - a*sol[nZ-2])/(b + a*sol2[nZ-2] + c*sol2[0]);
+  real x_last = (rhs(n,nZ-1) - c*sol(n,0) - a*sol(n,nZ-2))/(b + a*sol2[nZ-2] + c*sol2[0]);
 
   for(int k=0; k<nZ-1; ++k) {
-    sol[k] += x_last*sol2[k];
+    sol(n,k) += x_last*sol2[k];
   }
-  sol[nZ-1] = x_last;
+  sol(n,nZ-1) = x_last;
 }
 
-void ThomasAlgorithm::solve(real *sol, const real *rhs, const int n) const {
+void ThomasAlgorithm::solve(Variable& sol, const Variable& rhs, const int n) const {
   if(isPeriodic) {
     solvePeriodicSystem(sol, rhs, n);
   } else {

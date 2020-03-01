@@ -48,17 +48,17 @@ full-test:
 
 .PHONY: profile
 profile: CFLAGS += -pg
-profile: LDFLAGS += -pg
+profile: LDFLAGS += -pg -lfftw3 -lm
 profile: $(BUILD_DIR) $(BUILD_DIR)/$(EXECUTABLE)
 
 .PHONY: release
 release: CFLAGS += -DNDEBUG -O2 -fopenmp
-release: LDFLAGS += -fopenmp
+release: LDFLAGS += -fopenmp -lfftw3 -lm
 release: $(BUILD_DIR) $(BUILD_DIR)/$(EXECUTABLE)
 
 .PHONY: debug
 debug: CFLAGS += -DDEBUG -g -pg -Wall
-debug: LDFLAGS += -pg
+debug: LDFLAGS += -pg -lfftw3 -lm
 debug: $(BUILD_DIR) $(BUILD_DIR)/$(EXECUTABLE)
 
 .PHONY: gpu
@@ -79,8 +79,10 @@ gpu-test: $(BUILD_DIR) $(BUILD_DIR)/$(GPU_TEST_EXECUTABLE)
 
 .PHONY: test
 test: CFLAGS += -DNDEBUG -O2 -fopenmp -pg
-test: LDFLAGS += -fopenmp -pg
+test: LDFLAGS += -fopenmp -pg -lfftw3 -lm
 test: all $(BUILD_DIR)/$(TEST_EXECUTABLE)
+	python3 tools/make_initial_conditions.py --output $(BUILD_DIR)/ICn1nZ128nN64 --n_modes 64 --n_gridpoints 128 --modes 1
+	cd $(BUILD_DIR); ../test/print_test_constants.sh
 	cd $(BUILD_DIR); ./$(TEST_EXECUTABLE)
 
 $(BUILD_DIR)/%.o: $(TEST_DIR)/%.cpp
