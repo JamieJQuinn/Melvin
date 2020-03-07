@@ -3,8 +3,19 @@
 #include <cmath>
 
 KineticEnergyTracker::KineticEnergyTracker(const Constants &c_in):
-  c(c_in)
+  c(c_in),
+  keDens(c_in)
 {}
+
+void KineticEnergyTracker::calcKineticEnergyDensity(const Variable &psi) {
+  // TODO Change this to get it from c
+  int nX = c.nN*3 + 1;
+  for(int k=0; k<c.nZ; ++k) {
+    for(int i=0; i<nX; ++i) {
+      keDens.spatial(i,k) = pow(psi.dfdzSpatial(i,k), 2) + pow(psi.dfdx(i,k), 2);
+    }
+  }
+}
 
 real KineticEnergyTracker::calcKineticEnergyForMode(const Variable &psi, int n) {
   real z0 = 0.0; // limits of integration
@@ -19,12 +30,49 @@ real KineticEnergyTracker::calcKineticEnergyForMode(const Variable &psi, int n) 
   return ke;
 }
 
-void KineticEnergyTracker::calcKineticEnergy(const Variable &psi) {
+real KineticEnergyTracker::calcKineticEnergySpectral(const Variable& psi) {
   // Uses trapezeoid rule to calc kinetic energy for each mode
   real ke = 0.0;
   for(int n=0; n<c.nN; ++n) {
     ke += calcKineticEnergyForMode(psi, n);
   }
+
+  return ke;
+}
+
+real KineticEnergyTracker::calcKineticEnergyPhysical(Variable& psi) {
+  // TODO Change this to get it from c
+  int nX = c.nN*3 + 1;
+  int nZ = c.nZ;
+  real ke = 0.0;
+
+  psi.toPhysical(true);
+  calcKineticEnergyDensity(psi);
+
+  ke += keDens.spatial(0,0);
+  ke += keDens.spatial(0,nZ-1);
+  ke += keDens.spatial(nX-1,0);
+  ke += keDens.spatial(nX-1,nZ-1);
+
+  for(int k=1; k<nZ-1; ++k) {
+    ke += 2.0*(keDens.spatial(0,k) + keDens.spatial(nX-1,k));
+  }
+
+  for(int i=1; i<nX-1; ++i) {
+    ke += 2.0*(keDens.spatial(i,0) + keDens.spatial(i,nZ-1));
+  }
+
+  for(int k=1; k<nZ-1; ++k) {
+    for(int i=1; i<nX-1; ++i) {
+      ke += 4.0*keDens.spatial(i,k);
+    }
+  }
+
+  return ke;
+}
+
+void KineticEnergyTracker::calcKineticEnergy(const Variable &psi) {
+  real ke = calcKineticEnergySpectral(psi);
 
   kineticEnergies.push_back(ke);
 }
