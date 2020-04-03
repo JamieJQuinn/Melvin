@@ -4,7 +4,8 @@
 #include <cmath>
 #include <iostream>
 
-using namespace std;
+using std::cout;
+using std::endl;
 
 CriticalRayleighChecker::CriticalRayleighChecker(const Constants &c_in):
   c(c_in)

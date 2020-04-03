@@ -18,6 +18,9 @@ def xi_gradient(is_stable):
 def set_temp(data, mode, values):
     data[0, mode, :] = values
 
+def set_vorticity(data, mode, values):
+    data[1, mode, :] = values
+
 def set_xi(data, mode, values):
     data[7, mode, :] = values
 
@@ -54,6 +57,8 @@ def main():
                         help='uses step function instead of linear background')
     parser.add_argument('--amp', type=float,
                         help='amplitude of initial disturbance')
+    parser.add_argument('--perturb_vorticity', action='store_true',
+                        help='Adds perturbation to 0th mode of vorticity')
 
     args = parser.parse_args()
 
@@ -98,7 +103,7 @@ def main():
             amp = 0.01
 
     # Stored as temp|omg|psi contiguously
-    data = np.zeros((n_vars, n_modes, n_gridpoints))
+    data = np.zeros((n_vars, n_modes, n_gridpoints), dtype=np.cdouble)
 
     background = np.zeros(n_gridpoints)
 
@@ -121,6 +126,9 @@ def main():
         perturbation[int(n_gridpoints/2)] = amp
     else:
         perturbation = amp*np.sin(np.pi*np.linspace(0, 1, n_gridpoints))
+
+    if args.perturb_vorticity:
+        set_vorticity(data, 0, perturbation)
 
     for mode in modes:
         if not args.salt_fingering:

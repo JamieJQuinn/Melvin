@@ -10,19 +10,19 @@
 #include <numerical_methods.hpp>
 #include <boundary_conditions.hpp>
 
-using namespace std;
+using std::cout;
+using std::endl;
 
 Sim::Sim(const Constants &c_in)
   : c(c_in)
   , vars(c_in)
-  , nonlinearTerm(c_in)
+  , nonlinearSineTerm(c_in, 1, true)
+  , nonlinearCosineTerm(c_in, 1, false)
   , keTracker(c_in)
 {
   dt = c.initialDt;
 
-  nonlinearTerm.initialiseData();
-
-  thomasAlgorithm = new ThomasAlgorithm(c.nZ, c.nN, c.aspectRatio, c.oodz2, c.verticalBoundaryConditions == BoundaryConditions::periodic);
+  thomasAlgorithm = new ThomasAlgorithm(c);
 }
 
 Sim::~Sim() {
@@ -40,7 +40,7 @@ void Sim::solveForPsi(){
 void Sim::printBenchmarkData() const {
   cout << t << " of " << c.totalTime << "(" << t/c.totalTime*100 << ")" << endl;
   for(int n=0; n<21; ++n) {
-    printf("%d | %e | %e | %e\n", n, vars.tmp(n,32), vars.omg(n,32), vars.psi(n,32));
+    printf("%d | %e | %e | %e\n", n, vars.tmp.magnitude(n,32), vars.omg.magnitude(n,32), vars.psi.magnitude(n,32));
   }
 }
 
@@ -56,7 +56,7 @@ void Sim::computeLinearDerivatives() {
 void Sim::computeLinearTemperatureDerivative() {
   for(int k=0; k<c.nZ; ++k) {
     for(int n=0; n<c.nN; ++n) {
-      vars.dTmpdt(n,k) = vars.tmp.dfdz2(n,k) - pow(n*M_PI/c.aspectRatio, 2)*vars.tmp(n,k);
+      vars.dTmpdt(n,k) = vars.tmp.laplacian(n,k);
     }
   }
 }
@@ -64,9 +64,7 @@ void Sim::computeLinearTemperatureDerivative() {
 void Sim::computeLinearVorticityDerivative() {
   for(int k=0; k<c.nZ; ++k) {
     for(int n=0; n<c.nN; ++n) {
-      vars.dOmgdt(n,k) =
-        c.Pr*(vars.omg.dfdz2(n,k) - pow(n*M_PI/c.aspectRatio, 2)*vars.omg(n,k))
-        + c.Pr*c.Ra*(n*M_PI/c.aspectRatio)*vars.tmp(n,k);
+      vars.dOmgdt(n,k) = c.Pr*vars.omg.laplacian(n,k) - c.Pr*c.Ra*vars.tmp.dfdxSpectral(n,k);
     }
   }
 }
@@ -74,8 +72,8 @@ void Sim::computeLinearVorticityDerivative() {
 void Sim::computeLinearXiDerivative() {
   for(int k=0; k<c.nZ; ++k) {
     for(int n=0; n<c.nN; ++n) {
-      vars.dXidt(n,k) = c.tau*(vars.xi.dfdz2(n,k) - pow(n*M_PI/c.aspectRatio, 2)*vars.xi(n,k));
-      vars.dOmgdt(n,k) += -c.RaXi*c.tau*c.Pr*(n*M_PI/c.aspectRatio)*vars.xi(n,k);
+      vars.dXidt(n,k) = c.tau*vars.xi.laplacian(n,k);
+      vars.dOmgdt(n,k) += c.RaXi*c.tau*c.Pr*vars.xi.dfdxSpectral(n,k);
     }
   }
 }
@@ -88,7 +86,7 @@ void Sim::addAdvectionApproximation() {
   }
   for(int k=0; k<c.nZ; ++k) {
     for(int n=1; n<c.nN; ++n) {
-      vars.dTmpdt(n,k) += -1*vars.tmp.dfdz(0,k)*n*M_PI/c.aspectRatio * vars.psi(n,k);
+      vars.dTmpdt(n,k) += -vars.tmp.dfdz(0,k)*vars.psi.dfdxSpectral(n,k);
     }
   }
   if(c.isDoubleDiffusion) {
@@ -97,36 +95,48 @@ void Sim::addAdvectionApproximation() {
     }
     for(int k=0; k<c.nZ; ++k) {
       for(int n=1; n<c.nN; ++n) {
-        vars.dXidt(n,k) += -1*vars.xi.dfdz(0,k)*n*M_PI/c.aspectRatio * vars.psi(n,k);
+        vars.dXidt(n,k) += -vars.xi.dfdz(0,k)*vars.psi.dfdxSpectral(n,k);
       }
     }
   }
 }
 
 void Sim::applyPhysicalBoundaryConditions() {
-  real nX = vars.tmp.nX;
-  #pragma omp parallel for schedule(dynamic)
-  for(int k=0; k<c.nZ; ++k) {
-    // Non-conducting
-    vars.tmp.spatial(-1,k) = vars.tmp.spatial(1, k);
-    vars.tmp.spatial(nX,k) = vars.tmp.spatial(nX-2, k);
+  real nX = c.nX;
+  if(c.horizontalBoundaryConditions == BoundaryConditions::impermeable) {
+    for(int k=0; k<c.nZ; ++k) {
+      // Non-conducting
+      vars.tmp.spatial(-1,k) = vars.tmp.spatial(1, k);
+      vars.tmp.spatial(nX,k) = vars.tmp.spatial(nX-2, k);
 
-    // Impermeable
-    vars.psi.spatial(0,k) = 0.0;
-    vars.psi.spatial(nX-1,k) = 0.0;
+      // Impermeable
+      vars.psi.spatial(0,k) = 0.0;
+      vars.psi.spatial(nX-1,k) = 0.0;
 
-    // Stress free
-    vars.psi.spatial(-1,k) = 2.0*vars.psi.spatial(0,k) - vars.psi.spatial(1,k);
-    vars.psi.spatial(nX,k) = 2.0*vars.psi.spatial(nX-1,k) - vars.psi.spatial(nX-2,k);
-    vars.omg.spatial(0,k) = 0.0;
-    vars.omg.spatial(nX-1,k) = 0.0;
+      // Stress free
+      vars.psi.spatial(-1,k) = 2.0*vars.psi.spatial(0,k) - vars.psi.spatial(1,k);
+      vars.psi.spatial(nX,k) = 2.0*vars.psi.spatial(nX-1,k) - vars.psi.spatial(nX-2,k);
+      vars.omg.spatial(0,k) = 0.0;
+      vars.omg.spatial(nX-1,k) = 0.0;
+    }
+  } else if(c.horizontalBoundaryConditions == BoundaryConditions::periodic) {
+    for(int k=0; k<c.nZ; ++k) {
+      vars.tmp.spatial(-1,k) = vars.tmp.spatial(nX-1, k);
+      vars.tmp.spatial(nX,k) = vars.tmp.spatial(0, k);
+
+      vars.omg.spatial(-1,k) = vars.omg.spatial(nX-1, k);
+      vars.omg.spatial(nX,k) = vars.omg.spatial(0, k);
+
+      vars.psi.spatial(-1,k) = vars.psi.spatial(nX-1, k);
+      vars.psi.spatial(nX,k) = vars.psi.spatial(0, k);
+    }
   }
 }
 
 void Sim::computeNonlinearDerivatives() {
-  vars.tmp.toPhysical(false);
-  vars.omg.toPhysical(true);
-  vars.psi.toPhysical(true);
+  vars.tmp.toPhysical();
+  vars.omg.toPhysical();
+  vars.psi.toPhysical();
   applyPhysicalBoundaryConditions();
   computeNonlinearTemperatureDerivative();
   computeNonlinearVorticityDerivative();
@@ -135,74 +145,110 @@ void Sim::computeNonlinearDerivatives() {
   }
 }
 
-void Sim::computeNonlinearDerivative(Variable &dVardt, const Variable &var, const bool useSinTransform) {
+void Sim::computeNonlinearDerivative(Variable &dVardt, const Variable &var) {
+  Variable *nonlinearTerm;
+  if(var.useSinTransform) {
+    nonlinearTerm = &nonlinearSineTerm;
+  } else {
+    nonlinearTerm = &nonlinearCosineTerm;
+  }
+
   #pragma omp parallel for schedule(dynamic)
   for(int k=0; k<c.nZ; ++k) {
     for(int ix=0; ix<var.nX; ++ix) {
-      nonlinearTerm.spatialData[nonlinearTerm.calcIndex(ix,k)] = 
-        vars.psi.dfdzSpatial(ix, k)*var.dfdx(ix, k) -
-        vars.psi.dfdx(ix, k)*var.dfdzSpatial(ix, k);
+      nonlinearTerm->spatial(ix,k) = 
+        -(
+            (var.spatial(ix+1,k)*(-vars.psi.dfdzSpatial(ix+1,k)) - var.spatial(ix-1,k)*(-vars.psi.dfdzSpatial(ix-1,k)))*c.oodx*0.5 +
+            (var.spatial(ix,k+1)*vars.psi.dfdx(ix,k+1) - var.spatial(ix,k-1)*vars.psi.dfdx(ix,k-1))*c.oodz*0.5
+         );
+
     }
   }
 
-  nonlinearTerm.toSpectral(useSinTransform);
+  nonlinearTerm->toSpectral();
 
   for(int k=0; k<c.nZ; ++k) {
     for(int n=0; n<c.nN; ++n) {
-      dVardt(n,k) += nonlinearTerm(n,k);
+      dVardt(n,k) += (*nonlinearTerm)(n,k);
     }
   }
 }
 
 void Sim::computeNonlinearTemperatureDerivative() {
-  computeNonlinearDerivative(vars.dTmpdt, vars.tmp, false);
+  computeNonlinearDerivative(vars.dTmpdt, vars.tmp);
+  if(c.verticalBoundaryConditions == BoundaryConditions::periodic) {
+    for(int k=0; k<c.nZ; ++k) {
+      vars.dTmpdt(0,k) = vars.tmp.topBoundary - vars.tmp.bottomBoundary;
+    }
+  }
 }
 
 void Sim::computeNonlinearVorticityDerivative() {
-  computeNonlinearDerivative(vars.dOmgdt, vars.omg, true);
+  computeNonlinearDerivative(vars.dOmgdt, vars.omg);
 }
 
 void Sim::computeNonlinearXiDerivative() {
-  computeNonlinearDerivative(vars.dXidt, vars.xi, false);
+  computeNonlinearDerivative(vars.dXidt, vars.xi);
+  if(c.verticalBoundaryConditions == BoundaryConditions::periodic) {
+    for(int k=0; k<c.nZ; ++k) {
+      vars.dXidt(0,k) = vars.xi.topBoundary - vars.xi.bottomBoundary;
+    }
+  }
 }
 
 void Sim::applyTemperatureBoundaryConditions() {
-  vars.tmp.applyBoundaryConditions();
+  if(c.verticalBoundaryConditions == BoundaryConditions::dirichlet) {
+    vars.tmp(0,0) = vars.tmp.bottomBoundary;
+    vars.tmp(0,c.nZ-1) = vars.tmp.topBoundary;
+    for(int n=1; n<c.nN; ++n) {
+      vars.tmp(n,0) = 0.0;
+      vars.tmp(n,c.nZ-1) = 0.0;
+    }
+  } else if(c.verticalBoundaryConditions == BoundaryConditions::periodic) {
+    for(int n=0; n<c.nN; ++n) {
+      vars.tmp(n,-1) = vars.tmp(n,c.nZ-1);
+      vars.tmp(n,c.nZ) = vars.tmp(n,0);
+    }
+  }
 }
 
 void Sim::applyVorticityBoundaryConditions() {
-  for(int k=0; k<c.nZ; ++k) {
-    vars.omg(0,k) = 0.0;
-  }
-  for(int n=0; n<c.nN; ++n) {
-    vars.omg(n,0) = 0.0;
-    vars.omg(n,c.nZ-1) = 0.0;
+  if(c.verticalBoundaryConditions == BoundaryConditions::dirichlet) {
+    for(int n=0; n<c.nN; ++n) {
+      // Results from stress-free
+      vars.omg(n,0) = 0.0;
+      vars.omg(n,c.nZ-1) = 0.0;
+    }
+  } else if(c.verticalBoundaryConditions == BoundaryConditions::periodic) {
+    for(int n=0; n<c.nN; ++n) {
+      vars.omg(n,-1) = vars.omg(n,c.nZ-1);
+      vars.omg(n,c.nZ) = vars.omg(n,0);
+    }
   }
 }
 
 void Sim::applyPsiBoundaryConditions() {
-  for(int k=0; k<c.nZ; ++k) {
-    vars.psi(0,k) = 0.0;
-  }
-  for(int n=0; n<c.nN; ++n) {
-    vars.psi(n,0) = 0.0;
-    vars.psi(n,c.nZ-1) = 0.0;
+  if(c.verticalBoundaryConditions == BoundaryConditions::dirichlet) {
+    for(int n=0; n<c.nN; ++n) {
+      // v_z = 0 (impermeable)
+      vars.psi(n,0) = 0.0;
+      vars.psi(n,c.nZ-1) = 0.0;
+
+      // d(v_x)/dz = 0 (stress-free)
+      vars.psi(n,-1) = 2.0*vars.psi(n,0) - vars.psi(n,1);
+      vars.psi(n,c.nZ) = 2.0*vars.psi(n,c.nZ-1) - vars.psi(n,c.nZ-2);
+    }
+  } else if(c.verticalBoundaryConditions == BoundaryConditions::periodic) {
+    for(int n=0; n<c.nN; ++n) {
+      vars.psi(n,-1) = vars.psi(n,c.nZ-1);
+      vars.psi(n,c.nZ) = vars.psi(n,0);
+    }
   }
 }
 
 void Sim::runNonLinearStep(real f) {
   computeLinearDerivatives();
   computeNonlinearDerivatives();
-  if(c.verticalBoundaryConditions == BoundaryConditions::periodic) {
-    for(int k=0; k<c.nZ; ++k) {
-      vars.dTmpdt(0,k) = vars.tmp.topBoundary - vars.tmp.bottomBoundary;
-    }
-    if(c.isDoubleDiffusion) {
-      for(int k=0; k<c.nZ; ++k) {
-        vars.dXidt(0,k) = vars.xi.topBoundary - vars.xi.bottomBoundary;
-      }
-    }
-  }
   vars.updateVars(dt, f);
   applyTemperatureBoundaryConditions();
   applyVorticityBoundaryConditions();
@@ -235,8 +281,8 @@ void Sim::runNonLinear() {
       KEsaveTime += 1e4*dt;
     }
     if(CFLCheckTime-t < EPSILON) {
-      cout << "Checking CFL" << endl;
-      CFLCheckTime += 1e4*dt;
+      //cout << "Checking CFL" << endl;
+      CFLCheckTime += 1e1*dt;
       f = checkCFL(vars.psi, c.dz, c.dx, dt, c.aspectRatio, c.nN, c.nX, c.nZ);
       dt *= f;
     }
@@ -258,9 +304,6 @@ void Sim::runLinearStep() {
   computeLinearDerivatives();
   addAdvectionApproximation();
   vars.updateVars(dt);
-  vars.tmp.applyBoundaryConditions();
-  vars.omg.applyBoundaryConditions();
   vars.advanceDerivatives();
   solveForPsi();
-  vars.psi.applyBoundaryConditions();
 }

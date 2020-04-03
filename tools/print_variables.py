@@ -23,7 +23,7 @@ def main():
     n_modes = constants["nN"]
     n_gridpoints = constants["nZ"]
 
-    data = np.fromfile(args.filenames[0], dtype=np.dtype(np.double))
+    data = np.fromfile(args.filenames[0], dtype=np.dtype(np.cdouble))
     temp = np.transpose(data[:n_modes*n_gridpoints]\
                         .reshape(n_modes, n_gridpoints))
     omega = np.transpose(data[n_modes*n_gridpoints:2*n_modes*n_gridpoints]\

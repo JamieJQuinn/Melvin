@@ -8,6 +8,7 @@ class Constants {
   public:
     int nZ;
     int nN;
+    int nX;
     int nG;
     real initialDt;
     real Ra;
@@ -21,8 +22,11 @@ class Constants {
     bool isDoubleDiffusion;
     bool isCudaEnabled;
 
+    bool isPhysicalResSpecfified;
+
     // Boundary conditions
     BoundaryConditions verticalBoundaryConditions;
+    BoundaryConditions horizontalBoundaryConditions;
     real temperatureGradient;
     real salinityGradient;
 
@@ -33,9 +37,10 @@ class Constants {
     // Derived ants
     real dz;
     real dx;
-    int nX;
     real oodz2;
     real oodz;
+    real oodx;
+    mode wavelength;
 
     // I/O files
     std::string saveFolder;
@@ -54,5 +59,6 @@ class Constants {
     void writeJson(const std::string &filePath) const;
 
   private:
-    std::string boundaryConditions_in;
+    std::string verticalBoundaryConditions_in;
+    std::string horizontalBoundaryConditions_in;
 };

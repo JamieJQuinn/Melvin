@@ -29,9 +29,9 @@ bool CriticalRayleighChecker::isCritical(const real testRa, const int nCrit) {
   sim.vars.load(c.icFile);
 
   // Stuff for critical rayleigh check
-  real tmpPrev = sim.vars.tmp(nCrit, 32);
-  real psiPrev = sim.vars.psi(nCrit, 32);
-  real omgPrev = sim.vars.omg(nCrit, 32);
+  real tmpPrev = sim.vars.tmp.magnitude(nCrit, 32);
+  real psiPrev = sim.vars.psi.magnitude(nCrit, 32);
+  real omgPrev = sim.vars.omg.magnitude(nCrit, 32);
 
   real logTmpPrev = 0.0, logOmgPrev = 0.0, logPsiPrev = 0.0;
 
@@ -40,9 +40,9 @@ bool CriticalRayleighChecker::isCritical(const real testRa, const int nCrit) {
   real t=0.0;
   while (t<c.totalTime) {
     if(steps%500 == 0) {
-      real logTmp = std::log(std::abs(sim.vars.tmp(nCrit,32))) - std::log(std::abs(tmpPrev));
-      real logOmg = std::log(std::abs(sim.vars.omg(nCrit,32))) - std::log(std::abs(omgPrev));
-      real logPsi = std::log(std::abs(sim.vars.psi(nCrit,32))) - std::log(std::abs(psiPrev));
+      real logTmp = std::log(std::abs(sim.vars.tmp.magnitude(nCrit,32))) - std::log(std::abs(tmpPrev));
+      real logOmg = std::log(std::abs(sim.vars.omg.magnitude(nCrit,32))) - std::log(std::abs(omgPrev));
+      real logPsi = std::log(std::abs(sim.vars.psi.magnitude(nCrit,32))) - std::log(std::abs(psiPrev));
       if(std::abs(logTmp - logTmpPrev)<tolerance and
          std::abs(logOmg - logOmgPrev)<tolerance and
          std::abs(logPsi - logPsiPrev)<tolerance) {
@@ -51,9 +51,9 @@ bool CriticalRayleighChecker::isCritical(const real testRa, const int nCrit) {
       logTmpPrev = logTmp;
       logOmgPrev = logOmg;
       logPsiPrev = logPsi;
-      tmpPrev = sim.vars.tmp(nCrit, 32);
-      psiPrev = sim.vars.psi(nCrit, 32);
-      omgPrev = sim.vars.omg(nCrit, 32);
+      tmpPrev = sim.vars.tmp.magnitude(nCrit, 32);
+      psiPrev = sim.vars.psi.magnitude(nCrit, 32);
+      omgPrev = sim.vars.omg.magnitude(nCrit, 32);
     }
     if(steps%1000 == 0) {
       sim.keTracker.calcKineticEnergy(sim.vars.psi);

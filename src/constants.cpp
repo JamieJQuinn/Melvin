@@ -4,32 +4,50 @@
 #include <fstream>
 #include <iostream>
 
+using namespace std::complex_literals;
+
 Constants::Constants() {}
 
 Constants::~Constants() {}
 
 Constants::Constants(const std::string &input) {
+  isPhysicalResSpecfified = false;
   readJson(input);
 }
 
 void Constants::calculateDerivedConstants() {
-  nX = nZ*aspectRatio;
-  dz = 1.0/(nZ-1);
-  dx = real(aspectRatio)/(nX-1);
+  if(not isPhysicalResSpecfified) {
+    nX = 3*nN+1;
+  }
+
+  if(verticalBoundaryConditions_in == "dirichlet") {
+    verticalBoundaryConditions = BoundaryConditions::dirichlet;
+    dz = 1.0/(nZ-1);
+  } else if (verticalBoundaryConditions_in == "periodic") {
+    verticalBoundaryConditions = BoundaryConditions::periodic;
+    dz = 1.0/nZ;
+  }
+  if(horizontalBoundaryConditions_in == "impermeable") {
+    horizontalBoundaryConditions = BoundaryConditions::impermeable;
+    wavelength = M_PI/aspectRatio;
+    dx = real(aspectRatio)/(nX-1);
+  } else if (horizontalBoundaryConditions_in == "periodic") {
+    horizontalBoundaryConditions = BoundaryConditions::periodic;
+    wavelength = 2.0*M_PI/aspectRatio;
+    dx = real(aspectRatio)/nX;
+  }
+
   oodz2 = pow(1.0/dz, 2);
   oodz = 1.0/dz;
+  oodx = 1.0/dx;
   nG = 1;
-  if(boundaryConditions_in == "dirichlet") {
-    verticalBoundaryConditions = BoundaryConditions::dirichlet;
-  } else if (boundaryConditions_in == "periodic") {
-    verticalBoundaryConditions = BoundaryConditions::periodic;
-  }
 }
 
 void Constants::print() const {
   std::cout <<"Parameters:" << std::endl;
   std::cout << "nZ: " << nZ << std::endl;
   std::cout << "nN: " << nN << std::endl;
+  std::cout << "nX: " << nX << std::endl;
   std::cout << "aspectRatio: " << aspectRatio << std::endl;
   std::cout << "Ra: " << Ra << std::endl;
   std::cout << "Pr: " << Pr << std::endl;
@@ -40,9 +58,10 @@ void Constants::print() const {
   std::cout << "is double diffusion? " << isDoubleDiffusion << std::endl;
   std::cout << "is CUDA enabled? " << isCudaEnabled << std::endl;
   std::cout << "icFile: " << icFile << std::endl;
-  std::cout << "boundary conditions: " << boundaryConditions_in << std::endl;
+  std::cout << "vertical boundary conditions: " << verticalBoundaryConditions_in << std::endl;
+  std::cout << "horizontal boundary conditions: " << horizontalBoundaryConditions_in << std::endl;
 
-  if(boundaryConditions_in == "periodic") {
+  if(verticalBoundaryConditions_in == "periodic") {
     std::cout << "temperature gradient: " << temperatureGradient << std::endl;
     if(isDoubleDiffusion) {
       std::cout << "salinity gradient: " << salinityGradient << std::endl;
@@ -91,14 +110,25 @@ bool Constants::isValid() const {
     }
   }
 
-  if(boundaryConditions_in != "dirichlet"
-      and boundaryConditions_in != "periodic") {
-    std::cout << "Boundary conditions must either be \"dirichlet\" or \"periodic\"" << std::endl;
+  if(verticalBoundaryConditions_in != "dirichlet"
+      and verticalBoundaryConditions_in != "periodic") {
+    std::cout << "Vertical boundary conditions must either be \"dirichlet\" or \"periodic\"" << std::endl;
+    return -1;
+  }
+
+  if(horizontalBoundaryConditions_in != "impermeable"
+      and horizontalBoundaryConditions_in != "periodic") {
+    std::cout << "Horizontal boundary conditions must either be \"impermeable\" or \"periodic\"" << std::endl;
     return -1;
   }
 
   if(saveFolder == "" or icFile == "") {
     std::cout <<"Save folder and initial conditions file should be present.\n" << std::endl;
+    return -1;
+  }
+
+  if(initialDt >= pow(dz,2)/4.0) {
+    std::cout << "Diffusive timescale must be lower than " << pow(dz, 2)/4.0 << std::endl;
     return -1;
   }
   return 1;
@@ -137,10 +167,21 @@ void Constants::readJson(const std::string &filePath) {
   }
   icFile = j["icFile"];
 
-  if (j.find("boundaryConditions") != j.end()) {
-    boundaryConditions_in = j["boundaryConditions"];
+  if (j.find("verticalBoundaryConditions") != j.end()) {
+    verticalBoundaryConditions_in = j["verticalBoundaryConditions"];
   } else {
-    boundaryConditions_in = "dirichlet";
+    verticalBoundaryConditions_in = "dirichlet";
+  }
+
+  if (j.find("horizontalBoundaryConditions") != j.end()) {
+    horizontalBoundaryConditions_in = j["horizontalBoundaryConditions"];
+  } else {
+    horizontalBoundaryConditions_in = "impermeable";
+  }
+
+  if (j.find("nX") != j.end()) {
+    nX = j["nX"];
+    isPhysicalResSpecfified = true;
   }
 
   if(isDoubleDiffusion) {
@@ -148,7 +189,7 @@ void Constants::readJson(const std::string &filePath) {
     tau = j["tau"];
   }
 
-  if(boundaryConditions_in == "periodic") {
+  if(verticalBoundaryConditions_in == "periodic") {
     temperatureGradient = j["temperatureGradient"];
     if(isDoubleDiffusion) {
       salinityGradient = j["salinityGradient"];
@@ -173,8 +214,9 @@ void Constants::writeJson(const std::string &filePath) const {
   j["isNonlinear"] = isNonlinear;
   j["isCudaEnabled"] = isCudaEnabled;
   j["icFile"] = icFile;
-  j["boundaryConditions"] = boundaryConditions_in;
-  if(boundaryConditions_in == "periodic") {
+  j["verticalBoundaryConditions"] = verticalBoundaryConditions_in;
+  j["horizontalBoundaryConditions"] = horizontalBoundaryConditions_in;
+  if(verticalBoundaryConditions_in == "periodic") {
     j["temperatureGradient"] = temperatureGradient;
     if(isDoubleDiffusion) {
       j["salinityGradient"] = salinityGradient;

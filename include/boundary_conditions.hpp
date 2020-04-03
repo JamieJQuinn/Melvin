@@ -1,3 +1,3 @@
 #pragma once
 
-enum class BoundaryConditions {dirichlet, periodic};
+enum class BoundaryConditions {dirichlet, periodic, impermeable};

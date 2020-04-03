@@ -27,7 +27,7 @@ class Sim {
 
     // Variable arrays
     Variables<Variable> vars;
-    Variable nonlinearTerm;
+    Variable nonlinearSineTerm, nonlinearCosineTerm;
 
     ThomasAlgorithm *thomasAlgorithm;
 
@@ -48,7 +48,7 @@ class Sim {
 
     void computeNonlinearDerivatives();
     void applyPhysicalBoundaryConditions();
-    void computeNonlinearDerivative(Variable &dVardt, const Variable &var, const bool useSinTransform);
+    void computeNonlinearDerivative(Variable &dVardt, const Variable &var);
     void computeNonlinearTemperatureDerivative();
     void computeNonlinearXiDerivative();
     void computeNonlinearVorticityDerivative();

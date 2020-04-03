@@ -15,6 +15,8 @@ using namespace std;
 int main(int argc, char** argv) {
   cout <<"STARTING SIMULATION\n" << endl;
 
+  fftw_init_threads();
+
   std::string constantsFile = "";
   for (int i = 1; i < argc; ++i) {
     std::string arg = argv[i];
@@ -58,6 +60,8 @@ int main(int argc, char** argv) {
     CriticalRayleighChecker crChecker(c);
     crChecker.testCriticalRayleigh();
   }
+
+  fftw_cleanup_threads();
 
   cout << "ENDING SIMULATION" << endl;
   return 0;

@@ -1,13 +1,22 @@
 #!/usr/bin/env python3
 """Plotting functions for simulation variables"""
-import sys
 import numpy as np
+from matplotlib import rc
+rc('text', usetex=True)
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import argparse
 import json
 
+from helper_functions import get_spatial_data
+
+def set_plot_defaults(axis, aspect_ratio):
+    axis.set_aspect(1.0)
+    axis.set_yticks([0.0, 1.0])
+    axis.set_xticks(range(0, int(aspect_ratio+1)))
+    axis.set_ylabel(r"$z$")
+    # axis.set_xlabel(r"$x$")
 
 def main():
     """main function"""
@@ -19,92 +28,74 @@ def main():
     parser.add_argument('--output',
                         help='Output file')
     parser.add_argument('--constants', help='constants file')
-    # parser.add_argument('--plot_vorticity', action="store_true")
+    parser.add_argument('--plot_vorticity', action="store_true")
+    parser.add_argument('--plot_streamfunction', action="store_true")
+    parser.add_argument('--colourbars', action="store_true")
     args = parser.parse_args()
 
     constants_file = open(args.constants, "r")
     constants = json.load(constants_file)
 
     is_ddc = constants["isDoubleDiffusion"]
-
     n_modes = constants["nN"]
     n_z_gridpoints = constants["nZ"]
     aspect_ratio = constants["aspectRatio"]
 
-    n_x_gridpoints = int(aspect_ratio*n_z_gridpoints)
+    if "horizontalBoundaryConditions" not in constants:
+        constants["horizontalBoundaryConditions"] = "impermeable"
+
+    n_plots = 1
+    if args.plot_streamfunction:
+        n_plots += 1
+    if args.plot_vorticity:
+        n_plots += 1
+    if is_ddc:
+        n_plots += 1
+
+    # Get data
+    data = np.fromfile(args.filename, dtype=np.dtype(np.cdouble))
+    temp = get_spatial_data(data, 0, constants, False)
+    if args.plot_streamfunction:
+        psi = get_spatial_data(data, 2, constants, True)
+    if args.plot_vorticity:
+        omg = get_spatial_data(data, 1, constants, True)
+    if is_ddc:
+        xi = get_spatial_data(data, 7, constants, False)
+
+    # Plot
+    n_x_gridpoints = temp.shape[1]
     x_axis = np.linspace(0, aspect_ratio, num=n_x_gridpoints)
     z_axis = np.linspace(0, 1, num=n_z_gridpoints)
     x_grid, z_grid = np.meshgrid(x_axis, z_axis)
 
-    # Get data
-    data = np.fromfile(args.filename, dtype=np.dtype(np.float64))
-    temp = np.transpose(data[:n_modes*n_z_gridpoints]\
-                        .reshape(n_modes, n_z_gridpoints))
-    # omg = np.transpose(data[1*n_modes*n_z_gridpoints:2*n_modes*n_z_gridpoints]\
-                       # .reshape(n_modes, n_z_gridpoints))
-    # psi = np.transpose(data[2*n_modes*n_z_gridpoints:3*n_modes*n_z_gridpoints]\
-                       # .reshape(n_modes, n_z_gridpoints))
-    if is_ddc:
-        varidx = 7
-        xi = np.transpose(data[(varidx)*n_modes*n_z_gridpoints:(varidx+1)*n_modes*n_z_gridpoints]\
-                           .reshape(n_modes, n_z_gridpoints))
-    #plt.gca().set_aspect(1.0)
-    #plt.axis('off')
-    #plt.gca().get_xaxis().set_visible(False)
-    #plt.gca().get_yaxis().set_visible(False)
-    #plt.plot(temp[:, 1])
+    _fig, axes = plt.subplots(n_plots, sharex=True)
 
-    # Convert from spectral space to real space
-    temp_actual = np.zeros((n_z_gridpoints, n_x_gridpoints))
-    # psi_actual = np.zeros((n_z_gridpoints, n_x_gridpoints))
-    cosine = np.cos(np.pi/aspect_ratio*np.outer(np.arange(n_modes), x_axis))
-    # sine = np.sin(np.pi/aspect_ratio*np.outer(np.arange(n_modes), x_axis))
-    # np.dot(psi, sine, out=psi_actual)
-    np.dot(temp, cosine, out=temp_actual)
+    plot_index = 0
+    set_plot_defaults(axes[plot_index], aspect_ratio)
+    axes[plot_index].pcolormesh(x_grid, z_grid, temp, cmap='RdBu_r')
+    axes[plot_index].set_title(r'$T$')
 
-    # if args.plot_vorticity:
-        # omg_actual = np.zeros((n_z_gridpoints, n_x_gridpoints))
-        # np.dot(omg, cosine, out=omg_actual)
+    if args.plot_streamfunction:
+        plot_index += 1
+        set_plot_defaults(axes[plot_index], aspect_ratio)
+        axes[plot_index].contour(x_grid, z_grid, psi, 20, colors='k', linewidths=0.25)
+        axes[plot_index].set_title(r'$\psi$')
 
     if is_ddc:
-        xi_actual = np.zeros((n_z_gridpoints, n_x_gridpoints))
-        np.dot(xi, cosine, out=xi_actual)
+        plot_index += 1
+        set_plot_defaults(axes[plot_index], aspect_ratio)
+        axes[plot_index].set_title(r"$\xi$")
+        axes[plot_index].pcolormesh(x_grid, z_grid, xi, cmap='Blues')
 
-    # Plot
-    plt.subplot(1, 2, 1)
-    plt.gca().set_aspect(1.0)
-    plt.yticks([0, 1])
-    plt.xticks(range(0, int(aspect_ratio+1)))
-    plt.tick_params(axis='x', bottom=False, top=False)
-    plt.pcolormesh(x_grid, z_grid, temp_actual, cmap='coolwarm')
-    # plt.contour(x_grid, z_grid, temp_actual)
-    #plt.savefig(sys.argv[1] +'tmp.png', bbox_inches='tight', pad_inches=0)
+    if args.plot_vorticity:
+        plot_index += 1
+        set_plot_defaults(axes[plot_index], aspect_ratio)
+        axes[plot_index].set_title(r"$\omega$")
+        axes[plot_index].pcolormesh(x_grid, z_grid, omg, cmap='RdGy_r')
 
-    # if np.any(psi_actual):
-        # plt.subplot(1, 4, 3)
-        # plt.gca().set_aspect(1.0)
-        # plt.gca().get_yaxis().set_visible(False)
-        # plt.xticks(range(0, int(aspect_ratio+1)))
-        # plt.tick_params(axis='x', bottom=False, top=False)
-        # plt.gcf().tight_layout()
-        # plt.contour(x_grid, z_grid, psi_actual, 3, colors='k')
+    axes[plot_index].set_xlabel(r"$x$")
 
-    if is_ddc:
-        plt.subplot(1, 2, 2)
-        plt.gca().set_aspect(1.0)
-        plt.yticks([0, 1])
-        plt.xticks(range(0, int(aspect_ratio+1)))
-        plt.tick_params(axis='x', bottom=False, top=False)
-        plt.pcolormesh(x_grid, z_grid, xi_actual, cmap='Blues')
-
-    # if args.plot_vorticity:
-        # plt.subplot(1, 4, 2)
-        # plt.gca().set_aspect(1.0)
-        # plt.yticks([0, 1])
-        # plt.xticks(range(0, int(aspect_ratio+1)))
-        # plt.tick_params(axis='x', bottom=False, top=False)
-        # plt.pcolormesh(x_grid, z_grid, omg_actual, cmap='Reds')
-
+    # Save
     if args.output:
         plt.savefig(args.output, bbox_inches='tight', pad_inches=0, dpi=200)
     else:

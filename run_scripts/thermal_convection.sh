@@ -5,12 +5,12 @@ save_folder="data/thermal_convection"
 mkdir -p $save_folder
 rm -f $save_folder/*
 
-cat << EOF > $save_folder/constants.js
+cat << EOF > $save_folder/constants.json
 {
   "Pr":0.5,
-  "Ra":1000000,
+  "Ra":1e6,
   "aspectRatio":3,
-  "icFile":"$save_folder/ICn1nZ101nN51",
+  "icFile":"$save_folder/initial_conditions.dat",
   "initialDt":3e-06,
   "nN":51,
   "nZ":101,
@@ -22,8 +22,8 @@ cat << EOF > $save_folder/constants.js
 }
 EOF
 
-constants_file=$save_folder/constants.js
-python3 tools/make_initial_conditions.py --output $save_folder/ICn1nZ101nN51 --n_modes 51 --n_gridpoints 101 --modes 1
+constants_file=$save_folder/constants.json
+python3 tools/make_initial_conditions.py --output $save_folder/initial_conditions.dat --n_modes 51 --n_gridpoints 101 --modes 1
 
 echo "==================== Building program"
 make clean

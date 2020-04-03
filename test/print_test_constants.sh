@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+n_modes=170
+n_transform_points=512
+n_gridpoints=256
+
 cat << EOF > test_constants.json
 {
   "Pr":0.5,
@@ -7,8 +11,8 @@ cat << EOF > test_constants.json
   "aspectRatio":3,
   "icFile":"ICn1nZ128nN64",
   "initialDt":3e-06,
-  "nN":16,
-  "nZ":32,
+  "nN":${n_modes},
+  "nZ":${n_gridpoints},
   "saveFolder":"./",
   "timeBetweenSaves":0.01,
   "isNonlinear":true,
@@ -28,8 +32,8 @@ cat << EOF > test_constants_cpu.json
   "aspectRatio":3,
   "icFile":"ICn1nZ128nN64",
   "initialDt":3e-06,
-  "nN":16,
-  "nZ":32,
+  "nN":${n_modes},
+  "nZ":${n_gridpoints},
   "saveFolder":"./",
   "timeBetweenSaves":0.01,
   "isNonlinear":true,
@@ -42,6 +46,25 @@ cat << EOF > test_constants_cpu.json
 }
 EOF
 
+cat << EOF > test_constants_periodic.json
+{
+  "Pr":0.5,
+  "Ra":1000000,
+  "aspectRatio":3,
+  "icFile":"ICn1nZ128nN64",
+  "initialDt":3e-06,
+  "nN":${n_modes},
+  "nX":${n_transform_points},
+  "nZ":${n_gridpoints},
+  "saveFolder":"./",
+  "timeBetweenSaves":0.01,
+  "isNonlinear":true,
+  "isDoubleDiffusion":false,
+  "totalTime":0.05,
+  "horizontalBoundaryConditions":"periodic"
+}
+EOF
+
 cat << EOF > test_constants_ddc.json
 {
   "Pr":1,
@@ -51,8 +74,8 @@ cat << EOF > test_constants_ddc.json
   "aspectRatio":1.41421356237,
   "initialDt":3e-6,
 
-  "nN":16,
-  "nZ":32,
+  "nN":${n_modes},
+  "nZ":${n_gridpoints},
 
   "icFile":"ICn1nZ128nN64_SF",
   "saveFolder":"./",

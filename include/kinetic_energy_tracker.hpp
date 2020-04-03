@@ -9,7 +9,7 @@
 class KineticEnergyTracker {
   public:
     KineticEnergyTracker(const Constants &c_in);
-    void calcKineticEnergy(const Variable &psi);
+    void calcKineticEnergy(Variable &psi);
     real calcKineticEnergyForMode(const Variable &psi, int n);
     void saveKineticEnergy();
     real calcKineticEnergyPhysical(Variable& psi);

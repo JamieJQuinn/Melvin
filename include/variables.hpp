@@ -38,12 +38,12 @@ class Variables {
 template<class varType>
 Variables<varType>::Variables(const Constants &c_in)
   : c(c_in)
-  , psi(c_in)
-  , omg(c_in)
-  , tmp(c_in)
+  , psi(c_in, 1, true)
+  , omg(c_in, 1, true)
+  , tmp(c_in, 1, false)
   , dTmpdt(c_in, 2)
   , dOmgdt(c_in, 2)
-  , xi(c_in)
+  , xi(c_in, 1, false)
   , dXidt(c_in, 2)
 {
   variableList.push_back(&tmp);
@@ -55,10 +55,6 @@ Variables<varType>::Variables(const Constants &c_in)
   if(c.isDoubleDiffusion) {
     variableList.push_back(&xi);
     variableList.push_back(&dXidt);
-  }
-
-  for(int i=0; i<variableList.size(); ++i) {
-    variableList[i]->initialiseData();
   }
 
   saveNumber = 0;
