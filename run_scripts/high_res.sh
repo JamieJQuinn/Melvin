@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-save_folder="test/benchmark"
+save_folder="data/high_resolution_Ra_1e7"
 constants_file=$save_folder/constants.json
-nN=170
-nZ=256
+nN=340
+nZ=512
 
 mkdir -p $save_folder
 rm -f $save_folder/*
@@ -14,20 +14,20 @@ cat << EOF > $constants_file
   "Ra":1e7,
   "aspectRatio":2.0,
   "icFile":"$save_folder/initial_conditions.dat",
-  "initialDt":1e-7,
+  "initialDt":5e-8,
   "nN":$nN,
   "nZ":$nZ,
-  "nX":512,
+  "nX":1024,
   "saveFolder":"$save_folder/",
-  "timeBetweenSaves":0.0001,
+  "timeBetweenSaves":0.00001,
   "isNonlinear":true,
   "isDoubleDiffusion":false,
   "totalTime":0.1,
-  "horizontalBoundaryCondi--vorticitytions":"periodic"
+  "horizontalBoundaryConditions":"impermeable"
 }
 EOF
 
-python3 tools/make_initial_conditions.py --output $save_folder/initial_conditions.dat --perturb_vorticity --n_modes $nN --n_gridpoints $nZ --modes 1
+python3 tools/make_initial_conditions.py --output $save_folder/initial_conditions.dat --n_modes $nN --n_gridpoints $nZ --modes 1
 
 echo "==================== Building program"
 #make clean
