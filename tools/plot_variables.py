@@ -30,6 +30,7 @@ def main():
     parser.add_argument('--constants', help='constants file')
     parser.add_argument('--plot_vorticity', action="store_true")
     parser.add_argument('--plot_streamfunction', action="store_true")
+    parser.add_argument('--pretty_plot', action="store_true")
     parser.add_argument('--colourbars', action="store_true")
     args = parser.parse_args()
 
