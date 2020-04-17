@@ -13,13 +13,13 @@ mean_in_z.mp4: $(MEAN_PNG_FILES)
 	ffmpeg -framerate 60 -y -i mean_variables%04d.png -c:v libx264 -s:v 1228x180 -profile:v high -crf 20 -pix_fmt yuv420p $@
 
 dump%.png: dump%.dat
-	python2 ../../tools/plot_variables.py --plot_streamfunction --plot_vorticity --constants constants.json $< --output $@
+	python ../../tools/plot_variables.py --plot_streamfunction --plot_vorticity --constants constants.json $< --output $@
 
 #temperatue%.png: dump%.dat
 	#python2 ../../tools/plot_variables.py --constants constants.json $< --output $@
 
 mean_variables%.png: dump%.dat
-	python2 ../../tools/plot_mean_variables.py --constants constants.json $< --output $@
+	python ../../tools/plot_mean_variables.py --constants constants.json $< --output $@
 
 .PHONY: clean
 clean:
