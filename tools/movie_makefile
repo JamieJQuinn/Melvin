@@ -4,7 +4,13 @@ DAT_FILES=$(wildcard dump*.dat)
 PNG_FILES=$(patsubst %.dat,%.png,$(DAT_FILES))
 MEAN_PNG_FILES=$(patsubst dump%.dat,mean_variables%.png,$(DAT_FILES))
 
+PRETTY_FOLDER=pretty_files
+PRETTY_PNG_FILES=$(patsubst dump%.dat,$(PRETTY_FOLDER)/temp%.png,$(DAT_FILES))
+
 all: output.mp4
+
+.PHONY: pretty
+pretty: pretty.mp4
 
 output.mp4: $(PNG_FILES)
 	ffmpeg -framerate 60 -y -i dump%04d.png -c:v libx264 -profile:v high -crf 20 -pix_fmt yuv420p $@
@@ -15,8 +21,14 @@ mean_in_z.mp4: $(MEAN_PNG_FILES)
 dump%.png: dump%.dat
 	python ../../tools/plot_variables.py --plot_streamfunction --plot_vorticity --constants constants.json $< --output $@
 
-#temperatue%.png: dump%.dat
-	#python2 ../../tools/plot_variables.py --constants constants.json $< --output $@
+pretty.mp4: $(PRETTY_FOLDER) $(PRETTY_PNG_FILES)
+	ffmpeg -framerate 60 -y -i $(PRETTY_FOLDER)/temp%04d.png -c:v libx264 -profile:v high -crf 20 -pix_fmt yuv420p $@
+
+$(PRETTY_FOLDER):
+	mkdir -p $@
+
+$(PRETTY_FOLDER)/temp%.png: dump%.dat
+	python3 ../../tools/pretty_plot.py $< --constants constants.json --x_resolution=2560 --z_resolution=1440 --levels=10 --output=$@
 
 mean_variables%.png: dump%.dat
 	python ../../tools/plot_mean_variables.py --constants constants.json $< --output $@

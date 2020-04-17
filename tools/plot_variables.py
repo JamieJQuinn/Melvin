@@ -23,14 +23,11 @@ def main():
     parser = argparse.ArgumentParser(description='Print variable contents')
 
     parser.add_argument('filename', help='file to open')
-    parser.add_argument('--max_print_mode', type=int,
-                        help='modes to print')
     parser.add_argument('--output',
                         help='Output file')
     parser.add_argument('--constants', help='constants file')
     parser.add_argument('--plot_vorticity', action="store_true")
     parser.add_argument('--plot_streamfunction', action="store_true")
-    parser.add_argument('--pretty_plot', action="store_true")
     parser.add_argument('--colourbars', action="store_true")
     args = parser.parse_args()
 
