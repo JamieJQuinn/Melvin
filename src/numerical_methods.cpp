@@ -19,6 +19,7 @@ real checkCFL(Variable &psi, real dz, real dx, real dt, int a, int nN, int nX, i
 
   psi.toPhysical();
 
+  #pragma omp parallel for schedule(dynamic)
   for(int k=0; k<nZ; ++k) {
     for(int j=0; j<nX; ++j) {
       real vx = psi.dfdzSpatial(j,k);
