@@ -58,10 +58,6 @@ void ThomasAlgorithm::precalculate() {
     sub, dia, sup,
     wk1+n*nZ, wk2+n*nZ);
   }
-  for(int i=0; i<nZ*nN; ++i) {
-    assert(!std::isnan(wk1[i]));
-    assert(!std::isnan(wk2[i]));
-  }
 
   delete [] dia;
   delete [] sup;

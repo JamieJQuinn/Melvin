@@ -143,14 +143,18 @@ void Variable::setupFFTW() {
       spectral = getCurrent() + calcIndex(0,0);
     }
 
+#ifdef _OPENMP
     fftw_plan_with_nthreads(omp_get_max_threads());
+#endif
 
     fftwForwardPlan = fftw_plan_many_r2r(1, n, nZ,
         spatial, NULL, 1, rowSize(),
         (real*)spectral, NULL, 2, 2*rowSize(),
         kind, FFTW_MEASURE);
 
+#ifdef _OPENMP
     fftw_plan_with_nthreads(omp_get_max_threads());
+#endif
 
     fftwBackwardPlan = fftw_plan_many_r2r(1, n, nZ,
         (real*)spectral, NULL, 2, 2*rowSize(),
@@ -161,14 +165,18 @@ void Variable::setupFFTW() {
     real *spatial = spatialData + calcIndex(0,0);
     mode *spectral = getCurrent() + calcIndex(0,0);
 
+#ifdef _OPENMP
     fftw_plan_with_nthreads(omp_get_max_threads());
+#endif
 
     fftwForwardPlan = fftw_plan_many_dft_r2c(1, n, nZ,
         spatial, NULL, 1, rowSize(),
         (fftw_complex*)spectral, NULL, 1, rowSize(),
         FFTW_MEASURE);
 
+#ifdef _OPENMP
     fftw_plan_with_nthreads(omp_get_max_threads());
+#endif
 
     fftwBackwardPlan = fftw_plan_many_dft_c2r(1, n, nZ,
         (fftw_complex*)spectral, NULL, 1, rowSize(),
