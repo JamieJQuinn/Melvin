@@ -1,5 +1,6 @@
 CC=g++
 CFLAGS=-c -I$(INCLUDE_DIR) --std=c++14
+CFLAGS_OPTIMISATIONS=-O2 -DNDEBUG -ffast-math
 LDFLAGS=
 SRC_DIR=src
 BUILD_DIR=build
@@ -47,12 +48,12 @@ full-test:
 	test/test_all_nonlinear.sh
 
 .PHONY: profile
-profile: CFLAGS += -pg
-profile: LDFLAGS += -pg -lfftw3_omp -lfftw3 -lm
+profile: CFLAGS += -g $(CFLAGS_OPTIMISATIONS)
+profile: LDFLAGS += -g -lfftw3 -lm
 profile: $(BUILD_DIR) $(BUILD_DIR)/$(EXECUTABLE)
 
 .PHONY: release
-release: CFLAGS += -DNDEBUG -O2 -fopenmp
+release: CFLAGS += $(CFLAGS_OPTIMISATIONS) -fopenmp
 release: LDFLAGS += -fopenmp -lfftw3_omp -lfftw3 -lm
 release: $(BUILD_DIR) $(BUILD_DIR)/$(EXECUTABLE)
 
