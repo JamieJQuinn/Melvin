@@ -3,7 +3,6 @@
 #include <constants.hpp>
 #include <precision.hpp>
 #include <sim.hpp>
-#include <sim_gpu.hpp>
 
 #include <iostream>
 #include <cmath>

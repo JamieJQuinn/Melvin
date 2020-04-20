@@ -39,24 +39,10 @@ int main(int argc, char** argv) {
   }
   c.print();
 
-#ifndef CUDA
-  if(c.isCudaEnabled) {
-    cout << "CUDA enabled but not compiled!" << endl;
-    return 0;
-  }
-#endif
-
   if(c.isNonlinear) {
     cout << "NONLINEAR" << endl;
-    if(c.isCudaEnabled) {
-#ifdef CUDA
-      SimGPU simulation(c);
-      simulation.runNonLinear();
-#endif
-    } else {
-      Sim simulation(c);
-      simulation.runNonLinear();
-    }
+    Sim simulation(c);
+    simulation.runNonLinear();
   } else {
     cout << "LINEAR" << endl;
     CriticalRayleighChecker crChecker(c);

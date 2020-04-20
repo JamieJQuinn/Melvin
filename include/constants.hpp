@@ -20,7 +20,7 @@ class Constants {
     real totalTime;
     bool isNonlinear;
     bool isDoubleDiffusion;
-    bool isCudaEnabled;
+    bool isGPUEnabled;
 
     bool isPhysicalResSpecfified;
 
@@ -29,10 +29,6 @@ class Constants {
     BoundaryConditions horizontalBoundaryConditions;
     real temperatureGradient;
     real salinityGradient;
-
-    // cuda stuff
-    int threadsPerBlock_x;
-    int threadsPerBlock_y;
 
     // Derived ants
     real dz;

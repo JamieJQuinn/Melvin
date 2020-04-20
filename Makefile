@@ -11,17 +11,17 @@ SOURCES=$(wildcard $(SRC_DIR)/*.cpp)
 OBJECTS=$(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SOURCES))
 EXECUTABLE=exe
 
-GPU_SOURCES=$(wildcard $(SRC_DIR)/*.cu)
-GPU_OBJECTS=$(patsubst $(SRC_DIR)/%.cu,$(BUILD_DIR)/%.o,$(GPU_SOURCES))
+#GPU_SOURCES=$(wildcard $(SRC_DIR)/*.cu)
+#GPU_OBJECTS=$(patsubst $(SRC_DIR)/%.cu,$(BUILD_DIR)/%.o,$(GPU_SOURCES))
 
 TEST_DIR=unit_test
 TEST_SOURCES=$(wildcard $(TEST_DIR)/*.cpp)
 TEST_OBJECTS=$(patsubst $(TEST_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(TEST_SOURCES))
-GPU_TEST_SOURCES=$(wildcard $(TEST_DIR)/*.cu)
-GPU_TEST_OBJECTS=$(patsubst $(TEST_DIR)/%.cu,$(BUILD_DIR)/%.o,$(GPU_TEST_SOURCES))
+#GPU_TEST_SOURCES=$(wildcard $(TEST_DIR)/*.cu)
+#GPU_TEST_OBJECTS=$(patsubst $(TEST_DIR)/%.cu,$(BUILD_DIR)/%.o,$(GPU_TEST_SOURCES))
 
 TEST_EXECUTABLE=test_exe
-GPU_TEST_EXECUTABLE=test_exe_gpu
+#GPU_TEST_EXECUTABLE=test_exe_gpu
 
 .PHONY: all
 all: release
@@ -62,21 +62,21 @@ debug: CFLAGS += -DDEBUG -g -pg -Wall
 debug: LDFLAGS += -pg -lfftw3 -lm
 debug: $(BUILD_DIR) $(BUILD_DIR)/$(EXECUTABLE)
 
-.PHONY: gpu
-gpu: CFLAGS += -DCUDA -DNDEBUG -O2
-gpu: OBJECTS += $(GPU_OBJECTS)
-gpu: CC = nvcc
-gpu: $(BUILD_DIR) $(GPU_OBJECTS) $(BUILD_DIR)/$(EXECUTABLE)
+#.PHONY: gpu
+#gpu: CFLAGS += -DCUDA -DNDEBUG -O2
+#gpu: OBJECTS += $(GPU_OBJECTS)
+#gpu: CC = nvcc
+#gpu: $(BUILD_DIR) $(GPU_OBJECTS) $(BUILD_DIR)/$(EXECUTABLE)
 
-.PHONY: gpu-test
-gpu-test: CFLAGS += -DCUDA -pg
-gpu-test: LDFLAGS += -pg
-gpu-test: CC = nvcc
-gpu-test: $(BUILD_DIR) $(BUILD_DIR)/$(GPU_TEST_EXECUTABLE)
-	python3 tools/make_initial_conditions.py --output $(BUILD_DIR)/ICn1nZ128nN64_SF --salt_fingering --n_modes 64 --n_gridpoints 128 --modes $(shell seq 1 63)
-	python3 tools/make_initial_conditions.py --output $(BUILD_DIR)/ICn1nZ128nN64 --n_modes 64 --n_gridpoints 128 --modes 1
-	cd $(BUILD_DIR); ../test/print_test_constants.sh
-	cd $(BUILD_DIR); ./$(GPU_TEST_EXECUTABLE)
+#.PHONY: gpu-test
+#gpu-test: CFLAGS += -DCUDA -pg
+#gpu-test: LDFLAGS += -pg
+#gpu-test: CC = nvcc
+#gpu-test: $(BUILD_DIR) $(BUILD_DIR)/$(GPU_TEST_EXECUTABLE)
+	#python3 tools/make_initial_conditions.py --output $(BUILD_DIR)/ICn1nZ128nN64_SF --salt_fingering --n_modes 64 --n_gridpoints 128 --modes $(shell seq 1 63)
+	#python3 tools/make_initial_conditions.py --output $(BUILD_DIR)/ICn1nZ128nN64 --n_modes 64 --n_gridpoints 128 --modes 1
+	#cd $(BUILD_DIR); ../test/print_test_constants.sh
+	#cd $(BUILD_DIR); ./$(GPU_TEST_EXECUTABLE)
 
 .PHONY: test
 test: CFLAGS += -DNDEBUG -O2 -fopenmp -pg

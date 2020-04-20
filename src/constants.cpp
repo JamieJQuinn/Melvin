@@ -56,7 +56,7 @@ void Constants::print() const {
   std::cout << "saveFolder: " << saveFolder << std::endl;
   std::cout << "is nonlinear? " << isNonlinear << std::endl;
   std::cout << "is double diffusion? " << isDoubleDiffusion << std::endl;
-  std::cout << "is CUDA enabled? " << isCudaEnabled << std::endl;
+  std::cout << "is GPU enabled? " << isGPUEnabled << std::endl;
   std::cout << "icFile: " << icFile << std::endl;
   std::cout << "vertical boundary conditions: " << verticalBoundaryConditions_in << std::endl;
   std::cout << "horizontal boundary conditions: " << horizontalBoundaryConditions_in << std::endl;
@@ -66,11 +66,6 @@ void Constants::print() const {
     if(isDoubleDiffusion) {
       std::cout << "salinity gradient: " << salinityGradient << std::endl;
     }
-  }
-
-  if(isCudaEnabled) {
-    std::cout << "CUDA threads per x: " << threadsPerBlock_x << std::endl;
-    std::cout << "CUDA threads per y: " << threadsPerBlock_y << std::endl;
   }
 
   if(isDoubleDiffusion) {
@@ -156,14 +151,10 @@ void Constants::readJson(const std::string &filePath) {
   saveFolder = j["saveFolder"];
   isNonlinear = j["isNonlinear"];
   isDoubleDiffusion = j["isDoubleDiffusion"];
-  if (j.find("isCudaEnabled") != j.end()) {
-    isCudaEnabled = j["isCudaEnabled"];
+  if (j.find("isGPUEnabled") != j.end()) {
+    isGPUEnabled = j["isGPUEnabled"];
   } else {
-    isCudaEnabled = false;
-  }
-  if(isCudaEnabled) {
-    threadsPerBlock_x = j["threadsPerBlock_x"];
-    threadsPerBlock_y = j["threadsPerBlock_y"];
+    isGPUEnabled = false;
   }
   icFile = j["icFile"];
 
@@ -212,7 +203,7 @@ void Constants::writeJson(const std::string &filePath) const {
   j["totalTime"] = totalTime;
   j["saveFolder"] = saveFolder;
   j["isNonlinear"] = isNonlinear;
-  j["isCudaEnabled"] = isCudaEnabled;
+  j["isGPUEnabled"] = isGPUEnabled;
   j["icFile"] = icFile;
   j["verticalBoundaryConditions"] = verticalBoundaryConditions_in;
   j["horizontalBoundaryConditions"] = horizontalBoundaryConditions_in;
@@ -221,10 +212,6 @@ void Constants::writeJson(const std::string &filePath) const {
     if(isDoubleDiffusion) {
       j["salinityGradient"] = salinityGradient;
     }
-  }
-  if(isCudaEnabled) {
-    j["threadsPerBlock_x"] = threadsPerBlock_x;
-    j["threadsPerBlock_y"] = threadsPerBlock_y;
   }
   if(isDoubleDiffusion) {
     j["RaXi"] = RaXi;

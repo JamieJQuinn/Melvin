@@ -39,13 +39,7 @@ int CriticalRayleighChecker::testCriticalRayleigh() {
   real testRa = RaCrit - 2;
   cout << "Testing Ra = " << testRa << endl;
   bool isBelowCritical = false;
-  if(c.isCudaEnabled) {
-#ifdef CUDA
-    isBelowCritical = isCritical<SimGPU>(testRa, nCritAnalytical);
-#endif
-  } else {
-    isBelowCritical = isCritical<Sim>(testRa, nCritAnalytical);
-  }
+  isBelowCritical = isCritical<Sim>(testRa, nCritAnalytical);
   cout << "Below this, critical = " << isBelowCritical << endl;
   if(didTestFinish) {
     cout << "Total time breached." << endl;
@@ -56,13 +50,7 @@ int CriticalRayleighChecker::testCriticalRayleigh() {
   testRa = RaCrit + 2;
   cout << "Testing Ra = " << testRa << endl;
   bool isAboveCritical = false;
-  if(c.isCudaEnabled) {
-#ifdef CUDA
-    isAboveCritical = isCritical<SimGPU>(testRa, nCritAnalytical);
-#endif
-  } else {
-    isAboveCritical = isCritical<Sim>(testRa, nCritAnalytical);
-  }
+  isAboveCritical = isCritical<Sim>(testRa, nCritAnalytical);
   cout << "Above this, critical = " << isAboveCritical << endl;
   if(didTestFinish) {
     cout << "Total time breached." << endl;

@@ -2,7 +2,8 @@
 
 save_folder="test/benchmark"
 constants_file=$save_folder/constants.json
-nN=50
+nN=85
+nX=256
 nZ=101
 
 mkdir -p $save_folder
@@ -17,16 +18,17 @@ cat << EOF > $constants_file
   "initialDt":3e-6,
   "nN":$nN,
   "nZ":$nZ,
+  "nX":$nX,
   "saveFolder":"$save_folder/",
   "timeBetweenSaves":0.01,
   "isNonlinear":true,
   "isDoubleDiffusion":false,
   "totalTime":0.05,
-  "horizontalBoundaryCondi--vorticitytions":"periodic"
+  "horizontalBoundaryConditions":"periodic"
 }
 EOF
 
-python3 tools/make_initial_conditions.py --output $save_folder/initial_conditions.dat --perturb_vorticity --n_modes $nN --n_gridpoints $nZ --modes 1
+python3 tools/make_initial_conditions.py --output $save_folder/initial_conditions.dat --n_modes $nN --n_gridpoints $nZ --modes 1
 
 echo "==================== Building program"
 #make clean

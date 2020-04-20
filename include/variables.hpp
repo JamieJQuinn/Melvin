@@ -4,7 +4,6 @@
 #include <iostream>
 
 #include <variable.hpp>
-#include <variable_gpu.hpp>
 
 template<class varType>
 class Variables {

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 save_folder="test/benchmark"
-nN=51
+nN=85
+nX=256
 nZ=101
 
 mkdir -p $save_folder
@@ -16,6 +17,7 @@ cat << EOF > $save_folder/constants.json
   "initialDt":3e-6,
   "nN":$nN,
   "nZ":$nZ,
+  "nX":$nX,
   "saveFolder":"$save_folder/",
   "timeBetweenSaves":0.01,
   "isNonlinear":true,
