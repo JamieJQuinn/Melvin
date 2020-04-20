@@ -15,7 +15,9 @@ using namespace std;
 int main(int argc, char** argv) {
   cout <<"STARTING SIMULATION\n" << endl;
 
+#ifdef _OPENMP
   fftw_init_threads();
+#endif
 
   std::string constantsFile = "";
   for (int i = 1; i < argc; ++i) {
@@ -61,7 +63,9 @@ int main(int argc, char** argv) {
     crChecker.testCriticalRayleigh();
   }
 
+#ifdef _OPENMP
   fftw_cleanup_threads();
+#endif
 
   cout << "ENDING SIMULATION" << endl;
   return 0;
