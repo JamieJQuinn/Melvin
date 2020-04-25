@@ -31,7 +31,7 @@ Sim::~Sim() {
 
 void Sim::solveForPsi(){
   // Solve for Psi using Thomas algorithm
-  #pragma omp parallel for schedule(dynamic)
+  #pragma acc parallel loop
   for(int n=0; n<c.nN; ++n) {
     thomasAlgorithm->solve(vars.psi, vars.omg, n);
   }
@@ -153,7 +153,7 @@ void Sim::computeNonlinearDerivative(Variable &dVardt, const Variable &var) {
     nonlinearTerm = &nonlinearCosineTerm;
   }
 
-  #pragma omp parallel for schedule(dynamic)
+  #pragma acc parallel loop
   for(int k=0; k<c.nZ; ++k) {
     for(int ix=0; ix<var.nX; ++ix) {
       nonlinearTerm->spatial(ix,k) = 

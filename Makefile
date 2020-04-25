@@ -62,6 +62,10 @@ debug: CFLAGS += -DDEBUG -g -pg -Wall
 debug: LDFLAGS += -pg -lfftw3 -lm
 debug: $(BUILD_DIR) $(BUILD_DIR)/$(EXECUTABLE)
 
+.PHONY: openacc
+openacc: CFLAGS += -fopenacc -foffload=nvptx-none
+openacc: release
+
 #.PHONY: gpu
 #gpu: CFLAGS += -DCUDA -DNDEBUG -O2
 #gpu: OBJECTS += $(GPU_OBJECTS)
