@@ -33,7 +33,7 @@ class Variable {
     inline real& spatial(int ix, int k);
     inline const real& spatial(int ix, int k) const;
 
-    inline const real magnitude(int n, int k) const;
+    inline real magnitude(int n, int k) const;
 
     inline mode& getPrev(int n, int k);
     inline const mode& getPrev(int n, int k) const;
@@ -116,7 +116,7 @@ inline const mode& Variable::operator()(int n, int k) const {
   return data[calcIndex(current, n, k)];
 }
 
-inline const real Variable::magnitude(int n, int k) const {
+inline real Variable::magnitude(int n, int k) const {
   return std::abs((*this)(n,k));
 }
 
