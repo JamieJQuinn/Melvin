@@ -63,7 +63,7 @@ debug: LDFLAGS += -pg -lfftw3 -lm
 debug: $(BUILD_DIR) $(BUILD_DIR)/$(EXECUTABLE)
 
 .PHONY: gpu
-gpu: CFLAGS += -DCUDA -DNDEBUG -O2
+gpu: CFLAGS += -DCUDA -DNDEBUG -O2 --device-c
 gpu: OBJECTS += $(GPU_OBJECTS)
 gpu: CC = nvcc
 gpu: $(BUILD_DIR) $(GPU_OBJECTS) $(BUILD_DIR)/$(EXECUTABLE)
