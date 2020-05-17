@@ -1,8 +1,11 @@
 #include <variable_gpu.hpp>
+#include <complex_gpu.hpp>
+#include <precision.hpp>
+
 #include <iostream>
 
 __global__
-void gpu_update(real *var, const real *dVardt, const real *dVardtPrevious, const real dt, const real frac,
+void gpu_update(gpu_mode *var, const gpu_mode *dVardt, const gpu_mode *dVardtPrevious, const real dt, const real frac,
     const int nN, const int nZ) {
   int n_index = blockIdx.x*blockDim.x + threadIdx.x;
   int n_stride = blockDim.x*gridDim.x;
@@ -21,7 +24,7 @@ void VariableGPU::initialiseData(real initialValue) {
   fill(initialValue);
 }
 
-void VariableGPU::update(const Variable& dVardt, const real dt, const real f) {
+void VariableGPU::update(const VariableGPU& dVardt, const real dt, const real f) {
   dim3 threadsPerBlock(threadsPerBlock_x,threadsPerBlock_y);
   dim3 numBlocks((nN + threadsPerBlock.x - 1)/threadsPerBlock.x, (nZ - 2 + threadsPerBlock.y - 1)/threadsPerBlock.y);
   gpu_update<<<numBlocks,threadsPerBlock>>>(this->getPlus(), dVardt.getCurrent(), dVardt.getPrevious(), dt, f, nN, nZ);
@@ -33,14 +36,14 @@ void VariableGPU::readFromFile(std::ifstream& file) {
   for(int i=0; i<totalSteps; ++i) {
     for(int k=0; k<nZ; ++k) {
       for(int n=0; n<nN; ++n) {
-        getPlus(i)[k+n*nZ] = tempData[i*nN*nZ + n*nZ + k];
+        getPlus(i)[k+n*nZ] = makeComplex(tempData[i*nN*nZ + n*nZ + k], 0.0);
       }
     }
   }
   delete [] tempData;
 }
 
-VariableGPU::VariableGPU(const Constants &c_in, int totalSteps_in):
+VariableGPU::VariableGPU(const Constants &c_in, int totalSteps_in, bool useSinTransform_in):
   Variable(c_in, totalSteps_in)
   , threadsPerBlock_x(c_in.threadsPerBlock_x)
   , threadsPerBlock_y(c_in.threadsPerBlock_y)
@@ -51,4 +54,28 @@ VariableGPU::~VariableGPU() {
     cudaFree(data);
     data = NULL;
   }
+}
+
+gpu_mode* VariableGPU::getCurrent() {
+  return (gpu_mode*)(getPlus(0));
+}
+
+const gpu_mode* VariableGPU::getCurrent() const {
+  return (gpu_mode*)(getPlus(0));
+}
+
+gpu_mode* VariableGPU::getPrevious() {
+  return (gpu_mode*)(data + previous*varSize());
+}
+
+const gpu_mode* VariableGPU::getPrevious() const {
+  return (gpu_mode*)(data + previous*varSize());
+}
+
+gpu_mode* VariableGPU::getPlus(int nSteps) {
+  return (gpu_mode*)(data + ((current+nSteps)%totalSteps)*varSize());
+}
+
+const gpu_mode* VariableGPU::getPlus(int nSteps) const {
+  return (gpu_mode*)(data + ((current+nSteps)%totalSteps)*varSize());
 }

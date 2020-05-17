@@ -3,7 +3,9 @@
 #include <constants.hpp>
 #include <precision.hpp>
 #include <sim.hpp>
+#ifdef CUDA
 #include <sim_gpu.hpp>
+#endif
 
 #include <iostream>
 #include <cmath>

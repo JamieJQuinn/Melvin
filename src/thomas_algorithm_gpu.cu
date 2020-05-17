@@ -1,7 +1,7 @@
 #include "thomas_algorithm_gpu.hpp"
 
 __global__
-void solveThomasAlgorithm(real *sol, const real *rhs, const real *wk1, const real *wk2, const real *sub, const int nN, const int nZ) {
+void solveThomasAlgorithm(gpu_mode *sol, const gpu_mode *rhs, const real *wk1, const real *wk2, const real *sub, const int nN, const int nZ) {
   int mode = threadIdx.x;
   int stride = blockDim.x;
   for(int n=mode; n<nN; n+=stride) {
@@ -19,8 +19,8 @@ void solveThomasAlgorithm(real *sol, const real *rhs, const real *wk1, const rea
   }
 }
 
-void ThomasAlgorithmGPU::solve(real *sol, const real *rhs) const {
-  solveThomasAlgorithm<<<1,256>>>((real*)sol, (real*)rhs, (real*)wk1, (real*)wk2, (real*)sub, nN, nZ);
+void ThomasAlgorithmGPU::solve(gpu_mode *sol, const gpu_mode *rhs) const {
+  solveThomasAlgorithm<<<1,256>>>((gpu_mode*)sol, (gpu_mode*)rhs, (real*)wk1, (real*)wk2, (real*)sub, nN, nZ);
 }
 
 void ThomasAlgorithmGPU::formTriDiagonalArraysForN (

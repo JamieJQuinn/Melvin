@@ -1,6 +1,7 @@
 #pragma once
 
 #include <precision.hpp>
+#include <complex_gpu.hpp>
 
 class ThomasAlgorithmGPU {
   private:
@@ -16,7 +17,7 @@ class ThomasAlgorithmGPU {
     real *wk2;
     real *sub;
 
-    void solve(real *sol, const real *rhs) const;
+    void solve(gpu_mode *sol, const gpu_mode *rhs) const;
     ThomasAlgorithmGPU(const int nZ, const int nN, const int a, const real oodz2);
     ~ThomasAlgorithmGPU();
 };

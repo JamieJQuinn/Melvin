@@ -4,7 +4,9 @@
 #include <iostream>
 
 #include <variable.hpp>
+#ifdef CUDA
 #include <variable_gpu.hpp>
+#endif
 
 template<class varType>
 class Variables {
