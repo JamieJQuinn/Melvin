@@ -21,6 +21,10 @@ Sim::Sim(const Constants &c_in)
   , keTracker(c_in)
 {
   dt = c.initialDt;
+  nonlinearCosineTerm.initialiseData();
+  nonlinearCosineTerm.setupFFTW();
+  nonlinearSineTerm.initialiseData();
+  nonlinearSineTerm.setupFFTW();
 
   thomasAlgorithm = new ThomasAlgorithm(c);
 }
