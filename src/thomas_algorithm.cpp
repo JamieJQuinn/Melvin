@@ -66,19 +66,13 @@ void ThomasAlgorithm::precalculate() {
 void ThomasAlgorithm::formTriDiagonalArraysForN (
           const real *sub, const real *dia, const real *sup,
     real * wk1, real *wk2) {
-  assert(dia[0] != 0.0);
-
   wk1[0] = 1.0/dia[0];
   wk2[0] = sup[0]*wk1[0];
 
   for (int i=1; i<nZ-1; ++i) {
-    assert((dia[i] - sub[i-1] * wk2[i-1]) != 0.0);
-
     wk1[i] = 1.0/(dia[i] - sub[i-1] * wk2[i-1]);
     wk2[i] = sup[i]*wk1[i];
   }
-
-  assert((dia[nZ-1] - sub[nZ-2]*wk2[nZ-2]) != 0.0);
 
   wk1[nZ-1] = 1.0/(dia[nZ-1] - sub[nZ-2]*wk2[nZ-2]);
 }
