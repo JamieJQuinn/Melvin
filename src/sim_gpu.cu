@@ -12,16 +12,12 @@ using std::endl;
 
 __device__
 gpu_mode dfdz2(const gpu_mode *data, const int n, const int k, const int nZ, const int oodz2) {
-  int in = n*nZ;
-
-  return (data[k+1 + in] - 2.0f*data[k + in] + data[k-1 + in])*oodz2;
+  return (data[calcIndex(n, k+1)] - 2.0f*data[calcIndex(n, k)] + data[calcIndex(n, k-1)])*oodz2;
 }
 
 __device__
 gpu_mode dfdz(const gpu_mode *data, const int n, const int k, const int nZ, const int oodz) {
-  int in = n*nZ;
-
-  return (data[k+1 + in] - data[k-1 + in])*oodz*0.5;
+  return (data[calcIndex(n, k+1)] - data[calcIndex(n, k-1)])*oodz*0.5;
 }
 
 __device__
@@ -43,7 +39,7 @@ void gpu_computeLinearTemperatureDerivative(gpu_mode *dTmpdt, const gpu_mode *tm
   int k_stride = blockDim.y*gridDim.y;
   for(int n=n_index; n<nN; n+=n_stride) {
     for(int k=1+k_index; k<nZ-1; k+=k_stride) {
-      int i=k+n*nZ;
+      int i=calcIndex(n,k);
       dTmpdt[i] = dfdz2(tmp, n, k, nZ, oodz2) - sqr(n*M_PI/aspectRatio)*tmp[i];
     }
   }
@@ -58,7 +54,7 @@ void gpu_computeLinearVorticityDerivative(gpu_mode *dOmgdt, const gpu_mode *omg,
   int k_stride = blockDim.y*gridDim.y;
   for(int n=n_index; n<nN; n+=n_stride) {
     for(int k=1+k_index; k<nZ-1; k+=k_stride) {
-      int i=k+n*nZ;
+      int i=calcIndex(n,k);
       dOmgdt[i] =
         Pr*(dfdz2(omg,n,k,nZ,oodz2) - sqr(n*M_PI/aspectRatio)*omg[i])
         + Pr*Ra*(n*M_PI/aspectRatio)*tmp[i];
@@ -75,7 +71,7 @@ void gpu_computeLinearXiDerivative(gpu_mode *dXidt, const gpu_mode *xi, gpu_mode
   int k_stride = blockDim.y*gridDim.y;
   for(int n=n_index; n<nN; n+=n_stride) {
     for(int k=1+k_index; k<nZ-1; k+=k_stride) {
-      int i=k+n*nZ;
+      int i=calcIndex(n,k);
       dXidt[i] = tau*(dfdz2(xi, n, k, nZ, oodz2) - pow(n*M_PI/aspectRatio, 2)*xi[i]);
       dOmgdt[i] += -RaXi*tau*Pr*(n*M_PI/aspectRatio)*xi[i];
     }
@@ -87,7 +83,7 @@ void gpu_fillMode(gpu_mode *data, const gpu_mode value, const int n, const int n
   int index = threadIdx.x;
   int stride = blockDim.x;
   for(int k=index; k<nZ; k+=stride) {
-    int i=k+n*nZ;
+    int i=calcIndex(n,k);
     data[i] = value;
   }
 }
@@ -103,7 +99,7 @@ void gpu_addAdvectionApproximation(
   int k_stride = blockDim.y*gridDim.y;
   for(int n=1+n_index; n<nN; n+=n_stride) {
     for(int k=1+k_index; k<nZ-1; k+=k_stride) {
-      int i=k+n*nZ;
+      int i=calcIndex(n,k);
       dVardt[i] += -1*dfdz(var,0,k,nZ,oodz)*(n*M_PI/aspectRatio) * psi[i];
     }
   }
@@ -119,7 +115,7 @@ void gpu_computeNonlinearDerivativeN0(
   for(int k=1+k_index; k<nZ-1; k+=k_stride) {
     for(int n=1; n<nN; ++n) {
       // Contribution TO var[n=0]
-      int i=k+n*nZ;
+      int i=calcIndex(n,k);
       dVardt[k+0*nZ] +=
         -M_PI/(2*aspectRatio)*n*(
           dfdz(psi,n,k,nZ,oodz)*var[i] +
@@ -149,9 +145,9 @@ void gpu_computeNonlinearDerivative(
       // Case n = n' + n''
       o = n-m;
       for(int k=1+k_index; k<nZ-1; k+=k_stride) {
-        int im = k+m*nZ;
-        int io = k+o*nZ;
-        int in = k+n*nZ;
+        int im = calcIndex(m,k);
+        int io = calcIndex(o,k);
+        int in = calcIndex(n,k);
         dVardt[in] +=
           -M_PI/(2.0*aspectRatio)*(
           -m*dfdz(psi,o,k,nZ,oodz)*var[im]
@@ -163,9 +159,9 @@ void gpu_computeNonlinearDerivative(
       // Case n = n' - n''
       o = m-n;
       for(int k=1+k_index; k<nZ-1; k+=k_stride) {
-        int im = k+m*nZ;
-        int io = k+o*nZ;
-        int in = k+n*nZ;
+        int im = calcIndex(m,k);
+        int io = calcIndex(o,k);
+        int in = calcIndex(n,k);
         dVardt[in] +=
           -M_PI/(2.0*aspectRatio)*(
           +m*dfdz(psi,o,k,nZ,oodz)*var[im]
@@ -177,9 +173,9 @@ void gpu_computeNonlinearDerivative(
       // Case n= n'' - n'
       o = n+m;
       for(int k=1+k_index; k<nZ-1; k+=k_stride) {
-        int im = k+m*nZ;
-        int io = k+o*nZ;
-        int in = k+n*nZ;
+        int im = calcIndex(m,k);
+        int io = calcIndex(o,k);
+        int in = calcIndex(n,k);
         dVardt[in] +=
           vorticityFactor*M_PI/(2.0*aspectRatio)*(
           +m*dfdz(psi,o,k,nZ,oodz)*var[im]
@@ -327,22 +323,22 @@ void SimGPU::runNonLinear() {
   real f = 1.0f; // Fractional change in dt (if CFL condition being breached)
   t = 0;
   while (c.totalTime-t>EPSILON) {
-    if(KEcalcTime-t < EPSILON) {
-      cudaDeviceSynchronize();
-      keTracker.calcKineticEnergy(vars.psi);
-      KEcalcTime += 1e2*dt;
-    }
-    if(KEsaveTime-t < EPSILON) {
-      keTracker.saveKineticEnergy();
-      KEsaveTime += 1e4*dt;
-    }
-    if(CFLCheckTime-t < EPSILON) {
-      cout << "Checking CFL" << endl;
-      CFLCheckTime += 1e4*dt;
-      cudaDeviceSynchronize();
-      f = checkCFL(vars.psi, c.dz, c.dx, dt, c.aspectRatio, c.nN, c.nX, c.nZ);
-      dt*=f;
-    }
+    //if(KEcalcTime-t < EPSILON) {
+      //cudaDeviceSynchronize();
+      //keTracker.calcKineticEnergy(vars.psi);
+      //KEcalcTime += 1e2*dt;
+    //}
+    //if(KEsaveTime-t < EPSILON) {
+      //keTracker.saveKineticEnergy();
+      //KEsaveTime += 1e4*dt;
+    //}
+    //if(CFLCheckTime-t < EPSILON) {
+      //cout << "Checking CFL" << endl;
+      //CFLCheckTime += 1e4*dt;
+      //cudaDeviceSynchronize();
+      //f = checkCFL(vars.psi, c.dz, c.dx, dt, c.aspectRatio, c.nN, c.nX, c.nZ);
+      //dt*=f;
+    //}
     if(saveTime-t < EPSILON) {
       cout << t << " of " << c.totalTime << "(" << t/c.totalTime*100 << "%)" << endl;
       saveTime+=c.timeBetweenSaves;
@@ -356,5 +352,5 @@ void SimGPU::runNonLinear() {
   cudaDeviceSynchronize();
   printf("%e of %e (%.2f%%)\n", t, c.totalTime, t/c.totalTime*100);
   vars.save();
-  keTracker.saveKineticEnergy();
+  //keTracker.saveKineticEnergy();
 }

@@ -59,6 +59,11 @@ Variables<varType>::Variables(const Constants &c_in)
     variableList.push_back(&dXidt);
   }
 
+  for(auto variable : variableList) {
+    variable->initialiseData();
+    variable->setupFFTW();
+  }
+
   saveNumber = 0;
 }
 

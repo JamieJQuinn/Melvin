@@ -209,13 +209,6 @@ Variable::Variable(const Constants &c_in, const int totalSteps_in, const bool us
   useSinTransform(useSinTransform_in),
   c(c_in)
 {
-  initialiseData(0.0);
-
-  #pragma omp critical
-  {
-    setupFFTW();
-  }
-
   if(c.horizontalBoundaryConditions == BoundaryConditions::periodic) {
     xDerivativeFactor = 1.0i*c.wavelength;
   } else {
