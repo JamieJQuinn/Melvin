@@ -12,8 +12,6 @@
 #include <thread>
 #include <iostream>
 
-using namespace std;
-
 using Clock = std::chrono::high_resolution_clock;
 using std::chrono::time_point;
 using std::chrono::duration_cast;

@@ -23,8 +23,8 @@ ThomasAlgorithm::ThomasAlgorithm(const Constants& c_in) :
   isPeriodic{c_in.verticalBoundaryConditions == BoundaryConditions::periodic},
   rhs2 {nullptr}
 {
-  wk1 = new mode [nN*nZ];
-  wk2 = new mode [nN*nZ];
+  wk1 = new real [nN*nZ];
+  wk2 = new real [nN*nZ];
   sub = new real [nZ];
 
   if(isPeriodic) {
@@ -40,7 +40,7 @@ ThomasAlgorithm::ThomasAlgorithm(const Constants& c_in) :
 
 void ThomasAlgorithm::precalculate() {
   // Precalculate tridiagonal arrays
-  mode * dia = new mode [nZ];
+  real * dia = new real [nZ];
   real * sup = new real [nZ];
   for(int k=0; k<nZ; ++k) {
     sub[k] = sup[k] = -oodz2;
@@ -58,31 +58,21 @@ void ThomasAlgorithm::precalculate() {
     sub, dia, sup,
     wk1+n*nZ, wk2+n*nZ);
   }
-  for(int i=0; i<nZ*nN; ++i) {
-    assert(!std::isnan(wk1[i]));
-    assert(!std::isnan(wk2[i]));
-  }
 
   delete [] dia;
   delete [] sup;
 }
 
 void ThomasAlgorithm::formTriDiagonalArraysForN (
-          const real *sub, const mode *dia, const real *sup,
-    mode * wk1, mode *wk2) {
-  assert(dia[0] != 0.0);
-
+          const real *sub, const real *dia, const real *sup,
+    real * wk1, real *wk2) {
   wk1[0] = 1.0/dia[0];
   wk2[0] = sup[0]*wk1[0];
 
   for (int i=1; i<nZ-1; ++i) {
-    assert((dia[i] - sub[i-1] * wk2[i-1]) != 0.0);
-
     wk1[i] = 1.0/(dia[i] - sub[i-1] * wk2[i-1]);
     wk2[i] = sup[i]*wk1[i];
   }
-
-  assert((dia[nZ-1] - sub[nZ-2]*wk2[nZ-2]) != 0.0);
 
   wk1[nZ-1] = 1.0/(dia[nZ-1] - sub[nZ-2]*wk2[nZ-2]);
 }

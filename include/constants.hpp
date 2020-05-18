@@ -40,7 +40,7 @@ class Constants {
     real oodz2;
     real oodz;
     real oodx;
-    mode wavelength;
+    real wavelength;
 
     // I/O files
     std::string saveFolder;

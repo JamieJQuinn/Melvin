@@ -5,7 +5,9 @@
 KineticEnergyTracker::KineticEnergyTracker(const Constants &c_in):
   c(c_in),
   keDens(c_in)
-{}
+{
+  keDens.initialiseData();
+}
 
 void KineticEnergyTracker::calcKineticEnergyDensity(const Variable &psi) {
   int nX = c.nX;

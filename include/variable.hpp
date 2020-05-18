@@ -33,7 +33,7 @@ class Variable {
     inline real& spatial(int ix, int k);
     inline const real& spatial(int ix, int k) const;
 
-    inline const real magnitude(int n, int k) const;
+    inline real magnitude(int n, int k) const;
 
     inline mode& getPrev(int n, int k);
     inline const mode& getPrev(int n, int k) const;
@@ -98,10 +98,6 @@ inline int Variable::calcIndex(int step, int n, int k) const {
 }
 
 inline int Variable::calcIndex(int n, int k) const {
-  assert(n>=0);
-  assert(n<nX);
-  assert(k>=-nG);
-  assert(k<nZ+nG);
   return (k+nG)*(nX+2*nG) + n+nG;
   //return n*(nZ+2*nG) + (k+nG);
 }
@@ -116,7 +112,7 @@ inline const mode& Variable::operator()(int n, int k) const {
   return data[calcIndex(current, n, k)];
 }
 
-inline const real Variable::magnitude(int n, int k) const {
+inline real Variable::magnitude(int n, int k) const {
   return std::abs((*this)(n,k));
 }
 
@@ -154,29 +150,21 @@ inline int Variable::rowSize() const {
 
 inline mode Variable::dfdz(int n, int k) const {
   // Avoid derivatives at the edge
-  assert(k>=0);
-  assert(k<nZ);
   return ((*this)(n, k+1) - (*this)(n, k-1))*oodz*0.5;
 }
 
 inline mode Variable::dfdz2(int n, int k) const {
   // Avoid derivatives at the edge
-  assert(k>=0);
-  assert(k<nZ);
   return ((*this)(n, k+1) - 2.0*(*this)(n, k) + (*this)(n, k-1))*oodz2;
 }
 
 inline real Variable::dfdzSpatial(int ix, int k) const {
   // Avoid derivatives at the edge
-  assert(k>=0);
-  assert(k<nZ);
   return (spatial(ix, k+1) - spatial(ix, k-1))*oodz*0.5;
 }
 
 inline real Variable::dfdx(int ix, int k) const {
   // Avoid derivatives at the edge
-  assert(ix>0);
-  assert(ix<nX-1);
   return (spatial(ix+1, k) - spatial(ix-1, k))*oodx*0.5;
 }
 

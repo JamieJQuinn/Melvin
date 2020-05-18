@@ -5,8 +5,8 @@
 
 class ThomasAlgorithm {
   private:
-    void formTriDiagonalArraysForN(const real *sub, const mode *dia, const real *sup,
-        mode * wk1, mode *wk2);
+    void formTriDiagonalArraysForN(const real *sub, const real *dia, const real *sup,
+        real * wk1, real *wk2);
     void precalculate();
 
     void solveSystem(mode *sol, const mode *rhs, const int matrixN, const int n) const;
@@ -17,14 +17,14 @@ class ThomasAlgorithm {
     const int nN;
     const bool isPeriodic;
     const real oodz2;
-    const mode wavelength;
+    const real wavelength;
 
     // For periodic solver
     mode *sol2;
     mode *rhs2;
   public:
-    mode *wk1;
-    mode *wk2;
+    real *wk1;
+    real *wk2;
     real *sub;
 
     void solve(Variable& sol, const Variable& rhs, const int n) const;

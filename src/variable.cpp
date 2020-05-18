@@ -143,37 +143,51 @@ void Variable::setupFFTW() {
       spectral = getCurrent() + calcIndex(0,0);
     }
 
+    #pragma omp critical
+    {
+#ifdef _OPENMP
     fftw_plan_with_nthreads(omp_get_max_threads());
+#endif
 
     fftwForwardPlan = fftw_plan_many_r2r(1, n, nZ,
         spatial, NULL, 1, rowSize(),
         (real*)spectral, NULL, 2, 2*rowSize(),
         kind, FFTW_MEASURE);
 
+#ifdef _OPENMP
     fftw_plan_with_nthreads(omp_get_max_threads());
+#endif
 
     fftwBackwardPlan = fftw_plan_many_r2r(1, n, nZ,
         (real*)spectral, NULL, 2, 2*rowSize(),
         spatial, NULL, 1, rowSize(),
         kind, FFTW_MEASURE);
+    }
   } else if(c.horizontalBoundaryConditions == BoundaryConditions::periodic) {
     int n[] = {nX};
     real *spatial = spatialData + calcIndex(0,0);
     mode *spectral = getCurrent() + calcIndex(0,0);
 
+    #pragma omp critical
+    {
+#ifdef _OPENMP
     fftw_plan_with_nthreads(omp_get_max_threads());
+#endif
 
     fftwForwardPlan = fftw_plan_many_dft_r2c(1, n, nZ,
         spatial, NULL, 1, rowSize(),
         (fftw_complex*)spectral, NULL, 1, rowSize(),
         FFTW_MEASURE);
 
+#ifdef _OPENMP
     fftw_plan_with_nthreads(omp_get_max_threads());
+#endif
 
     fftwBackwardPlan = fftw_plan_many_dft_c2r(1, n, nZ,
         (fftw_complex*)spectral, NULL, 1, rowSize(),
         spatial, NULL, 1, rowSize(),
         FFTW_MEASURE | FFTW_PRESERVE_INPUT);
+    }
   }
 }
 
@@ -195,13 +209,6 @@ Variable::Variable(const Constants &c_in, const int totalSteps_in, const bool us
   useSinTransform(useSinTransform_in),
   c(c_in)
 {
-  initialiseData(0.0);
-
-  #pragma omp critical
-  {
-    setupFFTW();
-  }
-
   if(c.horizontalBoundaryConditions == BoundaryConditions::periodic) {
     xDerivativeFactor = 1.0i*c.wavelength;
   } else {

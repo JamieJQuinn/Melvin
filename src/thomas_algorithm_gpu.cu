@@ -1,26 +1,28 @@
 #include "thomas_algorithm_gpu.hpp"
+#include <variable_gpu.hpp>
+#include <gpu_error_checking.hpp>
 
 __global__
-void solveThomasAlgorithm(real *sol, const real *rhs, const real *wk1, const real *wk2, const real *sub, const int nN, const int nZ) {
+void solveThomasAlgorithm(gpu_mode *sol, const gpu_mode *rhs, const real *wk1, const real *wk2, const real *sub, const int nN, const int nZ) {
   int mode = threadIdx.x;
   int stride = blockDim.x;
   for(int n=mode; n<nN; n+=stride) {
     int iN = n*nZ;
 
     // Forward Subsitution
-    sol[0+iN] = rhs[0+iN]*wk1[0+iN];
-    for (int i=1; i<nZ; ++i) {
-      sol[i+iN] = (rhs[i+iN] - sub[i-1]*sol[i-1+iN])*wk1[i+iN];
+    sol[calcIndex(n,0)] = rhs[calcIndex(n,0)]*wk1[0+iN];
+    for (int k=1; k<nZ; ++k) {
+      sol[calcIndex(n,k)] = (rhs[calcIndex(n,k)] - sub[k-1]*sol[calcIndex(n,k-1)])*wk1[k+iN];
     }
     // Backward Substitution
-    for (int i=nZ-2; i>=0; --i) {
-      sol[i+iN] -= wk2[i+iN]*sol[i+1+iN];
+    for (int k=nZ-2; k>=0; --k) {
+      sol[calcIndex(n,k)] -= wk2[k+iN]*sol[calcIndex(n,k+1)];
     }
   }
 }
 
-void ThomasAlgorithmGPU::solve(real *sol, const real *rhs) const {
-  solveThomasAlgorithm<<<1,256>>>((real*)sol, (real*)rhs, (real*)wk1, (real*)wk2, (real*)sub, nN, nZ);
+void ThomasAlgorithmGPU::solve(gpu_mode *sol, const gpu_mode *rhs) const {
+  solveThomasAlgorithm<<<1,256>>>((gpu_mode*)sol, (gpu_mode*)rhs, (real*)wk1, (real*)wk2, (real*)sub, nN, nZ);
 }
 
 void ThomasAlgorithmGPU::formTriDiagonalArraysForN (
@@ -43,29 +45,42 @@ ThomasAlgorithmGPU::ThomasAlgorithmGPU(const int nZ, const int nN, const int a, 
   nN(nN),
   oodz2(oodz2)
   {
-  cudaMallocManaged(&wk1, nZ*nN*sizeof(real));
-  cudaMallocManaged(&wk2, nZ*nN*sizeof(real));
-  cudaMallocManaged(&sub, nZ*sizeof(real));
-
   // Precalculate tridiagonal arrays
   real * dia = new real [nZ];
   real * sup = new real [nZ];
+
+  real * subHost = new real [nZ];
+  real * wk1Host = new real [nZ*nN];
+  real * wk2Host = new real [nZ*nN];
+
   for(int k=0; k<nZ; ++k) {
-    sub[k] = sup[k] = -oodz2;
+    subHost[k] = sup[k] = -oodz2;
   }
   for(int n=0; n<nN; ++n) {
     for(int k=0; k<nZ; ++k){
       dia[k] = pow(M_PI/a*n, 2) + 2*oodz2;
     }
     dia[0] = dia[nZ-1] = 1.0;
-    sub[nZ-2] = sup[0] = 0.0;
+    subHost[nZ-2] = sup[0] = 0.0;
     formTriDiagonalArraysForN(
-    sub, dia, sup,
-    wk1+n*nZ, wk2+n*nZ);
+    subHost, dia, sup,
+    wk1Host+n*nZ, wk2Host+n*nZ);
   }
+
+  gpuErrchk(cudaMalloc(&sub, nZ*sizeof(real)));
+  gpuErrchk(cudaMalloc(&wk1, nZ*nN*sizeof(real)));
+  gpuErrchk(cudaMalloc(&wk2, nZ*nN*sizeof(real)));
+
+  gpuErrchk(cudaMemcpy(sub, subHost, nZ*sizeof(real), cudaMemcpyHostToDevice));
+  gpuErrchk(cudaMemcpy(wk1, wk1Host, nZ*nN*sizeof(real), cudaMemcpyHostToDevice));
+  gpuErrchk(cudaMemcpy(wk2, wk2Host, nZ*nN*sizeof(real), cudaMemcpyHostToDevice));
 
   delete [] dia;
   delete [] sup;
+
+  delete [] subHost;
+  delete [] wk1Host;
+  delete [] wk2Host;
 }
 
 ThomasAlgorithmGPU::~ThomasAlgorithmGPU() {

@@ -4,7 +4,9 @@
 #include <iostream>
 
 #include <variable.hpp>
+#ifdef CUDA
 #include <variable_gpu.hpp>
+#endif
 
 template<class varType>
 class Variables {
@@ -55,6 +57,11 @@ Variables<varType>::Variables(const Constants &c_in)
   if(c.isDoubleDiffusion) {
     variableList.push_back(&xi);
     variableList.push_back(&dXidt);
+  }
+
+  for(auto variable : variableList) {
+    variable->initialiseData();
+    variable->setupFFTW();
   }
 
   saveNumber = 0;
