@@ -7,9 +7,9 @@
 
 // CUDA constants
 __device__ __constant__ int nG_d;
-__device__ __constant__ int nX_d;
-__device__ __constant__ int nN_d;
-__device__ __constant__ int nZ_d;
+__device__ __constant__ int extern nX_d;
+__device__ __constant__ int extern nN_d;
+__device__ __constant__ int extern nZ_d;
 
 __device__ int calcIndex(int n, int k) {
   return (k+nG_d)*(nX_d+2*nG_d) + n+nG_d;
@@ -34,9 +34,6 @@ void VariableGPU::initialiseData(mode initialValue) {
   gpuErrchk(cudaMalloc(&data_d, totalSize()*sizeof(gpu_mode)));
   fill(initialValue);
   gpuErrchk(cudaMemcpyToSymbol(nG_d, &nG, sizeof(nG), 0, cudaMemcpyHostToDevice));
-  gpuErrchk(cudaMemcpyToSymbol(nX_d, &nX, sizeof(nX), 0, cudaMemcpyHostToDevice));
-  gpuErrchk(cudaMemcpyToSymbol(nN_d, &nN, sizeof(nN), 0, cudaMemcpyHostToDevice));
-  gpuErrchk(cudaMemcpyToSymbol(nZ_d, &nZ, sizeof(nZ), 0, cudaMemcpyHostToDevice));
 }
 
 void VariableGPU::fill(const mode value) {

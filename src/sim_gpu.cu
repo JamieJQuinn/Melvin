@@ -3,6 +3,7 @@
 #include <precision.hpp>
 #include <numerical_methods.hpp>
 #include <complex_gpu.hpp>
+#include <gpu_error_checking.hpp>
 
 #include <math.h>
 #include <iostream>
@@ -10,14 +11,25 @@
 using std::cout;
 using std::endl;
 
+__device__ __constant__ int nX_d;
+__device__ __constant__ int nN_d;
+__device__ __constant__ int nZ_d;
+__device__ __constant__ real oodz_d;
+__device__ __constant__ real oodz2_d;
+__device__ __constant__ real aspectRatio_d;
+__device__ __constant__ real Ra_d;
+__device__ __constant__ real Pr_d;
+__device__ __constant__ real RaXi_d;
+__device__ __constant__ real tau_d;
+
 __device__
-gpu_mode dfdz2(const gpu_mode *data, const int n, const int k, const int nZ, const int oodz2) {
-  return (data[calcIndex(n, k+1)] - 2.0f*data[calcIndex(n, k)] + data[calcIndex(n, k-1)])*oodz2;
+gpu_mode dfdz2(const gpu_mode *data, const int n, const int k) {
+  return (data[calcIndex(n, k+1)] - 2.0f*data[calcIndex(n, k)] + data[calcIndex(n, k-1)])*oodz2_d;
 }
 
 __device__
-gpu_mode dfdz(const gpu_mode *data, const int n, const int k, const int nZ, const int oodz) {
-  return (data[calcIndex(n, k+1)] - data[calcIndex(n, k-1)])*oodz*0.5;
+gpu_mode dfdz(const gpu_mode *data, const int n, const int k) {
+  return (data[calcIndex(n, k+1)] - data[calcIndex(n, k-1)])*oodz_d*0.5;
 }
 
 __device__
@@ -31,58 +43,55 @@ gpu_mode sqr(real x) {
 }
 
 __global__
-void gpu_computeLinearTemperatureDerivative(gpu_mode *dTmpdt, const gpu_mode *tmp,
-    const int nN, const int nZ, const real aspectRatio, const real oodz2) {
+void gpu_computeLinearTemperatureDerivative(gpu_mode *dTmpdt, const gpu_mode *tmp) {
   int n_index = blockIdx.x*blockDim.x + threadIdx.x;
   int n_stride = blockDim.x*gridDim.x;
   int k_index = blockIdx.y*blockDim.y + threadIdx.y;
   int k_stride = blockDim.y*gridDim.y;
-  for(int n=n_index; n<nN; n+=n_stride) {
-    for(int k=1+k_index; k<nZ-1; k+=k_stride) {
+  for(int n=n_index; n<nN_d; n+=n_stride) {
+    for(int k=1+k_index; k<nZ_d-1; k+=k_stride) {
       int i=calcIndex(n,k);
-      dTmpdt[i] = dfdz2(tmp, n, k, nZ, oodz2) - sqr(n*M_PI/aspectRatio)*tmp[i];
+      dTmpdt[i] = dfdz2(tmp, n, k) - sqr(n*M_PI/aspectRatio_d)*tmp[i];
     }
   }
 }
 
 __global__
-void gpu_computeLinearVorticityDerivative(gpu_mode *dOmgdt, const gpu_mode *omg, const gpu_mode *tmp,
-    const int nN, const int nZ, const real aspectRatio, const real Ra, const real Pr, const real oodz2) {
+void gpu_computeLinearVorticityDerivative(gpu_mode *dOmgdt, const gpu_mode *omg, const gpu_mode *tmp) {
   int n_index = blockIdx.x*blockDim.x + threadIdx.x;
   int n_stride = blockDim.x*gridDim.x;
   int k_index = blockIdx.y*blockDim.y + threadIdx.y;
   int k_stride = blockDim.y*gridDim.y;
-  for(int n=n_index; n<nN; n+=n_stride) {
-    for(int k=1+k_index; k<nZ-1; k+=k_stride) {
+  for(int n=n_index; n<nN_d; n+=n_stride) {
+    for(int k=1+k_index; k<nZ_d-1; k+=k_stride) {
       int i=calcIndex(n,k);
       dOmgdt[i] =
-        Pr*(dfdz2(omg,n,k,nZ,oodz2) - sqr(n*M_PI/aspectRatio)*omg[i])
-        + Pr*Ra*(n*M_PI/aspectRatio)*tmp[i];
+        Pr_d*(dfdz2(omg,n,k) - sqr(n*M_PI/aspectRatio_d)*omg[i])
+        + Pr_d*Ra_d*(n*M_PI/aspectRatio_d)*tmp[i];
     }
   }
 }
 
 __global__
-void gpu_computeLinearXiDerivative(gpu_mode *dXidt, const gpu_mode *xi, gpu_mode *dOmgdt, const gpu_mode *omg,
-    const int nN, const int nZ, const real tau, const real aspectRatio, const real RaXi, const real Pr, const real oodz2) {
+void gpu_computeLinearXiDerivative(gpu_mode *dXidt, const gpu_mode *xi, gpu_mode *dOmgdt, const gpu_mode *omg) {
   int n_index = blockIdx.x*blockDim.x + threadIdx.x;
   int n_stride = blockDim.x*gridDim.x;
   int k_index = blockIdx.y*blockDim.y + threadIdx.y;
   int k_stride = blockDim.y*gridDim.y;
-  for(int n=n_index; n<nN; n+=n_stride) {
-    for(int k=1+k_index; k<nZ-1; k+=k_stride) {
+  for(int n=n_index; n<nN_d; n+=n_stride) {
+    for(int k=1+k_index; k<nZ_d-1; k+=k_stride) {
       int i=calcIndex(n,k);
-      dXidt[i] = tau*(dfdz2(xi, n, k, nZ, oodz2) - pow(n*M_PI/aspectRatio, 2)*xi[i]);
-      dOmgdt[i] += -RaXi*tau*Pr*(n*M_PI/aspectRatio)*xi[i];
+      dXidt[i] = tau_d*(dfdz2(xi, n, k) - pow(n*M_PI/aspectRatio_d, 2)*xi[i]);
+      dOmgdt[i] += -RaXi_d*tau_d*Pr_d*(n*M_PI/aspectRatio_d)*xi[i];
     }
   }
 }
 
 __global__
-void gpu_fillMode(gpu_mode *data, const gpu_mode value, const int n, const int nZ) {
+void gpu_fillMode(gpu_mode *data, const gpu_mode value, const int n) {
   int index = threadIdx.x;
   int stride = blockDim.x;
-  for(int k=index; k<nZ; k+=stride) {
+  for(int k=index; k<nZ_d; k+=stride) {
     int i=calcIndex(n,k);
     data[i] = value;
   }
@@ -91,16 +100,15 @@ void gpu_fillMode(gpu_mode *data, const gpu_mode value, const int n, const int n
 __global__
 void gpu_addAdvectionApproximation(
     gpu_mode *dVardt, const gpu_mode *var,
-    const gpu_mode *psi,
-    const int nN, const int nZ, const real aspectRatio, const real oodz) {
+    const gpu_mode *psi) {
   int n_index = blockIdx.x*blockDim.x + threadIdx.x;
   int n_stride = blockDim.x*gridDim.x;
   int k_index = blockIdx.y*blockDim.y + threadIdx.y;
   int k_stride = blockDim.y*gridDim.y;
-  for(int n=1+n_index; n<nN; n+=n_stride) {
-    for(int k=1+k_index; k<nZ-1; k+=k_stride) {
+  for(int n=1+n_index; n<nN_d; n+=n_stride) {
+    for(int k=1+k_index; k<nZ_d-1; k+=k_stride) {
       int i=calcIndex(n,k);
-      dVardt[i] += -1*dfdz(var,0,k,nZ,oodz)*(n*M_PI/aspectRatio) * psi[i];
+      dVardt[i] += -1*dfdz(var,0,k)*(n*M_PI/aspectRatio_d) * psi[i];
     }
   }
 }
@@ -108,22 +116,21 @@ void gpu_addAdvectionApproximation(
 __global__
 void gpu_computeNonlinearDerivativeN0(
     gpu_mode *dVardt, const gpu_mode *var,
-    const gpu_mode *psi,
-    const int nN, const int nZ, const real aspectRatio, const real oodz) {
+    const gpu_mode *psi) {
   int k_index = blockIdx.x*blockDim.x + threadIdx.x;
   int k_stride = blockDim.x*gridDim.x;
-  for(int k=1+k_index; k<nZ-1; k+=k_stride) {
-    for(int n=1; n<nN; ++n) {
+  for(int k=1+k_index; k<nZ_d-1; k+=k_stride) {
+    for(int n=1; n<nN_d; ++n) {
       // Contribution TO var[n=0]
       int i=calcIndex(n,k);
       dVardt[calcIndex(0,k)] +=
-        -M_PI/(2*aspectRatio)*n*(
-          dfdz(psi,n,k,nZ,oodz)*var[i] +
-          dfdz(var,n,k,nZ,oodz)*psi[i]
+        -M_PI/(2*aspectRatio_d)*n*(
+          dfdz(psi,n,k)*var[i] +
+          dfdz(var,n,k)*psi[i]
           );
       // Contribution FROM var[n=0]
       dVardt[i] +=
-        -n*M_PI/aspectRatio*psi[i]*dfdz(var,0,k,nZ,oodz);
+        -n*M_PI/aspectRatio_d*psi[i]*dfdz(var,0,k);
     }
   }
 }
@@ -132,54 +139,53 @@ __global__
 void gpu_computeNonlinearDerivative(
     gpu_mode *dVardt, const gpu_mode *var,
     const gpu_mode *psi,
-    const int nN, const int nZ, const real aspectRatio, const real oodz,
     const int vorticityFactor) {
   int n_index = blockIdx.x*blockDim.x + threadIdx.x;
   int n_stride = blockDim.x*gridDim.x;
   int k_index = blockIdx.y*blockDim.y + threadIdx.y;
   int k_stride = blockDim.y*gridDim.y;
-  for(int n=1+n_index; n<nN; n+=n_stride) {
+  for(int n=1+n_index; n<nN_d; n+=n_stride) {
     // Contribution FROM var[n>0] and vars.omg[n>0]
     int o;
     for(int m=1; m<n; ++m){
       // Case n = n' + n''
       o = n-m;
-      for(int k=1+k_index; k<nZ-1; k+=k_stride) {
+      for(int k=1+k_index; k<nZ_d-1; k+=k_stride) {
         int im = calcIndex(m,k);
         int io = calcIndex(o,k);
         int in = calcIndex(n,k);
         dVardt[in] +=
-          -M_PI/(2.0*aspectRatio)*(
-          -m*dfdz(psi,o,k,nZ,oodz)*var[im]
-          +o*dfdz(var,m,k,nZ,oodz)*psi[io]
+          -M_PI/(2.0*aspectRatio_d)*(
+          -m*dfdz(psi,o,k)*var[im]
+          +o*dfdz(var,m,k)*psi[io]
           );
       }
     }
-    for(int m=n+1; m<nN; ++m){
+    for(int m=n+1; m<nN_d; ++m){
       // Case n = n' - n''
       o = m-n;
-      for(int k=1+k_index; k<nZ-1; k+=k_stride) {
+      for(int k=1+k_index; k<nZ_d-1; k+=k_stride) {
         int im = calcIndex(m,k);
         int io = calcIndex(o,k);
         int in = calcIndex(n,k);
         dVardt[in] +=
-          -M_PI/(2.0*aspectRatio)*(
-          +m*dfdz(psi,o,k,nZ,oodz)*var[im]
-          +o*dfdz(var,m,k,nZ,oodz)*psi[io]
+          -M_PI/(2.0*aspectRatio_d)*(
+          +m*dfdz(psi,o,k)*var[im]
+          +o*dfdz(var,m,k)*psi[io]
           );
       }
     }
-    for(int m=1; m+n<nN; ++m){
+    for(int m=1; m+n<nN_d; ++m){
       // Case n= n'' - n'
       o = n+m;
-      for(int k=1+k_index; k<nZ-1; k+=k_stride) {
+      for(int k=1+k_index; k<nZ_d-1; k+=k_stride) {
         int im = calcIndex(m,k);
         int io = calcIndex(o,k);
         int in = calcIndex(n,k);
         dVardt[in] +=
-          vorticityFactor*M_PI/(2.0*aspectRatio)*(
-          +m*dfdz(psi,o,k,nZ,oodz)*var[im]
-          +o*dfdz(var,m,k,nZ,oodz)*psi[io]
+          vorticityFactor*M_PI/(2.0*aspectRatio_d)*(
+          +m*dfdz(psi,o,k)*var[im]
+          +o*dfdz(var,m,k)*psi[io]
           );
       }
     }
@@ -194,6 +200,17 @@ SimGPU::SimGPU(const Constants &c_in)
   dt = c.initialDt;
 
   thomasAlgorithm = new ThomasAlgorithmGPU(c.nZ, c.nN, c.aspectRatio, c.oodz2);
+
+  gpuErrchk(cudaMemcpyToSymbol(nX_d, &c.nX, sizeof(c.nX), 0, cudaMemcpyHostToDevice));
+  gpuErrchk(cudaMemcpyToSymbol(nN_d, &c.nN, sizeof(c.nN), 0, cudaMemcpyHostToDevice));
+  gpuErrchk(cudaMemcpyToSymbol(nZ_d, &c.nZ, sizeof(c.nZ), 0, cudaMemcpyHostToDevice));
+  gpuErrchk(cudaMemcpyToSymbol(oodz_d, &c.oodz, sizeof(c.oodz), 0, cudaMemcpyHostToDevice));
+  gpuErrchk(cudaMemcpyToSymbol(oodz2_d, &c.oodz2, sizeof(c.oodz2), 0, cudaMemcpyHostToDevice));
+  gpuErrchk(cudaMemcpyToSymbol(aspectRatio_d, &c.aspectRatio, sizeof(c.aspectRatio), 0, cudaMemcpyHostToDevice));
+  gpuErrchk(cudaMemcpyToSymbol(Ra_d, &c.Ra, sizeof(c.Ra), 0, cudaMemcpyHostToDevice));
+  gpuErrchk(cudaMemcpyToSymbol(Pr_d, &c.Pr, sizeof(c.Pr), 0, cudaMemcpyHostToDevice));
+  gpuErrchk(cudaMemcpyToSymbol(tau_d, &c.tau, sizeof(c.tau), 0, cudaMemcpyHostToDevice));
+  gpuErrchk(cudaMemcpyToSymbol(RaXi_d, &c.RaXi, sizeof(c.RaXi), 0, cudaMemcpyHostToDevice));
 }
 
 SimGPU::~SimGPU() {
@@ -203,21 +220,19 @@ SimGPU::~SimGPU() {
 void SimGPU::computeLinearTemperatureDerivative() {
   dim3 threadsPerBlock(c.threadsPerBlock_x,c.threadsPerBlock_y);
   dim3 numBlocks((c.nN + threadsPerBlock.x - 1)/threadsPerBlock.x, (c.nZ - 2 + threadsPerBlock.y - 1)/threadsPerBlock.y);
-  gpu_computeLinearTemperatureDerivative<<<numBlocks,threadsPerBlock>>>(vars.dTmpdt.getCurrent(), vars.tmp.getCurrent(), c.nN, c.nZ, c.aspectRatio, c.oodz2);
+  gpu_computeLinearTemperatureDerivative<<<numBlocks,threadsPerBlock>>>(vars.dTmpdt.getCurrent(), vars.tmp.getCurrent());
 }
 
 void SimGPU::computeLinearVorticityDerivative() {
   dim3 threadsPerBlock(c.threadsPerBlock_x,c.threadsPerBlock_y);
   dim3 numBlocks((c.nN + threadsPerBlock.x - 1)/threadsPerBlock.x, (c.nZ - 2 + threadsPerBlock.y - 1)/threadsPerBlock.y);
-  gpu_computeLinearVorticityDerivative<<<numBlocks,threadsPerBlock>>>(vars.dOmgdt.getCurrent(), vars.omg.getCurrent(), vars.tmp.getCurrent(),
-    c.nN, c.nZ, c.aspectRatio, c.Ra, c.Pr, c.oodz2);
+  gpu_computeLinearVorticityDerivative<<<numBlocks,threadsPerBlock>>>(vars.dOmgdt.getCurrent(), vars.omg.getCurrent(), vars.tmp.getCurrent());
 }
 
 void SimGPU::computeLinearXiDerivative() {
   dim3 threadsPerBlock(c.threadsPerBlock_x,c.threadsPerBlock_y);
   dim3 numBlocks((c.nN + threadsPerBlock.x - 1)/threadsPerBlock.x, (c.nZ - 2 + threadsPerBlock.y - 1)/threadsPerBlock.y);
-  gpu_computeLinearXiDerivative<<<numBlocks,threadsPerBlock>>>(vars.dXidt.getCurrent(), vars.xi.getCurrent(), vars.dOmgdt.getCurrent(), vars.omg.getCurrent(),
-    c.nN, c.nZ, c.tau, c.aspectRatio, c.RaXi, c.Pr, c.oodz2);
+  gpu_computeLinearXiDerivative<<<numBlocks,threadsPerBlock>>>(vars.dXidt.getCurrent(), vars.xi.getCurrent(), vars.dOmgdt.getCurrent(), vars.omg.getCurrent());
 }
 
 void SimGPU::computeLinearDerivatives() {
@@ -235,16 +250,14 @@ void SimGPU::addAdvectionApproximation() {
   dim3 numBlocks((c.nN - 1 + threadsPerBlock.x - 1)/threadsPerBlock.x, (c.nZ - 2 + threadsPerBlock.y - 1)/threadsPerBlock.y);
   dim3 fillThreadsPerBlock(c.threadsPerBlock_x*c.threadsPerBlock_y);
   dim3 fillNumBlocks((c.nZ - 1 + fillThreadsPerBlock.x)/fillThreadsPerBlock.x);
-  gpu_fillMode<<<fillNumBlocks,fillThreadsPerBlock>>>(vars.dOmgdt.getCurrent(), makeComplex(0.0, 0.0), 0, c.nZ);
-  gpu_fillMode<<<fillNumBlocks,fillThreadsPerBlock>>>(vars.dTmpdt.getCurrent(), makeComplex(0.0, 0.0), 0, c.nZ);
+  gpu_fillMode<<<fillNumBlocks,fillThreadsPerBlock>>>(vars.dOmgdt.getCurrent(), makeComplex(0.0, 0.0), 0);
+  gpu_fillMode<<<fillNumBlocks,fillThreadsPerBlock>>>(vars.dTmpdt.getCurrent(), makeComplex(0.0, 0.0), 0);
   gpu_addAdvectionApproximation<<<numBlocks,threadsPerBlock>>>(
-      vars.dTmpdt.getCurrent(), vars.tmp.getCurrent(), vars.psi.getCurrent(),
-      c.nN, c.nZ, c.aspectRatio, c.oodz);
+      vars.dTmpdt.getCurrent(), vars.tmp.getCurrent(), vars.psi.getCurrent());
   if(c.isDoubleDiffusion) {
-    gpu_fillMode<<<fillNumBlocks,fillThreadsPerBlock>>>(vars.dXidt.getCurrent(), makeComplex(0.0, 0.0), 0, c.nZ);
+    gpu_fillMode<<<fillNumBlocks,fillThreadsPerBlock>>>(vars.dXidt.getCurrent(), makeComplex(0.0, 0.0), 0);
     gpu_addAdvectionApproximation<<<numBlocks,threadsPerBlock>>>(
-        vars.dXidt.getCurrent(), vars.xi.getCurrent(), vars.psi.getCurrent(),
-        c.nN, c.nZ, c.aspectRatio, c.oodz);
+        vars.dXidt.getCurrent(), vars.xi.getCurrent(), vars.psi.getCurrent());
   }
 }
 
@@ -265,35 +278,30 @@ void SimGPU::computeNonlinearTemperatureDerivative() {
   // Calculate n=0 gpu_mode
   dim3 n0ThreadsPerBlock(c.threadsPerBlock_x*c.threadsPerBlock_y);
   dim3 n0NumBlocks((c.nZ - 1 + n0ThreadsPerBlock.x)/n0ThreadsPerBlock.x);
-  gpu_computeNonlinearDerivativeN0<<<n0NumBlocks,n0ThreadsPerBlock>>>(vars.dTmpdt.getCurrent(), vars.tmp.getCurrent(), vars.psi.getCurrent(), 
-      c.nN, c.nZ, c.aspectRatio, c.oodz);
+  gpu_computeNonlinearDerivativeN0<<<n0NumBlocks,n0ThreadsPerBlock>>>(vars.dTmpdt.getCurrent(), vars.tmp.getCurrent(), vars.psi.getCurrent());
 
   // Calculate other gpu_modes
   dim3 threadsPerBlock(c.threadsPerBlock_x,c.threadsPerBlock_y);
   dim3 numBlocks((c.nN + threadsPerBlock.x - 1)/threadsPerBlock.x, (c.nZ - 2 + threadsPerBlock.y - 1)/threadsPerBlock.y);
-  gpu_computeNonlinearDerivative<<<numBlocks,threadsPerBlock>>>(vars.dTmpdt.getCurrent(), vars.tmp.getCurrent(), vars.psi.getCurrent(), 
-      c.nN, c.nZ, c.aspectRatio, c.oodz, -1);
+  gpu_computeNonlinearDerivative<<<numBlocks,threadsPerBlock>>>(vars.dTmpdt.getCurrent(), vars.tmp.getCurrent(), vars.psi.getCurrent(), -1);
 }
 
 void SimGPU::computeNonlinearXiDerivative() {
   // Calculate n=0 gpu_mode
   dim3 n0ThreadsPerBlock(c.threadsPerBlock_x*c.threadsPerBlock_y);
   dim3 n0NumBlocks((c.nZ - 1 + n0ThreadsPerBlock.x)/n0ThreadsPerBlock.x);
-  gpu_computeNonlinearDerivativeN0<<<n0NumBlocks,n0ThreadsPerBlock>>>(vars.dXidt.getCurrent(), vars.xi.getCurrent(), vars.psi.getCurrent(), 
-      c.nN, c.nZ, c.aspectRatio, c.oodz);
+  gpu_computeNonlinearDerivativeN0<<<n0NumBlocks,n0ThreadsPerBlock>>>(vars.dXidt.getCurrent(), vars.xi.getCurrent(), vars.psi.getCurrent());
 
   // Calculate other gpu_modes
   dim3 threadsPerBlock(c.threadsPerBlock_x,c.threadsPerBlock_y);
   dim3 numBlocks((c.nN + threadsPerBlock.x - 1)/threadsPerBlock.x, (c.nZ - 2 + threadsPerBlock.y - 1)/threadsPerBlock.y);
-  gpu_computeNonlinearDerivative<<<numBlocks,threadsPerBlock>>>(vars.dXidt.getCurrent(), vars.xi.getCurrent(), vars.psi.getCurrent(), 
-      c.nN, c.nZ, c.aspectRatio, c.oodz, -1);
+  gpu_computeNonlinearDerivative<<<numBlocks,threadsPerBlock>>>(vars.dXidt.getCurrent(), vars.xi.getCurrent(), vars.psi.getCurrent(), -1);
 }
 
 void SimGPU::computeNonlinearVorticityDerivative() {
   dim3 threadsPerBlock(c.threadsPerBlock_x,c.threadsPerBlock_y);
   dim3 numBlocks((c.nN - 1 + threadsPerBlock.x - 1)/threadsPerBlock.x, (c.nZ - 2 + threadsPerBlock.y - 1)/threadsPerBlock.y);
-  gpu_computeNonlinearDerivative<<<numBlocks,threadsPerBlock>>>(vars.dOmgdt.getCurrent(), vars.omg.getCurrent(), vars.psi.getCurrent(), 
-      c.nN, c.nZ, c.aspectRatio, c.oodz, 1);
+  gpu_computeNonlinearDerivative<<<numBlocks,threadsPerBlock>>>(vars.dOmgdt.getCurrent(), vars.omg.getCurrent(), vars.psi.getCurrent(), 1);
 }
 
 void SimGPU::runNonLinearStep(real f) {
