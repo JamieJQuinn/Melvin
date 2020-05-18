@@ -116,7 +116,7 @@ void gpu_computeNonlinearDerivativeN0(
     for(int n=1; n<nN; ++n) {
       // Contribution TO var[n=0]
       int i=calcIndex(n,k);
-      dVardt[k+0*nZ] +=
+      dVardt[calcIndex(0,k)] +=
         -M_PI/(2*aspectRatio)*n*(
           dfdz(psi,n,k,nZ,oodz)*var[i] +
           dfdz(var,n,k,nZ,oodz)*psi[i]
