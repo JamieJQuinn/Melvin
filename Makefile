@@ -64,9 +64,17 @@ debug: $(BUILD_DIR) $(BUILD_DIR)/$(EXECUTABLE)
 
 .PHONY: gpu
 gpu: CFLAGS += -DCUDA -DNDEBUG -O2 --device-c
+gpu: LDFLAGS += -lfftw3 -lm
 gpu: OBJECTS += $(GPU_OBJECTS)
 gpu: CC = nvcc
 gpu: $(BUILD_DIR) $(GPU_OBJECTS) $(BUILD_DIR)/$(EXECUTABLE)
+
+.PHONY: gpu-debug
+gpu-debug: CFLAGS += -DCUDA -DDEBUG --device-c -g -pg
+gpu-debug: LDFLAGS += -pg -lfftw3 -lm
+gpu-debug: OBJECTS += $(GPU_OBJECTS)
+gpu-debug: CC = nvcc
+gpu-debug: $(BUILD_DIR) $(GPU_OBJECTS) $(BUILD_DIR)/$(EXECUTABLE)
 
 .PHONY: gpu-test
 gpu-test: CFLAGS += -DCUDA -pg
