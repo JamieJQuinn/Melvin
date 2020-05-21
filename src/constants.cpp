@@ -40,7 +40,7 @@ void Constants::calculateDerivedConstants() {
   oodz2 = pow(1.0/dz, 2);
   oodz = 1.0/dz;
   oodx = 1.0/dx;
-  nG = 1;
+  nG = 2;
 }
 
 void Constants::print() const {

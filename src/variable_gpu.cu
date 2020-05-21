@@ -29,9 +29,24 @@ void gpu_update(gpu_mode *var, const gpu_mode *dVardt, const gpu_mode *dVardtPre
   }
 }
 
+__global__
+void normalise_fft(gpu_mode *data) {
+  int n_index = blockIdx.x*blockDim.x + threadIdx.x;
+  int n_stride = blockDim.x*gridDim.x;
+  int k_index = blockIdx.y*blockDim.y + threadIdx.y;
+  int k_stride = blockDim.y*gridDim.y;
+  for(int n=n_index; n<nN_d; n+=n_stride) {
+    for(int k=k_index; k<nZ_d; k+=k_stride) {
+      int i=calcIndex(n, k);
+      data[i] = data[i]*(1.0/nX_d);
+    }
+  }
+}
+
 void VariableGPU::initialiseData(mode initialValue) {
   Variable::initialiseData(initialValue);
   gpuErrchk(cudaMalloc(&data_d, totalSize()*sizeof(gpu_mode)));
+  gpuErrchk(cudaMalloc(&spatialData_d, totalSize()*sizeof(real)));
   fill(initialValue);
   gpuErrchk(cudaMemcpyToSymbol(nG_d, &nG, sizeof(nG), 0, cudaMemcpyHostToDevice));
 }
@@ -39,6 +54,7 @@ void VariableGPU::initialiseData(mode initialValue) {
 void VariableGPU::fill(const mode value) {
   for(int i=0; i<this->totalSize(); ++i) {
     data[i] = value;
+    spatialData[i] = value.real();
   }
   copyToDevice();
 }
@@ -102,4 +118,70 @@ gpu_mode* VariableGPU::getPlus(int nSteps) {
 
 const gpu_mode* VariableGPU::getPlus(int nSteps) const {
   return (gpu_mode*)(data_d + ((current+nSteps)%totalSteps)*varSize());
+}
+
+void VariableGPU::setupFFTW() {
+  int rank = 1;
+  int n[] = {nX};
+  int inembed[] = {rowSize()};
+  int istride = 1;
+  int idist = rowSize();
+  int onembed[] = {rowSize()};
+  int ostride = 1;
+  int odist = rowSize();
+  int batch = nZ;
+
+  cufftType type = CUFFT_D2Z;
+  cufftResult result = cufftPlanMany(&cufftForwardPlan,
+      rank, n,
+      inembed, istride, idist,
+      onembed, ostride, odist,
+      type, batch);
+
+  if(result != CUFFT_SUCCESS) {
+    std::cerr << "cuFFT forward plan could not be created" << std::endl;
+  }
+
+  type = CUFFT_Z2D;
+  result = cufftPlanMany(&cufftBackwardPlan,
+      rank, n,
+      inembed, istride, idist,
+      onembed, ostride, odist,
+      type, batch);
+
+  if(result != CUFFT_SUCCESS) {
+    std::cerr << "cuFFT backward plan could not be created" << std::endl;
+  }
+}
+
+void VariableGPU::toSpectral() {
+  real *spatial = spatialData_d + calcIndex(0,0);
+  //real *spatial = &spatialData_d[calcIndex(0,0)];
+  //real *spatial = spatialData_d + 2;
+  gpu_mode *spectral = getCurrent() + calcIndex(0,0);
+  //gpu_mode *spectral = data_d + calcIndex(0,0);
+  //gpu_mode *spectral = data_d;
+
+  cufftResult result = cufftExecD2Z(cufftForwardPlan, (cufftDoubleReal*)spatial, (cufftDoubleComplex*)spectral);
+
+  if(result != CUFFT_SUCCESS) {
+    std::cerr << "cuFFT forward plan could not be executed. Error:" << result << std::endl;
+    //cudaPointerAttributes attributes;
+    //cudaPointerGetAttributes(&attributes, spectral);
+    //std::cout << attributes.type << std::endl;
+  }
+
+  //dim3 threadsPerBlock(threadsPerBlock_x,threadsPerBlock_y);
+  //dim3 numBlocks((nN + threadsPerBlock.x - 1)/threadsPerBlock.x, (nZ - 2 + threadsPerBlock.y - 1)/threadsPerBlock.y);
+  //normalise_fft<<<numBlocks,threadsPerBlock>>>(data_d);
+}
+
+void VariableGPU::toPhysical() {
+  real *spatial = spatialData_d + calcIndex(0,0);
+  gpu_mode *spectral = getCurrent() + calcIndex(0,0);
+
+  cufftResult result = cufftExecZ2D(cufftBackwardPlan, (cufftDoubleComplex*)spectral, (cufftDoubleReal*)spatial);
+  if(result != CUFFT_SUCCESS) {
+    std::cerr << "cuFFT backward plan could not be executed. Error:"<< result << std::endl;
+  }
 }

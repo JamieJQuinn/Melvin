@@ -27,6 +27,7 @@ class SimGPU {
     void computeLinearVorticityDerivative();
     void computeLinearXiDerivative();
 
+    void computeNonlinearDerivativeSpectralTransform(VariableGPU &dVardt, const VariableGPU &var);
     void computeNonlinearDerivatives();
     void computeNonlinearTemperatureDerivative();
     void computeNonlinearXiDerivative();
@@ -43,4 +44,5 @@ class SimGPU {
 
   private:
     ThomasAlgorithmGPU *thomasAlgorithm;
+    VariableGPU nonlinearTerm;
 };

@@ -1,4 +1,5 @@
 #include <sim_gpu.hpp>
+#include <variable_gpu.hpp>
 
 #include <precision.hpp>
 #include <numerical_methods.hpp>
@@ -15,6 +16,7 @@ __device__ __constant__ int nX_d;
 __device__ __constant__ int nN_d;
 __device__ __constant__ int nZ_d;
 __device__ __constant__ real oodz_d;
+__device__ __constant__ real oodx_d;
 __device__ __constant__ real oodz2_d;
 __device__ __constant__ real aspectRatio_d;
 __device__ __constant__ real Ra_d;
@@ -30,6 +32,16 @@ gpu_mode dfdz2(const gpu_mode *data, const int n, const int k) {
 __device__
 gpu_mode dfdz(const gpu_mode *data, const int n, const int k) {
   return (data[calcIndex(n, k+1)] - data[calcIndex(n, k-1)])*oodz_d*0.5;
+}
+
+__device__
+real dfdz_s(const real *data, const int i, const int k) {
+  return (data[calcIndex(i, k+1)] - data[calcIndex(i, k-1)])*oodz_d*0.5;
+}
+
+__device__
+real dfdx_s(const real *data, const int i, const int k) {
+  return (data[calcIndex(i+1, k)] - data[calcIndex(i-1, k)])*oodz_d*0.5;
 }
 
 __device__
@@ -114,6 +126,22 @@ void gpu_addAdvectionApproximation(
 }
 
 __global__
+void gpu_plusEquals(
+    gpu_mode *var1, const gpu_mode *var2) {
+  int n_index = blockIdx.x*blockDim.x + threadIdx.x;
+  int n_stride = blockDim.x*gridDim.x;
+  int k_index = blockIdx.y*blockDim.y + threadIdx.y;
+  int k_stride = blockDim.y*gridDim.y;
+  for(int n=n_index; n<nN_d; n+=n_stride) {
+    for(int k=k_index; k<nZ_d; k+=k_stride) {
+      int i=calcIndex(n,k);
+      var1[i] += var2[i];
+    }
+  }
+}
+
+
+__global__
 void gpu_computeNonlinearDerivativeN0(
     gpu_mode *dVardt, const gpu_mode *var,
     const gpu_mode *psi) {
@@ -192,12 +220,36 @@ void gpu_computeNonlinearDerivative(
   }
 }
 
+__global__
+void gpu_computeNonlinearDerivativeSpectralTransform(real *nonlinearTerm, const real *var, const real *psi) {
+  int i_index = blockIdx.x*blockDim.x + threadIdx.x;
+  int i_stride = blockDim.x*gridDim.x;
+  int k_index = blockIdx.y*blockDim.y + threadIdx.y;
+  int k_stride = blockDim.y*gridDim.y;
+  for(int i=i_index; i<nX_d; i+=i_stride) {
+    for(int k=k_index; k<nZ_d; k+=k_stride) {
+      int ix = calcIndex(i, k);
+      nonlinearTerm[ix] = 
+        -(
+            (var[calcIndex(i+1,k)]*-dfdz_s(psi,i+1,k) -
+             var[calcIndex(i-1,k)]*-dfdz_s(psi,i-1,k))*oodx_d*0.5 +
+            (var[calcIndex(i,k+1)]* dfdx_s(psi,i,k+1) -
+             var[calcIndex(i,k-1)]* dfdx_s(psi,i,k-1))*oodz_d*0.5
+         );
+    }
+  }
+}
+
 SimGPU::SimGPU(const Constants &c_in)
   : c(c_in)
   , vars(c_in)
   , keTracker(c_in)
+  , nonlinearTerm(c_in)
 {
   dt = c.initialDt;
+
+  nonlinearTerm.initialiseData();
+  nonlinearTerm.setupFFTW();
 
   thomasAlgorithm = new ThomasAlgorithmGPU(c.nZ, c.nN, c.aspectRatio, c.oodz2);
 
@@ -205,6 +257,7 @@ SimGPU::SimGPU(const Constants &c_in)
   gpuErrchk(cudaMemcpyToSymbol(nN_d, &c.nN, sizeof(c.nN), 0, cudaMemcpyHostToDevice));
   gpuErrchk(cudaMemcpyToSymbol(nZ_d, &c.nZ, sizeof(c.nZ), 0, cudaMemcpyHostToDevice));
   gpuErrchk(cudaMemcpyToSymbol(oodz_d, &c.oodz, sizeof(c.oodz), 0, cudaMemcpyHostToDevice));
+  gpuErrchk(cudaMemcpyToSymbol(oodx_d, &c.oodx, sizeof(c.oodx), 0, cudaMemcpyHostToDevice));
   gpuErrchk(cudaMemcpyToSymbol(oodz2_d, &c.oodz2, sizeof(c.oodz2), 0, cudaMemcpyHostToDevice));
   gpuErrchk(cudaMemcpyToSymbol(aspectRatio_d, &c.aspectRatio, sizeof(c.aspectRatio), 0, cudaMemcpyHostToDevice));
   gpuErrchk(cudaMemcpyToSymbol(Ra_d, &c.Ra, sizeof(c.Ra), 0, cudaMemcpyHostToDevice));
@@ -274,6 +327,14 @@ void SimGPU::runLinearStep() {
   solveForPsi();
 }
 
+void SimGPU::computeNonlinearDerivativeSpectralTransform(VariableGPU& dVardt, const VariableGPU& var) {
+  dim3 threadsPerBlock(c.threadsPerBlock_x,c.threadsPerBlock_y);
+  dim3 numBlocks((c.nX - 1 + threadsPerBlock.x - 1)/threadsPerBlock.x, (c.nZ - 2 + threadsPerBlock.y - 1)/threadsPerBlock.y);
+  gpu_computeNonlinearDerivativeSpectralTransform<<<numBlocks,threadsPerBlock>>>(nonlinearTerm.spatialData_d, var.spatialData_d, vars.psi.spatialData_d);
+  nonlinearTerm.toSpectral();
+  gpu_plusEquals<<<numBlocks,threadsPerBlock>>>(dVardt.data_d, nonlinearTerm.data_d);
+}
+
 void SimGPU::computeNonlinearTemperatureDerivative() {
   // Calculate n=0 gpu_mode
   dim3 n0ThreadsPerBlock(c.threadsPerBlock_x*c.threadsPerBlock_y);
@@ -312,11 +373,49 @@ void SimGPU::runNonLinearStep(real f) {
   solveForPsi();
 }
 
+//void SimGPU::computeNonlinearDerivatives() {
+  //computeNonlinearTemperatureDerivative();
+  //computeNonlinearVorticityDerivative();
+  //if(c.isDoubleDiffusion) {
+    //computeNonlinearXiDerivative();
+  //}
+//}
+
 void SimGPU::computeNonlinearDerivatives() {
-  computeNonlinearTemperatureDerivative();
-  computeNonlinearVorticityDerivative();
+  vars.psi.toPhysical();
+
+  gpuErrchk(cudaMemcpy(vars.psi.spatialData, vars.psi.spatialData_d, vars.psi.totalSize()*sizeof(vars.psi.spatialData[0]), cudaMemcpyDeviceToHost));
+  for(int i=0; i<400; ++i) {
+    std::cout << vars.psi.spatialData[i] << std::endl;
+  }
+  vars.tmp.toPhysical();
+  gpuErrchk(cudaMemcpy(vars.tmp.spatialData, vars.tmp.spatialData_d, vars.tmp.totalSize()*sizeof(vars.tmp.spatialData[0]), cudaMemcpyDeviceToHost));
+  for(int i=0; i<400; ++i) {
+    std::cout << vars.tmp.spatialData[i] << std::endl;
+  }
+  vars.omg.toPhysical();
+  gpuErrchk(cudaMemcpy(vars.omg.spatialData, vars.omg.spatialData_d, vars.omg.totalSize()*sizeof(vars.omg.spatialData[0]), cudaMemcpyDeviceToHost));
+  for(int i=0; i<400; ++i) {
+    std::cout << vars.omg.spatialData[i] << std::endl;
+  }
+  computeNonlinearDerivativeSpectralTransform(vars.dOmgdt, vars.omg);
+  gpuErrchk(cudaMemcpy(vars.dOmgdt.data, vars.dOmgdt.data_d, vars.dOmgdt.totalSize()*sizeof(vars.dOmgdt.data[0]), cudaMemcpyDeviceToHost));
+  for(int i=0; i<400; ++i) {
+    std::cout << vars.dOmgdt.data[i] << std::endl;
+  }
+  computeNonlinearDerivativeSpectralTransform(vars.dTmpdt, vars.tmp);
+  gpuErrchk(cudaMemcpy(vars.dTmpdt.data, vars.dTmpdt.data_d, vars.dTmpdt.totalSize()*sizeof(vars.dTmpdt.data[0]), cudaMemcpyDeviceToHost));
+  for(int i=0; i<400; ++i) {
+    std::cout << vars.dTmpdt.data[i] << std::endl;
+  }
+  //exit(0);
+  //vars.dTmpdt.copyToHost();
+  //for(int i=300; i<400; ++i) {
+    //std::cout << vars.dTmpdt.data[i] << std::endl;
+  //}
   if(c.isDoubleDiffusion) {
-    computeNonlinearXiDerivative();
+    vars.xi.toPhysical();
+    computeNonlinearDerivativeSpectralTransform(vars.dXidt, vars.xi);
   }
 }
 

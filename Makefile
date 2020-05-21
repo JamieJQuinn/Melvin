@@ -63,8 +63,8 @@ debug: LDFLAGS += -pg -lfftw3 -lm
 debug: $(BUILD_DIR) $(BUILD_DIR)/$(EXECUTABLE)
 
 .PHONY: gpu
-gpu: CFLAGS += -DCUDA -DNDEBUG -O2 --device-c
-gpu: LDFLAGS += -lfftw3 -lm
+gpu: CFLAGS += -DCUDA -DNDEBUG -O2 --use_fast_math --device-c -I/opt/cuda/include
+gpu: LDFLAGS += -lfftw3 -lm -lcufft
 gpu: OBJECTS += $(GPU_OBJECTS)
 gpu: CC = nvcc
 gpu: $(BUILD_DIR) $(GPU_OBJECTS) $(BUILD_DIR)/$(EXECUTABLE)
@@ -77,8 +77,8 @@ gpu-debug: CC = nvcc
 gpu-debug: $(BUILD_DIR) $(GPU_OBJECTS) $(BUILD_DIR)/$(EXECUTABLE)
 
 .PHONY: gpu-test
-gpu-test: CFLAGS += -DCUDA -pg
-gpu-test: LDFLAGS += -pg
+gpu-test: CFLAGS += -DCUDA -pg --device-c
+gpu-test: LDFLAGS += -pg -lfftw3 -lcufft
 gpu-test: CC = nvcc
 gpu-test: $(BUILD_DIR) $(BUILD_DIR)/$(GPU_TEST_EXECUTABLE)
 	python3 tools/make_initial_conditions.py --output $(BUILD_DIR)/ICn1nZ128nN64_SF --salt_fingering --n_modes 64 --n_gridpoints 128 --modes $(shell seq 1 63)
@@ -101,7 +101,7 @@ $(BUILD_DIR)/%.o: $(TEST_DIR)/%.cu
 	nvcc $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/$(GPU_TEST_EXECUTABLE): $(OBJECTS) $(GPU_OBJECTS) $(GPU_TEST_OBJECTS) $(TEST_OBJECTS)
-	$(CC) $(LDFLAGS) $(filter-out $(BUILD_DIR)/main.o, $(OBJECTS)) $(GPU_OBJECTS) $(GPU_TEST_OBJECTS) $(TEST_OBJECTS) -o $@
+	$(CC) $(LDFLAGS) $(filter-out $(BUILD_DIR)/main.o , $(OBJECTS)) $(GPU_OBJECTS) $(GPU_TEST_OBJECTS) $(TEST_OBJECTS) -o $@
 
 $(BUILD_DIR)/$(TEST_EXECUTABLE): $(OBJECTS) $(TEST_OBJECTS)
 	$(CC) $(LDFLAGS) $(filter-out $(BUILD_DIR)/main.o, $(OBJECTS)) $(TEST_OBJECTS) -o $@
