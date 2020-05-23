@@ -46,6 +46,29 @@ cat << EOF > test_constants_cpu.json
 }
 EOF
 
+cat << EOF > test_constants_periodic_gpu.json
+{
+  "Pr":0.5,
+  "Ra":1000000,
+  "aspectRatio":3,
+  "icFile":"ICn1nZ128nN64",
+  "initialDt":3e-06,
+  "nN":${n_modes},
+  "nX":${n_transform_points},
+  "nZ":${n_gridpoints},
+  "saveFolder":"./",
+  "timeBetweenSaves":0.01,
+  "isNonlinear":true,
+  "isDoubleDiffusion":false,
+  "totalTime":0.05,
+  "horizontalBoundaryConditions":"periodic",
+
+  "isCudaEnabled":true,
+  "threadsPerBlock_x":16,
+  "threadsPerBlock_y":32
+}
+EOF
+
 cat << EOF > test_constants_periodic.json
 {
   "Pr":0.5,
@@ -65,7 +88,7 @@ cat << EOF > test_constants_periodic.json
 }
 EOF
 
-cat << EOF > test_constants_ddc.json
+cat << EOF > test_constants_ddc_gpu.json
 {
   "Pr":1,
   "Ra":1e6,

@@ -6,7 +6,7 @@
 #include <iostream>
 
 // CUDA constants
-__device__ __constant__ int nG_d;
+__device__ __constant__ int extern nG_d;
 __device__ __constant__ int extern nX_d;
 __device__ __constant__ int extern nN_d;
 __device__ __constant__ int extern nZ_d;
@@ -39,6 +39,7 @@ void normalise_fft(gpu_mode *data) {
     for(int k=k_index; k<nZ_d; k+=k_stride) {
       int i=calcIndex(n, k);
       data[i] = data[i]*(1.0/nX_d);
+      //data[i] = data[i]*0.0;
     }
   }
 }
@@ -48,7 +49,6 @@ void VariableGPU::initialiseData(mode initialValue) {
   gpuErrchk(cudaMalloc(&data_d, totalSize()*sizeof(gpu_mode)));
   gpuErrchk(cudaMalloc(&spatialData_d, totalSize()*sizeof(real)));
   fill(initialValue);
-  gpuErrchk(cudaMemcpyToSymbol(nG_d, &nG, sizeof(nG), 0, cudaMemcpyHostToDevice));
 }
 
 void VariableGPU::fill(const mode value) {
@@ -56,7 +56,7 @@ void VariableGPU::fill(const mode value) {
     data[i] = value;
     spatialData[i] = value.real();
   }
-  copyToDevice();
+  copyToDevice(true);
 }
 
 void VariableGPU::update(const VariableGPU& dVardt, const real dt, const real f) {
@@ -75,24 +75,36 @@ void VariableGPU::writeToFile(std::ofstream& file) {
   Variable::writeToFile(file);
 }
 
-void VariableGPU::copyToDevice() {
+void VariableGPU::copyToDevice(bool copySpatial) {
   gpuErrchk(cudaMemcpy(data_d, data, totalSize()*sizeof(data[0]), cudaMemcpyHostToDevice));
+  if(copySpatial) {
+    gpuErrchk(cudaMemcpy(spatialData_d, spatialData, totalSize()*sizeof(spatialData[0]), cudaMemcpyHostToDevice));
+  }
 }
 
-void VariableGPU::copyToHost() {
+void VariableGPU::copyToHost(bool copySpatial) {
   gpuErrchk(cudaMemcpy(data, data_d, totalSize()*sizeof(data[0]), cudaMemcpyDeviceToHost));
+  if(copySpatial) {
+    gpuErrchk(cudaMemcpy(spatialData, spatialData_d, totalSize()*sizeof(spatialData[0]), cudaMemcpyDeviceToHost));
+  }
 }
 
 VariableGPU::VariableGPU(const Constants &c_in, int totalSteps_in, bool useSinTransform_in):
   Variable(c_in, totalSteps_in)
+  , data_d(nullptr)
+  , spatialData_d(nullptr)
   , threadsPerBlock_x(c_in.threadsPerBlock_x)
   , threadsPerBlock_y(c_in.threadsPerBlock_y)
 {}
 
 VariableGPU::~VariableGPU() {
-  if(data != NULL) {
-    cudaFree(data);
-    data = NULL;
+  if(data_d != nullptr) {
+    cudaFree(data_d);
+    data = nullptr;
+  }
+  if(spatialData_d != nullptr) {
+    cudaFree(spatialData_d);
+    data = nullptr;
   }
 }
 
@@ -154,26 +166,24 @@ void VariableGPU::setupFFTW() {
   }
 }
 
+void VariableGPU::postFFTNormalise() {
+  dim3 threadsPerBlock(threadsPerBlock_x,threadsPerBlock_y);
+  dim3 numBlocks((nN + threadsPerBlock.x - 1)/threadsPerBlock.x, (nZ - 2 + threadsPerBlock.y - 1)/threadsPerBlock.y);
+  normalise_fft<<<numBlocks,threadsPerBlock>>>(data_d);
+}
+
 void VariableGPU::toSpectral() {
   real *spatial = spatialData_d + calcIndex(0,0);
-  //real *spatial = &spatialData_d[calcIndex(0,0)];
-  //real *spatial = spatialData_d + 2;
   gpu_mode *spectral = getCurrent() + calcIndex(0,0);
-  //gpu_mode *spectral = data_d + calcIndex(0,0);
-  //gpu_mode *spectral = data_d;
 
   cufftResult result = cufftExecD2Z(cufftForwardPlan, (cufftDoubleReal*)spatial, (cufftDoubleComplex*)spectral);
 
   if(result != CUFFT_SUCCESS) {
     std::cerr << "cuFFT forward plan could not be executed. Error:" << result << std::endl;
-    //cudaPointerAttributes attributes;
-    //cudaPointerGetAttributes(&attributes, spectral);
-    //std::cout << attributes.type << std::endl;
   }
 
-  //dim3 threadsPerBlock(threadsPerBlock_x,threadsPerBlock_y);
-  //dim3 numBlocks((nN + threadsPerBlock.x - 1)/threadsPerBlock.x, (nZ - 2 + threadsPerBlock.y - 1)/threadsPerBlock.y);
-  //normalise_fft<<<numBlocks,threadsPerBlock>>>(data_d);
+  postFFTNormalise();
+  cudaDeviceSynchronize();
 }
 
 void VariableGPU::toPhysical() {

@@ -162,8 +162,14 @@ void Sim::computeNonlinearDerivative(Variable &dVardt, const Variable &var) {
     for(int ix=0; ix<var.nX; ++ix) {
       nonlinearTerm->spatial(ix,k) = 
         -(
-            (var.spatial(ix+1,k)*(-vars.psi.dfdzSpatial(ix+1,k)) - var.spatial(ix-1,k)*(-vars.psi.dfdzSpatial(ix-1,k)))*c.oodx*0.5 +
-            (var.spatial(ix,k+1)*vars.psi.dfdx(ix,k+1) - var.spatial(ix,k-1)*vars.psi.dfdx(ix,k-1))*c.oodz*0.5
+            (
+             var.spatial(ix+1,k)*(-vars.psi.dfdzSpatial(ix+1,k)) -
+             var.spatial(ix-1,k)*(-vars.psi.dfdzSpatial(ix-1,k))
+            )*c.oodx*0.5 +
+            (
+             var.spatial(ix,k+1)*vars.psi.dfdx(ix,k+1) -
+             var.spatial(ix,k-1)*vars.psi.dfdx(ix,k-1)
+            )*c.oodz*0.5
          );
 
     }

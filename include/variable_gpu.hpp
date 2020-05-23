@@ -23,8 +23,8 @@ class VariableGPU: public Variable {
     void update(const VariableGPU& dVardt, const real dt, const real f=1.0);
     void fill(const mode value);
 
-    void copyToDevice();
-    void copyToHost();
+    void copyToDevice(bool copySpatial=false);
+    void copyToHost(bool copySpatial=false);
 
     gpu_mode * getCurrent();
     const gpu_mode * getCurrent() const;
@@ -36,6 +36,7 @@ class VariableGPU: public Variable {
     void setupFFTW();
     void toSpectral();
     void toPhysical();
+    void postFFTNormalise();
 
     void readFromFile(std::ifstream& file);
     void writeToFile(std::ofstream& file);

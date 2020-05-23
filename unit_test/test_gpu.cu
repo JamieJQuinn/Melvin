@@ -180,8 +180,8 @@ TEST_CASE("GPU Variables class load from file", "[gpu]") {
 }
 
 TEST_CASE("Test cuFFT works at all" "[gpu]") {
-  int nx = 100;
-  int nn = 50;
+  int nx = 256;
+  int nn = nx/2 + 1;
 
   real* spatial = new real[nx];
   mode* spectral = new mode[nn];
@@ -238,20 +238,35 @@ TEST_CASE("Test cuFFT works at all" "[gpu]") {
 }
 
 TEST_CASE("Test cuFFT many plan works" "[gpu]") {
-  int nx = 10;
-  int nn = nx/2 + 1;
-  int nz = 5;
+  // Define base number of modes
+  int nn = 170;
+  // Number of gridpoints to stabalise nonlinear term
+  int nx = 3*nn+1;
+  // Number of modes cufft needs to work with given nx (unrelated to actual number of modes we're using)
+  int cufft_nn = nx/2+1;
+  // Number of z-levels
+  int nz = 256;
+  // Number of ghost points (even so that we have alignment)
+  int nG = 2;
 
-  real* spatial = new real[nx*nz];
-  mode* spectral = new mode[nn*nz];
+  int spatialRowSize = nx + 2*nG;
+  int spectralRowSize = cufft_nn + 2*nG;
+
+  int spatialVarSize = spatialRowSize*(nz+2*nG);
+  int spectralVarSize = spectralRowSize*(nz+2*nG);
+
+
+  real* spatial = new real[spatialVarSize];
+  mode* spectral = new mode[spectralVarSize];
 
   // Initialise spatial data
 
   for(int k=0; k<nz; ++k) {
     for(int ix=0; ix<nx; ++ix) {
       real x = real(ix)/nx;
-      real z = 1.5*k;
-      spatial[ix + k*nx] = 
+      real z = 1.5*(k+1);
+      int index = (k+nG)*spatialRowSize + ix + nG;
+      spatial[index] = 
           z +
           2.0*z*cos(2.0*M_PI*2*x) - 2.0*2.0*sin(2.0*M_PI*2*x) +
           2.0*2.0*cos(2.0*M_PI*3*x) + 2.0*z*sin(2.0*M_PI*3*x);
@@ -263,10 +278,10 @@ TEST_CASE("Test cuFFT many plan works" "[gpu]") {
   real* spatial_d = nullptr;
   gpu_mode* spectral_d = nullptr;
 
-  cudaMalloc(&spatial_d, sizeof(real)*nx*nz);
-  cudaMalloc(&spectral_d, sizeof(gpu_mode)*nn*nz);
+  cudaMalloc(&spatial_d, sizeof(real)*spatialVarSize);
+  cudaMalloc(&spectral_d, sizeof(gpu_mode)*spectralVarSize);
 
-  cudaMemcpy(spatial_d, spatial, sizeof(real)*nx*nz, cudaMemcpyHostToDevice);
+  cudaMemcpy(spatial_d, spatial, sizeof(real)*spatialVarSize, cudaMemcpyHostToDevice);
 
   // Setup plan, run FFT & copy back to host
 
@@ -275,12 +290,12 @@ TEST_CASE("Test cuFFT many plan works" "[gpu]") {
 
   int rank = 1;
   int n[] = {nx};
-  int* inembed = nullptr;
+  int inembed[] = {spatialRowSize};
   int istride = 1;
-  int idist = nx;
-  int* onembed = nullptr;
+  int idist = spatialRowSize;
+  int onembed[] = {spectralRowSize};
   int ostride = 1;
-  int odist = nn;
+  int odist = spectralRowSize;
   int batch = nz;
   cufftType type = CUFFT_D2Z;
 
@@ -291,7 +306,10 @@ TEST_CASE("Test cuFFT many plan works" "[gpu]") {
       type, batch);
   REQUIRE(result == CUFFT_SUCCESS);
 
-  result = cufftExecD2Z(plan, (cufftDoubleReal*)spatial_d, (cufftDoubleComplex*)spectral_d);
+  real *spatialOffset_d = spatial_d + (0+nG)*spatialRowSize + 0 + nG;
+  gpu_mode *spectralOffset_d = spectral_d + (0+nG)*spectralRowSize + 0 + nG;
+
+  result = cufftExecD2Z(plan, (cufftDoubleReal*)spatialOffset_d, (cufftDoubleComplex*)spectralOffset_d);
   REQUIRE(result == CUFFT_SUCCESS);
 
 
@@ -300,21 +318,23 @@ TEST_CASE("Test cuFFT many plan works" "[gpu]") {
     return;
   }
 
-  cudaMemcpy(spectral, spectral_d, sizeof(mode)*nn*nz, cudaMemcpyDeviceToHost);
+  cudaMemcpy(spectral, spectral_d, sizeof(mode)*spectralVarSize, cudaMemcpyDeviceToHost);
 
   // Check
 
   for(int k=0; k<nz; ++k) {
-    //for(int i=0; i<nn; ++i) {
-      //cout << spectral[i + k*nn] << " ";
-    //}
-    //cout << endl;
-    real z = 1.5*k;
-    check_equal(spectral[0 + k*nn].real(), (z*nx));
-    check_equal(spectral[2 + k*nn].real(), (z*nx));
-    check_equal(spectral[2 + k*nn].imag(), (2.0*nx));
-    check_equal(spectral[3 + k*nn].real(), (2.0*nx));
-    check_equal(spectral[3 + k*nn].imag(), (-z*nx));
+    //cout << k << endl;
+    real z = 1.5*(k+1);
+    int index = (k+nG)*spectralRowSize + 0 + nG;
+    check_equal(spectral[index].real(), (z*nx));
+
+    index = (k+nG)*spectralRowSize + 2 + nG;
+    check_equal(spectral[index].real(), (z*nx));
+    check_equal(spectral[index].imag(), (2.0*nx));
+
+    index = (k+nG)*spectralRowSize + 3 + nG;
+    check_equal(spectral[index].real(), (2.0*nx));
+    check_equal(spectral[index].imag(), (-z*nx));
   }
 
   // Cleanup
@@ -326,8 +346,45 @@ TEST_CASE("Test cuFFT many plan works" "[gpu]") {
   delete [] spectral;
 }
 
+TEST_CASE("Test variableGPU forward fft transform" "[gpu]") {
+  Constants c("test_constants_periodic_gpu.json");
+
+  VariableGPU var(c);
+  var.initialiseData();
+  var.setupFFTW();
+
+  // Initialise spatial data
+  for(int k=0; k<c.nZ; ++k) {
+    for(int ix=0; ix<c.nX; ++ix) {
+      real x = real(ix)/c.nX;
+      real z = 1.5*(k+1);
+      var.spatial(ix,k) = 
+          z +
+          2.0*z*cos(2.0*M_PI*2*x) - 2.0*2.0*sin(2.0*M_PI*2*x) +
+          2.0*2.0*cos(2.0*M_PI*3*x) + 2.0*z*sin(2.0*M_PI*3*x);
+    }
+  }
+
+  var.copyToDevice(true);
+
+  var.toSpectral();
+
+  var.copyToHost();
+
+  // Check
+
+  for(int k=0; k<c.nZ; ++k) {
+    real z = 1.5*(k+1);
+    require_equal(var(0,k).real(), z);
+    require_equal(var(2,k).real(), z);
+    require_equal(var(2,k).imag(), 2.0);
+    require_equal(var(3,k).real(), 2.0);
+    require_equal(var(3,k).imag(), -z);
+  }
+}
+
 TEST_CASE("Test cuFFT discrete Fourier transform", "[gpu]") {
-  Constants c("test_constants_periodic.json");
+  Constants c("test_constants_periodic_gpu.json");
 
   VariableGPU var(c);
   var.initialiseData();
@@ -343,7 +400,7 @@ TEST_CASE("Test cuFFT discrete Fourier transform", "[gpu]") {
 
   var.toPhysical();
 
-  var.copyToHost();
+  var.copyToHost(true);
 
   for(int k=0; k<c.nZ; ++k) {
     for(int ix=0; ix<var.nX; ++ix) {
@@ -361,9 +418,9 @@ TEST_CASE("Test cuFFT discrete Fourier transform", "[gpu]") {
   var.copyToHost();
 
   for(int k=0; k<c.nZ; ++k) {
-    check_equal(var(0, k), 5.0 + k);
-    check_equal(var(2, k), 7.0 + 2.0i);
-    check_equal(var(3, k), 2.0 - 10.0i);
+    require_equal(var(0, k), 5.0 + k);
+    require_equal(var(2, k), 7.0 + 2.0i);
+    require_equal(var(3, k), 2.0 - 10.0i);
   }
 }
 

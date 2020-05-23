@@ -4,6 +4,10 @@
 #include <fstream>
 #include <iostream>
 
+#ifdef CUDA
+#include <constants_gpu.hpp>
+#endif
+
 using namespace std::complex_literals;
 
 Constants::Constants() {}
@@ -40,7 +44,24 @@ void Constants::calculateDerivedConstants() {
   oodz2 = pow(1.0/dz, 2);
   oodz = 1.0/dz;
   oodx = 1.0/dx;
-  nG = 2;
+  // The number of ghost points acts as padding for cuFFT alignment
+  // (2*nG + nX)*nG + nG must be even, hence nG must be even if nX even
+  // If nX is odd, parity of nG doesn't matter
+  // TODO there is a better solution to this that doesn't convolve the function of ghost points and padding
+  if(nX%2 == 0) {
+    nG = 2;
+  } else {
+    nG = 1;
+  }
+
+#ifdef CUDA
+  copyGPUConstants(
+      nG, nX, nN, nZ,
+      oodz, oodx, oodz2,
+      aspectRatio,
+      Ra, Pr, RaXi, tau
+    );
+#endif
 }
 
 void Constants::print() const {

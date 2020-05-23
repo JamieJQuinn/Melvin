@@ -12,17 +12,17 @@
 using std::cout;
 using std::endl;
 
-__device__ __constant__ int nX_d;
-__device__ __constant__ int nN_d;
-__device__ __constant__ int nZ_d;
-__device__ __constant__ real oodz_d;
-__device__ __constant__ real oodx_d;
-__device__ __constant__ real oodz2_d;
-__device__ __constant__ real aspectRatio_d;
-__device__ __constant__ real Ra_d;
-__device__ __constant__ real Pr_d;
-__device__ __constant__ real RaXi_d;
-__device__ __constant__ real tau_d;
+__device__ __constant__ extern int nX_d;
+__device__ __constant__ extern int nN_d;
+__device__ __constant__ extern int nZ_d;
+__device__ __constant__ extern real oodz_d;
+__device__ __constant__ extern real oodx_d;
+__device__ __constant__ extern real oodz2_d;
+__device__ __constant__ extern real aspectRatio_d;
+__device__ __constant__ extern real Ra_d;
+__device__ __constant__ extern real Pr_d;
+__device__ __constant__ extern real RaXi_d;
+__device__ __constant__ extern real tau_d;
 
 __device__
 gpu_mode dfdz2(const gpu_mode *data, const int n, const int k) {
@@ -252,18 +252,6 @@ SimGPU::SimGPU(const Constants &c_in)
   nonlinearTerm.setupFFTW();
 
   thomasAlgorithm = new ThomasAlgorithmGPU(c.nZ, c.nN, c.aspectRatio, c.oodz2);
-
-  gpuErrchk(cudaMemcpyToSymbol(nX_d, &c.nX, sizeof(c.nX), 0, cudaMemcpyHostToDevice));
-  gpuErrchk(cudaMemcpyToSymbol(nN_d, &c.nN, sizeof(c.nN), 0, cudaMemcpyHostToDevice));
-  gpuErrchk(cudaMemcpyToSymbol(nZ_d, &c.nZ, sizeof(c.nZ), 0, cudaMemcpyHostToDevice));
-  gpuErrchk(cudaMemcpyToSymbol(oodz_d, &c.oodz, sizeof(c.oodz), 0, cudaMemcpyHostToDevice));
-  gpuErrchk(cudaMemcpyToSymbol(oodx_d, &c.oodx, sizeof(c.oodx), 0, cudaMemcpyHostToDevice));
-  gpuErrchk(cudaMemcpyToSymbol(oodz2_d, &c.oodz2, sizeof(c.oodz2), 0, cudaMemcpyHostToDevice));
-  gpuErrchk(cudaMemcpyToSymbol(aspectRatio_d, &c.aspectRatio, sizeof(c.aspectRatio), 0, cudaMemcpyHostToDevice));
-  gpuErrchk(cudaMemcpyToSymbol(Ra_d, &c.Ra, sizeof(c.Ra), 0, cudaMemcpyHostToDevice));
-  gpuErrchk(cudaMemcpyToSymbol(Pr_d, &c.Pr, sizeof(c.Pr), 0, cudaMemcpyHostToDevice));
-  gpuErrchk(cudaMemcpyToSymbol(tau_d, &c.tau, sizeof(c.tau), 0, cudaMemcpyHostToDevice));
-  gpuErrchk(cudaMemcpyToSymbol(RaXi_d, &c.RaXi, sizeof(c.RaXi), 0, cudaMemcpyHostToDevice));
 }
 
 SimGPU::~SimGPU() {
@@ -383,36 +371,10 @@ void SimGPU::runNonLinearStep(real f) {
 
 void SimGPU::computeNonlinearDerivatives() {
   vars.psi.toPhysical();
-
-  gpuErrchk(cudaMemcpy(vars.psi.spatialData, vars.psi.spatialData_d, vars.psi.totalSize()*sizeof(vars.psi.spatialData[0]), cudaMemcpyDeviceToHost));
-  for(int i=0; i<400; ++i) {
-    std::cout << vars.psi.spatialData[i] << std::endl;
-  }
   vars.tmp.toPhysical();
-  gpuErrchk(cudaMemcpy(vars.tmp.spatialData, vars.tmp.spatialData_d, vars.tmp.totalSize()*sizeof(vars.tmp.spatialData[0]), cudaMemcpyDeviceToHost));
-  for(int i=0; i<400; ++i) {
-    std::cout << vars.tmp.spatialData[i] << std::endl;
-  }
   vars.omg.toPhysical();
-  gpuErrchk(cudaMemcpy(vars.omg.spatialData, vars.omg.spatialData_d, vars.omg.totalSize()*sizeof(vars.omg.spatialData[0]), cudaMemcpyDeviceToHost));
-  for(int i=0; i<400; ++i) {
-    std::cout << vars.omg.spatialData[i] << std::endl;
-  }
   computeNonlinearDerivativeSpectralTransform(vars.dOmgdt, vars.omg);
-  gpuErrchk(cudaMemcpy(vars.dOmgdt.data, vars.dOmgdt.data_d, vars.dOmgdt.totalSize()*sizeof(vars.dOmgdt.data[0]), cudaMemcpyDeviceToHost));
-  for(int i=0; i<400; ++i) {
-    std::cout << vars.dOmgdt.data[i] << std::endl;
-  }
   computeNonlinearDerivativeSpectralTransform(vars.dTmpdt, vars.tmp);
-  gpuErrchk(cudaMemcpy(vars.dTmpdt.data, vars.dTmpdt.data_d, vars.dTmpdt.totalSize()*sizeof(vars.dTmpdt.data[0]), cudaMemcpyDeviceToHost));
-  for(int i=0; i<400; ++i) {
-    std::cout << vars.dTmpdt.data[i] << std::endl;
-  }
-  //exit(0);
-  //vars.dTmpdt.copyToHost();
-  //for(int i=300; i<400; ++i) {
-    //std::cout << vars.dTmpdt.data[i] << std::endl;
-  //}
   if(c.isDoubleDiffusion) {
     vars.xi.toPhysical();
     computeNonlinearDerivativeSpectralTransform(vars.dXidt, vars.xi);
