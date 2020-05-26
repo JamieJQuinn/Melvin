@@ -45,7 +45,6 @@ void normalise_fft(gpu_mode *data) {
 }
 
 void VariableGPU::initialiseData(mode initialValue) {
-  Variable::initialiseData(initialValue);
   gpuErrchk(cudaMalloc(&data_d, totalSize()*sizeof(gpu_mode)));
   gpuErrchk(cudaMalloc(&spatialData_d, totalSize()*sizeof(real)));
   fill(initialValue);
@@ -95,7 +94,10 @@ VariableGPU::VariableGPU(const Constants &c_in, int totalSteps_in, bool useSinTr
   , spatialData_d(nullptr)
   , threadsPerBlock_x(c_in.threadsPerBlock_x)
   , threadsPerBlock_y(c_in.threadsPerBlock_y)
-{}
+{
+  initialiseData();
+  setupcuFFT();
+}
 
 VariableGPU::~VariableGPU() {
   if(data_d != nullptr) {
@@ -132,7 +134,7 @@ const gpu_mode* VariableGPU::getPlus(int nSteps) const {
   return (gpu_mode*)(data_d + ((current+nSteps)%totalSteps)*varSize());
 }
 
-void VariableGPU::setupFFTW() {
+void VariableGPU::setupcuFFT() {
   int rank = 1;
   int n[] = {nX};
   int inembed[] = {rowSize()};

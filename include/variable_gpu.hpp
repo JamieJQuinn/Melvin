@@ -33,7 +33,7 @@ class VariableGPU: public Variable {
     gpu_mode * getPlus(int nSteps=0);
     const gpu_mode* getPlus(int nSteps) const;
 
-    void setupFFTW();
+    void setupcuFFT();
     void toSpectral();
     void toPhysical();
     void postFFTNormalise();

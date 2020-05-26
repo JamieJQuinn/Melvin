@@ -64,8 +64,6 @@ TEST_CASE("Test discrete sine transform inverts", "[]") {
   Constants c("test_constants.json");
 
   Variable var(c, 1, true);
-  var.initialiseData();
-  var.setupFFTW();
 
   for(int ix=0; ix<var.nX; ++ix) {
     for(int k=0; k<c.nZ; ++k) {
@@ -97,8 +95,6 @@ TEST_CASE("Test forward discrete sine transform", "[]") {
   Constants c("test_constants.json");
 
   Variable var(c, 1, true);
-  var.initialiseData();
-  var.setupFFTW();
 
   for(int ix=0; ix<var.nX; ++ix) {
     for(int k=0; k<c.nZ; ++k) {
@@ -123,8 +119,6 @@ TEST_CASE("Test backward discrete sine transform", "[]") {
   Constants c("test_constants.json");
 
   Variable var(c, 1, true);
-  var.initialiseData();
-  var.setupFFTW();
 
   for(int k=0; k<c.nZ; ++k) {
     real z = k/(c.nZ-1.0);
@@ -159,8 +153,6 @@ TEST_CASE("Test discrete cosine transform inverts", "[]") {
   Constants c("test_constants.json");
 
   Variable var(c, 1, false);
-  var.initialiseData();
-  var.setupFFTW();
 
   for(int ix=0; ix<var.nX; ++ix) {
     for(int k=0; k<c.nZ; ++k) {
@@ -184,8 +176,6 @@ TEST_CASE("Test forward discrete cosine transform", "[]") {
   Constants c("test_constants.json");
 
   Variable var(c, 1, false);
-  var.initialiseData();
-  var.setupFFTW();
 
   for(int ix=0; ix<var.nX; ++ix) {
     for(int k=0; k<c.nZ; ++k) {
@@ -216,8 +206,6 @@ TEST_CASE("Test backward discrete cosine transform", "[]") {
   Constants c("test_constants.json");
 
   Variable var(c, 1, false);
-  var.initialiseData();
-  var.setupFFTW();
 
   for(int k=0; k<c.nZ; ++k) {
     var(0, k) = 5.0;
@@ -238,8 +226,6 @@ TEST_CASE("Test discrete Fourier transform", "[]") {
   Constants c("test_constants_periodic.json");
 
   Variable var(c);
-  var.initialiseData();
-  var.setupFFTW();
 
   for(int k=0; k<c.nZ; ++k) {
     var(0, k) = 5.0 + k;
@@ -274,8 +260,6 @@ TEST_CASE("Test complex poisson solver", "[]") {
 
   Sim sim(c);
   Variable psi(c);
-  psi.initialiseData();
-  psi.setupFFTW();
 
   for(int k=0; k<c.nZ; ++k) {
     for(int n=0; n<c.nN; ++n) {
@@ -306,8 +290,6 @@ TEST_CASE("Test simple nonlinear multiplication and transform", "[]") {
   Constants c("test_constants.json");
 
   Variable var1(c, 1, false);
-  var1.initialiseData();
-  var1.setupFFTW();
 
   for(int k=0; k<c.nZ; ++k) {
     var1(0, k) = 5.0;
@@ -315,8 +297,6 @@ TEST_CASE("Test simple nonlinear multiplication and transform", "[]") {
   }
 
   Variable var2(c, 1, false);
-  var2.initialiseData();
-  var2.setupFFTW();
 
   for(int k=0; k<c.nZ; ++k) {
     var2(0, k) = 2.0;
@@ -326,8 +306,6 @@ TEST_CASE("Test simple nonlinear multiplication and transform", "[]") {
   var2.toPhysical();
 
   Variable result(c, 1, false);
-  result.initialiseData();
-  result.setupFFTW();
 
   for(int k=0; k<c.nZ; ++k) {
     for(int i=0; i<result.nX; ++i) {
@@ -349,8 +327,6 @@ TEST_CASE("Test spatial dfdz derivative", "[]") {
   Constants c("test_constants.json");
 
   Variable var(c);
-  var.initialiseData();
-  var.setupFFTW();
 
   for(int i=0; i<var.nX; ++i) {
     for(int k=0; k<c.nZ; ++k) {
@@ -384,8 +360,6 @@ TEST_CASE("Test spatial dfdx derivative", "[]") {
   Constants c("test_constants.json");
 
   Variable var(c);
-  var.initialiseData();
-  var.setupFFTW();
 
   for(int i=0; i<var.nX; ++i) {
     for(int k=0; k<c.nZ; ++k) {
@@ -419,8 +393,6 @@ TEST_CASE("Test spatial nonlinear derivative", "[]") {
   }
 
   Variable nonlinearSpectralTerm(c);
-  nonlinearSpectralTerm.initialiseData();
-  nonlinearSpectralTerm.setupFFTW();
 
   sim.computeNonlinearDerivative(nonlinearSpectralTerm, sim.vars.omg);
 
@@ -447,8 +419,6 @@ TEST_CASE("Test reading and writing from file", "[]") {
   c.calculateDerivedConstants();
 
   Variable tmp(c);
-  tmp.initialiseData();
-  tmp.setupFFTW();
 
   for(int n=0; n<c.nN; ++n) {
     for(int k=0; k<c.nZ; ++k) {
@@ -461,8 +431,6 @@ TEST_CASE("Test reading and writing from file", "[]") {
   outfile.close();
 
   Variable tmp2(c);
-  tmp2.initialiseData();
-  tmp2.setupFFTW();
 
   std::ifstream infile ("./test.dat", std::ios::in | std::ios::binary);
   tmp2.readFromFile(infile);

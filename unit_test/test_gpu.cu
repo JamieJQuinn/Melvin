@@ -141,7 +141,6 @@ TEST_CASE("Make sure copy to and from device works", "[gpu]") {
 
   // Create GPU variables
   VariableGPU tmp(c);
-  tmp.initialiseData();
 
   for(int i=0; i<tmp.totalSize(); ++i) {
     tmp.data[i] = i;
@@ -161,7 +160,7 @@ TEST_CASE("Make sure copy to and from device works", "[gpu]") {
 }
 
 TEST_CASE("GPU Variables class load from file", "[gpu]") {
-  Constants c("test_constants_ddc.json");
+  Constants c("test_constants_ddc_gpu.json");
 
   Sim s(c);
   SimGPU sGPU(c);
@@ -254,7 +253,6 @@ TEST_CASE("Test cuFFT many plan works" "[gpu]") {
 
   int spatialVarSize = spatialRowSize*(nz+2*nG);
   int spectralVarSize = spectralRowSize*(nz+2*nG);
-
 
   real* spatial = new real[spatialVarSize];
   mode* spectral = new mode[spectralVarSize];
@@ -350,8 +348,6 @@ TEST_CASE("Test variableGPU forward fft transform" "[gpu]") {
   Constants c("test_constants_periodic_gpu.json");
 
   VariableGPU var(c);
-  var.initialiseData();
-  var.setupFFTW();
 
   // Initialise spatial data
   for(int k=0; k<c.nZ; ++k) {
@@ -387,8 +383,6 @@ TEST_CASE("Test cuFFT discrete Fourier transform", "[gpu]") {
   Constants c("test_constants_periodic_gpu.json");
 
   VariableGPU var(c);
-  var.initialiseData();
-  var.setupFFTW();
 
   for(int k=0; k<c.nZ; ++k) {
     var(0, k) = 5.0 + k;

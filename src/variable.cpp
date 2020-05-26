@@ -218,6 +218,9 @@ Variable::Variable(const Constants &c_in, const int totalSteps_in, const bool us
       xDerivativeFactor = -c.wavelength;
     }
   }
+
+  initialiseData();
+  setupFFTW();
 }
 
 Variable::~Variable() {
