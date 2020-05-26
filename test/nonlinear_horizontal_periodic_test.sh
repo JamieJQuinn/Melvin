@@ -26,7 +26,7 @@ cat << EOF > $constants_file
 }
 EOF
 
-python3 tools/make_initial_conditions.py --output $save_folder/initial_conditions.dat --n_modes $nN --n_gridpoints $nZ --modes 1
+python3 tools/make_initial_conditions.py --output $save_folder/initial_conditions.dat --perturb_vorticity --n_modes $nN --n_gridpoints $nZ --modes 1
 
 echo "==================== Building program"
 #make clean
