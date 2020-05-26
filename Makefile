@@ -81,17 +81,14 @@ gpu-test: CFLAGS += -DCUDA -pg --device-c
 gpu-test: LDFLAGS += -pg -lfftw3 -lcufft
 gpu-test: CC = nvcc
 gpu-test: $(BUILD_DIR) $(BUILD_DIR)/$(GPU_TEST_EXECUTABLE)
-	python3 tools/make_initial_conditions.py --output $(BUILD_DIR)/ICn1nZ128nN64_SF --salt_fingering --n_modes 64 --n_gridpoints 128 --modes $(shell seq 1 63)
-	python3 tools/make_initial_conditions.py --output $(BUILD_DIR)/ICn1nZ128nN64 --n_modes 64 --n_gridpoints 128 --modes 1
-	cd $(BUILD_DIR); ../test/print_test_constants.sh
+	cd $(BUILD_DIR); ../test/create_test_files.sh
 	cd $(BUILD_DIR); ./$(GPU_TEST_EXECUTABLE)
 
 .PHONY: test
 test: CFLAGS += -DNDEBUG -O2 -fopenmp -pg
 test: LDFLAGS += -fopenmp -pg -lfftw3_omp -lfftw3 -lm
 test: all $(BUILD_DIR)/$(TEST_EXECUTABLE)
-	python3 tools/make_initial_conditions.py --output $(BUILD_DIR)/ICn1nZ128nN64 --n_modes 64 --n_gridpoints 128 --modes 1
-	cd $(BUILD_DIR); ../test/print_test_constants.sh
+	cd $(BUILD_DIR); ../test/create_test_files.sh
 	cd $(BUILD_DIR); ./$(TEST_EXECUTABLE)
 
 $(BUILD_DIR)/%.o: $(TEST_DIR)/%.cpp

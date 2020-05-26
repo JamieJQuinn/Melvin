@@ -9,7 +9,7 @@ cat << EOF > test_constants.json
   "Pr":0.5,
   "Ra":1000000,
   "aspectRatio":3,
-  "icFile":"ICn1nZ128nN64",
+  "icFile":"initial_conditions.dat",
   "initialDt":3e-06,
   "nN":${n_modes},
   "nZ":${n_gridpoints},
@@ -30,7 +30,7 @@ cat << EOF > test_constants_cpu.json
   "Pr":0.5,
   "Ra":1000000,
   "aspectRatio":3,
-  "icFile":"ICn1nZ128nN64",
+  "icFile":"initial_conditions.dat",
   "initialDt":3e-06,
   "nN":${n_modes},
   "nZ":${n_gridpoints},
@@ -51,7 +51,7 @@ cat << EOF > test_constants_periodic_gpu.json
   "Pr":0.5,
   "Ra":1000000,
   "aspectRatio":3,
-  "icFile":"ICn1nZ128nN64",
+  "icFile":"initial_conditions.dat",
   "initialDt":3e-06,
   "nN":${n_modes},
   "nX":${n_transform_points},
@@ -74,7 +74,7 @@ cat << EOF > test_constants_periodic.json
   "Pr":0.5,
   "Ra":1000000,
   "aspectRatio":3,
-  "icFile":"ICn1nZ128nN64",
+  "icFile":"initial_conditions.dat",
   "initialDt":3e-06,
   "nN":${n_modes},
   "nX":${n_transform_points},
@@ -100,7 +100,7 @@ cat << EOF > test_constants_ddc_gpu.json
   "nN":${n_modes},
   "nZ":${n_gridpoints},
 
-  "icFile":"ICn1nZ128nN64_SF",
+  "icFile":"initial_conditions_ddc.dat",
   "saveFolder":"./",
 
   "timeBetweenSaves":0.01,
@@ -114,3 +114,7 @@ cat << EOF > test_constants_ddc_gpu.json
   "threadsPerBlock_y":32
 }
 EOF
+
+	python3 ../tools/make_initial_conditions.py --output initial_conditions_ddc.dat --salt_fingering --n_modes ${n_modes} --n_gridpoints ${n_gridpoints} --modes $(seq 1 63)
+	python3 ../tools/make_initial_conditions.py --output initial_conditions.dat --n_modes ${n_modes} --n_gridpoints ${n_gridpoints} --modes $(seq 1 63)
+
