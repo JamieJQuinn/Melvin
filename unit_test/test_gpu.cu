@@ -379,6 +379,37 @@ TEST_CASE("Test variableGPU forward fft transform" "[gpu]") {
   }
 }
 
+TEST_CASE("Test variableGPU backward fft transform" "[gpu]") {
+  Constants c("test_constants_periodic_gpu.json");
+
+  VariableGPU var(c);
+
+  for(int k=0; k<c.nZ; ++k) {
+    real z = 2.0*(k+1);
+    var(0, k) = z;
+    var(2, k) = z + 2.0i;
+    var(3, k) = 2.0 - z*1.0i;
+  }
+
+  var.copyToDevice();
+
+  var.toPhysical();
+
+  var.copyToHost(true);
+
+  for(int k=0; k<c.nZ; ++k) {
+    for(int ix=0; ix<var.nX; ++ix) {
+      //cout << ix << " " << k << endl;
+      real x = real(ix)/var.nX;
+      real z = 2.0*(k+1);
+      require_equal(var.spatial(ix,k),
+          z +
+          2.0*z*cos(2.0*M_PI*2*x) - 2.0*2.0*sin(2.0*M_PI*2*x) +
+          2.0*2.0*cos(2.0*M_PI*3*x) + 2.0*z*sin(2.0*M_PI*3*x));
+    }
+  }
+}
+
 TEST_CASE("Test cuFFT discrete Fourier transform", "[gpu]") {
   Constants c("test_constants_periodic_gpu.json");
 
