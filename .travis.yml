@@ -4,13 +4,10 @@ compiler: gcc
 
 dist: bionic
 
-env:
-  - OMP_NUM_THREADS=4
-  - LD_LIBRARY_PATH=/lib:/usr/lib
-
 before_install:
   - sudo apt-get update
-  - sudo apt-get -y install libfftw3-dev
+  - sudo apt-get -y install libfftw3-bin libfftw3-dev
+  - export OMP_NUM_THREADS=4
 
 install:
   - make && make clean
