@@ -6,7 +6,7 @@ dist: bionic
 
 before_install:
   - sudo apt-get update
-  - sudo apt-get -y install libfftw3-dev
+  - sudo apt-get -y install libfftw3-dev python3
   - export OMP_NUM_THREADS=4
 
 install:
