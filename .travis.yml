@@ -1,0 +1,6 @@
+language: cpp
+compiler: gcc
+install:
+  - sudo apt-get update;
+  - sudo apt-get install libfftw3-dev;
+  - export OMP_NUM_THREADS=4
