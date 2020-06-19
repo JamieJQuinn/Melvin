@@ -7,10 +7,10 @@ dist: bionic
 before_install:
   - sudo apt-get update
   - sudo apt-get -y install libfftw3-bin libfftw3-dev
+  - ls -l /lib | grep fftw
   - export OMP_NUM_THREADS=4
 
 install:
-  - ls -l /lib | grep fftw
   - make && make clean
 
 script:
