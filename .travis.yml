@@ -7,7 +7,7 @@ dist: bionic
 before_install:
   - sudo apt-get update
   - sudo apt-get -y install libfftw3-dev
-  - export $LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/
+  - export LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/
   - echo $LD_LIBRARY_PATH
   - export OMP_NUM_THREADS=4
 
