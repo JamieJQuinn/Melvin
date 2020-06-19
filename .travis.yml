@@ -10,6 +10,7 @@ before_install:
   - export OMP_NUM_THREADS=4
 
 install:
+  - pip install -r requirements.txt
   - make && make clean
 
 script:
