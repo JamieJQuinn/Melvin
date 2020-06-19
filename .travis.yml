@@ -3,8 +3,9 @@ language: cpp
 dist: bionic
 
 before_install:
-  #- sudo apt-get update
-  #- sudo apt-get -y install libfftw3-dev
+  - sudo apt-get update
+  - sudo apt-get -y install libfftw3-dev
+  - export LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/
   - export OMP_NUM_THREADS=4
 
 install:
