@@ -2,10 +2,12 @@ language: cpp
 
 compiler: gcc
 
+before_install:
+  - sudo apt-get update
+  - sudo apt-get -y install libfftw3-dev
+
 install:
-  - sudo apt-get update;
-  - sudo apt-get install libfftw3-dev;
   - export OMP_NUM_THREADS=4
 
 script:
-  - make && make test
+  - make test
