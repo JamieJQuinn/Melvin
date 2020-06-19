@@ -1,7 +1,7 @@
-CC=clang++
+CC=g++
 CFLAGS=-c -I$(INCLUDE_DIR) --std=c++14
 CFLAGS_OPTIMISATIONS=-O2 -DNDEBUG -ffast-math
-LDFLAGS=
+LDFLAGS=-L/usr/lib/x86_64-linux-gnu/
 SRC_DIR=src
 BUILD_DIR=build
 INCLUDE_DIR=include
