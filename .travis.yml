@@ -10,6 +10,7 @@ before_install:
   - export OMP_NUM_THREADS=4
 
 install:
+  - ls -l /lib | grep fftw
   - make && make clean
 
 script:
