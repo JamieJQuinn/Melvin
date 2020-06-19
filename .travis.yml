@@ -2,12 +2,17 @@ language: cpp
 
 compiler: gcc
 
+dist: bionic
+
+env:
+  - OMP_NUM_THREADS=4
+
 before_install:
   - sudo apt-get update
   - sudo apt-get -y install libfftw3-dev
 
 install:
-  - export OMP_NUM_THREADS=4
+  - make && make clean
 
 script:
   - make test
