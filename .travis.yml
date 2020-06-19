@@ -2,22 +2,9 @@ language: cpp
 
 dist: bionic
 
-matrix:
-  include:
-    - os: linux
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-9
-      env:
-        - MATRIX_EVAL="CC=gcc-9 && CXX=g++-9"
-
 before_install:
-  - sudo apt-get update
-  - sudo apt-get -y install libfftw3-dev
-  - echo $(ls /usr/lib/x86_64-linux-gnu/)
+  #- sudo apt-get update
+  #- sudo apt-get -y install libfftw3-dev
   - export OMP_NUM_THREADS=4
 
 install:
