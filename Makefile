@@ -1,4 +1,4 @@
-CC=g++
+CC=clang++
 CFLAGS=-c -I$(INCLUDE_DIR) --std=c++14
 CFLAGS_OPTIMISATIONS=-O2 -DNDEBUG -ffast-math
 LDFLAGS=
@@ -54,7 +54,7 @@ profile: $(BUILD_DIR) $(BUILD_DIR)/$(EXECUTABLE)
 
 .PHONY: release
 release: CFLAGS += $(CFLAGS_OPTIMISATIONS) -fopenmp
-release: LDFLAGS += -fopenmp -lfftw3_omp -lfftw3 -lm
+release: LDFLAGS += -fopenmp -lfftw3_omp -lfftw3
 release: $(BUILD_DIR) $(BUILD_DIR)/$(EXECUTABLE)
 
 .PHONY: debug

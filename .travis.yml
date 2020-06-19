@@ -1,11 +1,12 @@
 language: cpp
 
+compiler: clang
+
 dist: bionic
 
 before_install:
   - sudo apt-get update
   - sudo apt-get -y install libfftw3-dev
-  - gcc -m64 -Xlinker --verbose  2>/dev/null | grep SEARCH | sed 's/SEARCH_DIR("=\?\([^"]\+\)"); */\1\n/g'  | grep -vE '^$'
   - export OMP_NUM_THREADS=4
 
 install:
