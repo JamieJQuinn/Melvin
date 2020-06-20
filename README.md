@@ -1,6 +1,6 @@
-# 
+# Melvin
 
-This project includes a pseudo-spectral, adaptive-time implementation of
+Melvin is a 2D, pseudo-spectral, adaptive-time implementation of
 * Rayleigh-Benard convection (RBC)
 * Double-diffusive convection (DDC)
 
