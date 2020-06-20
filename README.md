@@ -6,6 +6,10 @@ Melvin is a 2D, pseudo-spectral, adaptive-time implementation of
 
 The code has been parallelised on the CPU via OpenMP and FFTW and on the GPU via CUDA and cuFFT. Not all features and boundary conditions are currently implemented.
 
+## Why is it called Melvin?
+
+[Melvin Stern](https://en.wikipedia.org/wiki/Melvin_Stern) was a pioneer in oceanographic fluid dynamics, particularly in the study of salt-fingering. This code is a personal monument to a great scientist.
+
 ## Dependencies
 
 ### Running on CPU
