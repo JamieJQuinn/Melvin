@@ -43,7 +43,6 @@ class Variable {
 
     inline real dfdzSpatial(int ix, int k) const;
     inline real dfdx(int ix, int k) const;
-    inline mode dfdxSpectral(int n, int k) const;
     inline mode dfdx2Spectral(int n, int k) const;
     inline mode laplacian(int n, int k) const;
 
@@ -78,12 +77,12 @@ class Variable {
     mode topBoundary;
     mode bottomBoundary;
   protected:
-    const BoundaryConditions boundaryConditions;
+    const BoundaryConditions verticalBoundaryConditions;
+    const BoundaryConditions horizontalBoundaryConditions;
     const real dz;
     const real oodz2;
     const real oodz;
     const real oodx;
-    mode xDerivativeFactor;
     const int totalSteps;
     const Constants c;
     int current; // index pointing to slice of array representing current time
@@ -166,10 +165,6 @@ inline real Variable::dfdzSpatial(int ix, int k) const {
 inline real Variable::dfdx(int ix, int k) const {
   // Avoid derivatives at the edge
   return (spatial(ix+1, k) - spatial(ix-1, k))*oodx*0.5;
-}
-
-inline mode Variable::dfdxSpectral(int n, int k) const {
-  return xDerivativeFactor*real(n)*(*this)(n,k);
 }
 
 inline mode Variable::dfdx2Spectral(int n, int k) const {

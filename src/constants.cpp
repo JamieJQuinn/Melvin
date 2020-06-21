@@ -35,10 +35,14 @@ void Constants::calculateDerivedConstants() {
     horizontalBoundaryConditions = BoundaryConditions::impermeable;
     wavelength = M_PI/aspectRatio;
     dx = real(aspectRatio)/(nX-1);
+    xSinDerivativeFactor = -1.0;
+    xCosDerivativeFactor =  1.0;
   } else if (horizontalBoundaryConditions_in == "periodic") {
     horizontalBoundaryConditions = BoundaryConditions::periodic;
     wavelength = 2.0*M_PI/aspectRatio;
     dx = real(aspectRatio)/nX;
+    xSinDerivativeFactor = 1.0i;
+    xCosDerivativeFactor = 1.0i;
   }
 
   oodz2 = pow(1.0/dz, 2);
@@ -58,7 +62,8 @@ void Constants::calculateDerivedConstants() {
   copyGPUConstants(
       nG, nX, nN, nZ,
       oodz, oodx, oodz2,
-      aspectRatio,
+      aspectRatio, wavelength,
+      xSinDerivativeFactor, xCosDerivativeFactor,
       Ra, Pr, RaXi, tau
     );
 #endif

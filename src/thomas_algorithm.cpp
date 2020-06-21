@@ -47,7 +47,7 @@ void ThomasAlgorithm::precalculate() {
   }
   for(int n=0; n<nN; ++n) {
     for(int k=0; k<nZ; ++k){
-      dia[k] = pow(wavelength*real(n), 2) + 2*oodz2;
+      dia[k] = pow(wavelength*real(n), 2) + 2.0*oodz2;
     }
     if(not isPeriodic) {
       // This encodes impermeable vertical boundary conditions

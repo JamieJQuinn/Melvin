@@ -198,7 +198,8 @@ Variable::Variable(const Constants &c_in, const int totalSteps_in, const bool us
   nX(c_in.nX),
   nZ(c_in.nZ),
   dz(c_in.dz),
-  boundaryConditions(c_in.verticalBoundaryConditions),
+  verticalBoundaryConditions(c_in.verticalBoundaryConditions),
+  horizontalBoundaryConditions(c_in.horizontalBoundaryConditions),
   oodz2(c_in.oodz2),
   oodz(c_in.oodz),
   oodx(c_in.oodx),
@@ -209,16 +210,6 @@ Variable::Variable(const Constants &c_in, const int totalSteps_in, const bool us
   useSinTransform(useSinTransform_in),
   c(c_in)
 {
-  if(c.horizontalBoundaryConditions == BoundaryConditions::periodic) {
-    xDerivativeFactor = 1.0i*c.wavelength;
-  } else {
-    if(useSinTransform) {
-      xDerivativeFactor = c.wavelength;
-    } else {
-      xDerivativeFactor = -c.wavelength;
-    }
-  }
-
   initialiseData();
   setupFFTW();
 }

@@ -64,7 +64,7 @@ void Sim::computeLinearTemperatureDerivative() {
 void Sim::computeLinearVorticityDerivative() {
   for(int k=0; k<c.nZ; ++k) {
     for(int n=0; n<c.nN; ++n) {
-      vars.dOmgdt(n,k) = c.Pr*vars.omg.laplacian(n,k) - c.Pr*c.Ra*vars.tmp.dfdxSpectral(n,k);
+      vars.dOmgdt(n,k) = c.Pr*vars.omg.laplacian(n,k) - n*c.wavelength*c.xCosDerivativeFactor*c.Pr*c.Ra*vars.tmp(n,k);
     }
   }
 }
@@ -73,7 +73,7 @@ void Sim::computeLinearXiDerivative() {
   for(int k=0; k<c.nZ; ++k) {
     for(int n=0; n<c.nN; ++n) {
       vars.dXidt(n,k) = c.tau*vars.xi.laplacian(n,k);
-      vars.dOmgdt(n,k) += c.RaXi*c.tau*c.Pr*vars.xi.dfdxSpectral(n,k);
+      vars.dOmgdt(n,k) += n*c.wavelength*c.xCosDerivativeFactor*c.RaXi*c.tau*c.Pr*vars.xi(n,k);
     }
   }
 }
@@ -86,7 +86,7 @@ void Sim::addAdvectionApproximation() {
   }
   for(int k=0; k<c.nZ; ++k) {
     for(int n=1; n<c.nN; ++n) {
-      vars.dTmpdt(n,k) += -vars.tmp.dfdz(0,k)*vars.psi.dfdxSpectral(n,k);
+      vars.dTmpdt(n,k) += -c.xSinDerivativeFactor*(n*c.wavelength)*vars.tmp.dfdz(0,k)*vars.psi(n,k);
     }
   }
   if(c.isDoubleDiffusion) {
@@ -95,7 +95,7 @@ void Sim::addAdvectionApproximation() {
     }
     for(int k=0; k<c.nZ; ++k) {
       for(int n=1; n<c.nN; ++n) {
-        vars.dXidt(n,k) += -vars.xi.dfdz(0,k)*vars.psi.dfdxSpectral(n,k);
+        vars.dXidt(n,k) += -c.xSinDerivativeFactor*(n*c.wavelength)*vars.xi.dfdz(0,k)*vars.psi(n,k);
       }
     }
   }
@@ -310,6 +310,9 @@ void Sim::runLinearStep() {
   computeLinearDerivatives();
   addAdvectionApproximation();
   vars.updateVars(dt);
+  applyTemperatureBoundaryConditions();
+  applyVorticityBoundaryConditions();
   vars.advanceDerivatives();
   solveForPsi();
+  applyPsiBoundaryConditions();
 }

@@ -41,6 +41,8 @@ class Constants {
     real oodz;
     real oodx;
     real wavelength;
+    mode xSinDerivativeFactor;
+    mode xCosDerivativeFactor;
 
     // I/O files
     std::string saveFolder;
