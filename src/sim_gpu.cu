@@ -175,13 +175,13 @@ void gpu_computeNonlinearDerivative(
   int n_stride = blockDim.x*gridDim.x;
   int k_index = blockIdx.y*blockDim.y + threadIdx.y;
   int k_stride = blockDim.y*gridDim.y;
-  for(int n=1+n_index; n<nN_d; n+=n_stride) {
-    // Contribution FROM var[n>0] and vars.omg[n>0]
-    int o;
-    for(int m=1; m<n; ++m){
-      // Case n = n' + n''
-      o = n-m;
-      for(int k=k_index; k<nZ_d; k+=k_stride) {
+  for(int k=k_index; k<nZ_d; k+=k_stride) {
+    for(int n=1+n_index; n<nN_d; n+=n_stride) {
+      // Contribution FROM var[n>0] and vars.omg[n>0]
+      int o;
+      for(int m=1; m<n; ++m){
+        // Case n = n' + n''
+        o = n-m;
         int im = calcIndex(m,k);
         int io = calcIndex(o,k);
         int in = calcIndex(n,k);
@@ -191,11 +191,9 @@ void gpu_computeNonlinearDerivative(
           +o*dfdz(var,m,k)*psi[io]
           );
       }
-    }
-    for(int m=n+1; m<nN_d; ++m){
-      // Case n = n' - n''
-      o = m-n;
-      for(int k=k_index; k<nZ_d; k+=k_stride) {
+      for(int m=n+1; m<nN_d; ++m){
+        // Case n = n' - n''
+        o = m-n;
         int im = calcIndex(m,k);
         int io = calcIndex(o,k);
         int in = calcIndex(n,k);
@@ -205,11 +203,9 @@ void gpu_computeNonlinearDerivative(
           +o*dfdz(var,m,k)*psi[io]
           );
       }
-    }
-    for(int m=1; m+n<nN_d; ++m){
-      // Case n= n'' - n'
-      o = n+m;
-      for(int k=k_index; k<nZ_d; k+=k_stride) {
+      for(int m=1; m+n<nN_d; ++m){
+        // Case n= n'' - n'
+        o = n+m;
         int im = calcIndex(m,k);
         int io = calcIndex(o,k);
         int in = calcIndex(n,k);
@@ -355,6 +351,9 @@ void SimGPU::runNonLinearStep(real f) {
   vars.updateVars(dt, f);
   vars.tmp.applyVerticalBoundaryConditions();
   vars.omg.applyVerticalBoundaryConditions();
+  if(c.isDoubleDiffusion) {
+    vars.xi.applyVerticalBoundaryConditions();
+  }
   vars.advanceDerivatives();
   solveForPsi();
   vars.psi.applyVerticalBoundaryConditions();
@@ -400,6 +399,9 @@ void SimGPU::runNonLinear() {
   vars.psi.applyVerticalBoundaryConditions();
   vars.tmp.applyVerticalBoundaryConditions();
   vars.omg.applyVerticalBoundaryConditions();
+  if(c.isDoubleDiffusion) {
+    vars.xi.applyVerticalBoundaryConditions();
+  }
 
   real saveTime = 0;
   real KEcalcTime = 0;

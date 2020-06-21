@@ -26,9 +26,11 @@ cat << EOF > $save_folder/constants.json
   "isNonlinear":true,
   "isDoubleDiffusion":true,
 
+  "horizontalBoundaryConditions":"dirichlet",
+
   "isCudaEnabled":true,
-  "threadsPerBlock_x":64,
-  "threadsPerBlock_y":2
+  "threadsPerBlock_x":16,
+  "threadsPerBlock_y":32
 }
 EOF
 

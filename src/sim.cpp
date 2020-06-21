@@ -118,6 +118,12 @@ void Sim::applyPhysicalBoundaryConditions() {
       vars.psi.spatial(nX,k) = 2.0*vars.psi.spatial(nX-1,k) - vars.psi.spatial(nX-2,k);
       vars.omg.spatial(0,k) = 0.0;
       vars.omg.spatial(nX-1,k) = 0.0;
+
+      if(c.isDoubleDiffusion) {
+        // No flux of salt
+        vars.xi.spatial(-1,k) = vars.xi.spatial(1, k);
+        vars.xi.spatial(nX,k) = vars.xi.spatial(nX-2, k);
+      }
     }
   } else if(c.horizontalBoundaryConditions == BoundaryConditions::periodic) {
     for(int k=0; k<c.nZ; ++k) {
@@ -129,6 +135,11 @@ void Sim::applyPhysicalBoundaryConditions() {
 
       vars.psi.spatial(-1,k) = vars.psi.spatial(nX-1, k);
       vars.psi.spatial(nX,k) = vars.psi.spatial(0, k);
+
+      if(c.isDoubleDiffusion) {
+        vars.xi.spatial(-1,k) = vars.xi.spatial(nX-1, k);
+        vars.xi.spatial(nX,k) = vars.xi.spatial(0, k);
+      }
     }
   }
 }
@@ -137,6 +148,9 @@ void Sim::computeNonlinearDerivatives() {
   vars.tmp.toPhysical();
   vars.omg.toPhysical();
   vars.psi.toPhysical();
+  if(c.isDoubleDiffusion) {
+    vars.xi.toPhysical();
+  }
   applyPhysicalBoundaryConditions();
   computeNonlinearTemperatureDerivative();
   computeNonlinearVorticityDerivative();
@@ -218,6 +232,22 @@ void Sim::applyTemperatureBoundaryConditions() {
   }
 }
 
+void Sim::applyXiBoundaryConditions() {
+  if(c.verticalBoundaryConditions == BoundaryConditions::dirichlet) {
+    vars.xi(0,0) = vars.xi.bottomBoundary;
+    vars.xi(0,c.nZ-1) = vars.xi.topBoundary;
+    for(int n=1; n<c.nN; ++n) {
+      vars.xi(n,0) = 0.0;
+      vars.xi(n,c.nZ-1) = 0.0;
+    }
+  } else if(c.verticalBoundaryConditions == BoundaryConditions::periodic) {
+    for(int n=0; n<c.nN; ++n) {
+      vars.xi(n,-1) = vars.xi(n,c.nZ-1);
+      vars.xi(n,c.nZ) = vars.xi(n,0);
+    }
+  }
+}
+
 void Sim::applyVorticityBoundaryConditions() {
   if(c.verticalBoundaryConditions == BoundaryConditions::dirichlet) {
     for(int n=0; n<c.nN; ++n) {
@@ -258,6 +288,9 @@ void Sim::runNonLinearStep(real f) {
   vars.updateVars(dt, f);
   applyTemperatureBoundaryConditions();
   applyVorticityBoundaryConditions();
+  if(c.isDoubleDiffusion) {
+    applyXiBoundaryConditions();
+  }
   vars.advanceDerivatives();
   solveForPsi();
   applyPsiBoundaryConditions();
@@ -270,6 +303,9 @@ void Sim::runNonLinear() {
   applyTemperatureBoundaryConditions();
   applyVorticityBoundaryConditions();
   applyPsiBoundaryConditions();
+  if(c.isDoubleDiffusion) {
+    applyXiBoundaryConditions();
+  }
 
   real saveTime = 0;
   real KEcalcTime = 0;

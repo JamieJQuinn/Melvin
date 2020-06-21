@@ -59,6 +59,7 @@ class Sim {
     void applyTemperatureBoundaryConditions();
     void applyVorticityBoundaryConditions();
     void applyPsiBoundaryConditions();
+    void applyXiBoundaryConditions();
 
     void runNonLinear();
     void runNonLinearStep(real f=1.0);
