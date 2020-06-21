@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector_types.h>
+
 #include <variables.hpp>
 #include <variable_gpu.hpp>
 #include <thomas_algorithm_gpu.hpp>
@@ -15,6 +17,12 @@ class SimGPU {
     KineticEnergyTracker keTracker;
 
     Constants c;
+
+    dim3 threadsPerBlock2D;
+    dim3 numBlocks2D;
+    dim3 numBlocks2DSpatial;
+    dim3 threadsPerBlock1D;
+    dim3 numBlocks1D;
 
     // Variable arrays
     Variables<VariableGPU> vars;

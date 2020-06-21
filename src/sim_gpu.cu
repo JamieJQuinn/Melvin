@@ -248,11 +248,21 @@ SimGPU::SimGPU(const Constants &c_in)
   , vars(c_in)
   , keTracker(c_in)
   , nonlinearTerm(c_in)
+  , threadsPerBlock2D(c_in.threadsPerBlock_x, c_in.threadsPerBlock_y)
+  , numBlocks2D(
+      (c_in.nN + c_in.threadsPerBlock_x - 1)/c_in.threadsPerBlock_x,
+      (c_in.nZ + c_in.threadsPerBlock_y - 1)/c_in.threadsPerBlock_y
+    )
+  , numBlocks2DSpatial(
+      (c_in.nX + c_in.threadsPerBlock_x - 1)/c_in.threadsPerBlock_x,
+      (c_in.nZ + c_in.threadsPerBlock_y - 1)/c_in.threadsPerBlock_y
+    )
+  , threadsPerBlock1D(c_in.threadsPerBlock_x*c_in.threadsPerBlock_y)
+  , numBlocks1D(
+      (c_in.nZ + c_in.threadsPerBlock_y - 1)/c_in.threadsPerBlock_y
+    )
 {
   dt = c.initialDt;
-
-  nonlinearTerm.initialiseData();
-  nonlinearTerm.setupFFTW();
 
   thomasAlgorithm = new ThomasAlgorithmGPU(c);
 }
@@ -262,21 +272,15 @@ SimGPU::~SimGPU() {
 }
 
 void SimGPU::computeLinearTemperatureDerivative() {
-  dim3 threadsPerBlock(c.threadsPerBlock_x,c.threadsPerBlock_y);
-  dim3 numBlocks((c.nN + threadsPerBlock.x - 1)/threadsPerBlock.x, (c.nZ - 2 + threadsPerBlock.y - 1)/threadsPerBlock.y);
-  gpu_computeLinearTemperatureDerivative<<<numBlocks,threadsPerBlock>>>(vars.dTmpdt.getCurrent(), vars.tmp.getCurrent());
+  gpu_computeLinearTemperatureDerivative<<<numBlocks2D,threadsPerBlock2D>>>(vars.dTmpdt.getCurrent(), vars.tmp.getCurrent());
 }
 
 void SimGPU::computeLinearVorticityDerivative() {
-  dim3 threadsPerBlock(c.threadsPerBlock_x,c.threadsPerBlock_y);
-  dim3 numBlocks((c.nN + threadsPerBlock.x - 1)/threadsPerBlock.x, (c.nZ - 2 + threadsPerBlock.y - 1)/threadsPerBlock.y);
-  gpu_computeLinearVorticityDerivative<<<numBlocks,threadsPerBlock>>>(vars.dOmgdt.getCurrent(), vars.omg.getCurrent(), vars.tmp.getCurrent());
+  gpu_computeLinearVorticityDerivative<<<numBlocks2D,threadsPerBlock2D>>>(vars.dOmgdt.getCurrent(), vars.omg.getCurrent(), vars.tmp.getCurrent());
 }
 
 void SimGPU::computeLinearXiDerivative() {
-  dim3 threadsPerBlock(c.threadsPerBlock_x,c.threadsPerBlock_y);
-  dim3 numBlocks((c.nN + threadsPerBlock.x - 1)/threadsPerBlock.x, (c.nZ - 2 + threadsPerBlock.y - 1)/threadsPerBlock.y);
-  gpu_computeLinearXiDerivative<<<numBlocks,threadsPerBlock>>>(vars.dXidt.getCurrent(), vars.xi.getCurrent(), vars.dOmgdt.getCurrent(), vars.omg.getCurrent());
+  gpu_computeLinearXiDerivative<<<numBlocks2D,threadsPerBlock2D>>>(vars.dXidt.getCurrent(), vars.xi.getCurrent(), vars.dOmgdt.getCurrent(), vars.omg.getCurrent());
 }
 
 void SimGPU::computeLinearDerivatives() {
@@ -290,17 +294,13 @@ void SimGPU::computeLinearDerivatives() {
 
 void SimGPU::addAdvectionApproximation() {
   // Only applies to the linear simulation
-  dim3 threadsPerBlock(c.threadsPerBlock_x,c.threadsPerBlock_y);
-  dim3 numBlocks((c.nN - 1 + threadsPerBlock.x - 1)/threadsPerBlock.x, (c.nZ - 2 + threadsPerBlock.y - 1)/threadsPerBlock.y);
-  dim3 fillThreadsPerBlock(c.threadsPerBlock_x*c.threadsPerBlock_y);
-  dim3 fillNumBlocks((c.nZ - 1 + fillThreadsPerBlock.x)/fillThreadsPerBlock.x);
-  gpu_fillMode<<<fillNumBlocks,fillThreadsPerBlock>>>(vars.dOmgdt.getCurrent(), makeComplex(0.0, 0.0), 0);
-  gpu_fillMode<<<fillNumBlocks,fillThreadsPerBlock>>>(vars.dTmpdt.getCurrent(), makeComplex(0.0, 0.0), 0);
-  gpu_addAdvectionApproximation<<<numBlocks,threadsPerBlock>>>(
+  gpu_fillMode<<<numBlocks1D,threadsPerBlock1D>>>(vars.dOmgdt.getCurrent(), makeComplex(0.0, 0.0), 0);
+  gpu_fillMode<<<numBlocks1D,threadsPerBlock1D>>>(vars.dTmpdt.getCurrent(), makeComplex(0.0, 0.0), 0);
+  gpu_addAdvectionApproximation<<<numBlocks2D,threadsPerBlock2D>>>(
       vars.dTmpdt.getCurrent(), vars.tmp.getCurrent(), vars.psi.getCurrent());
   if(c.isDoubleDiffusion) {
-    gpu_fillMode<<<fillNumBlocks,fillThreadsPerBlock>>>(vars.dXidt.getCurrent(), makeComplex(0.0, 0.0), 0);
-    gpu_addAdvectionApproximation<<<numBlocks,threadsPerBlock>>>(
+    gpu_fillMode<<<numBlocks1D,threadsPerBlock1D>>>(vars.dXidt.getCurrent(), makeComplex(0.0, 0.0), 0);
+    gpu_addAdvectionApproximation<<<numBlocks2D,threadsPerBlock2D>>>(
         vars.dXidt.getCurrent(), vars.xi.getCurrent(), vars.psi.getCurrent());
   }
 }
@@ -322,44 +322,31 @@ void SimGPU::runLinearStep() {
 }
 
 void SimGPU::computeNonlinearDerivativeSpectralTransform(VariableGPU& dVardt, const VariableGPU& var) {
-  dim3 threadsPerBlock(c.threadsPerBlock_x,c.threadsPerBlock_y);
-  dim3 numBlocks((c.nX + threadsPerBlock.x - 1)/threadsPerBlock.x, (c.nZ + threadsPerBlock.y - 1)/threadsPerBlock.y);
-
-  gpu_computeNonlinearDerivativeSpectralTransform<<<numBlocks,threadsPerBlock>>>(nonlinearTerm.spatialData_d, var.spatialData_d, vars.psi.spatialData_d);
+  gpu_computeNonlinearDerivativeSpectralTransform<<<numBlocks2DSpatial,threadsPerBlock2D>>>(nonlinearTerm.spatialData_d, var.spatialData_d, vars.psi.spatialData_d);
 
   nonlinearTerm.toSpectral();
 
-  gpu_plusEquals<<<numBlocks,threadsPerBlock>>>(dVardt.getCurrent(), nonlinearTerm.getCurrent());
+  gpu_plusEquals<<<numBlocks2D,threadsPerBlock2D>>>(dVardt.getCurrent(), nonlinearTerm.getCurrent());
 }
 
 void SimGPU::computeNonlinearTemperatureDerivative() {
   // Calculate n=0 gpu_mode
-  dim3 n0ThreadsPerBlock(c.threadsPerBlock_x*c.threadsPerBlock_y);
-  dim3 n0NumBlocks((c.nZ - 1 + n0ThreadsPerBlock.x)/n0ThreadsPerBlock.x);
-  gpu_computeNonlinearDerivativeN0<<<n0NumBlocks,n0ThreadsPerBlock>>>(vars.dTmpdt.getCurrent(), vars.tmp.getCurrent(), vars.psi.getCurrent());
+  gpu_computeNonlinearDerivativeN0<<<numBlocks1D,threadsPerBlock1D>>>(vars.dTmpdt.getCurrent(), vars.tmp.getCurrent(), vars.psi.getCurrent());
 
   // Calculate other gpu_modes
-  dim3 threadsPerBlock(c.threadsPerBlock_x,c.threadsPerBlock_y);
-  dim3 numBlocks((c.nN + threadsPerBlock.x - 1)/threadsPerBlock.x, (c.nZ - 2 + threadsPerBlock.y - 1)/threadsPerBlock.y);
-  gpu_computeNonlinearDerivative<<<numBlocks,threadsPerBlock>>>(vars.dTmpdt.getCurrent(), vars.tmp.getCurrent(), vars.psi.getCurrent(), -1);
+  gpu_computeNonlinearDerivative<<<numBlocks2D,threadsPerBlock2D>>>(vars.dTmpdt.getCurrent(), vars.tmp.getCurrent(), vars.psi.getCurrent(), -1);
 }
 
 void SimGPU::computeNonlinearXiDerivative() {
   // Calculate n=0 gpu_mode
-  dim3 n0ThreadsPerBlock(c.threadsPerBlock_x*c.threadsPerBlock_y);
-  dim3 n0NumBlocks((c.nZ - 1 + n0ThreadsPerBlock.x)/n0ThreadsPerBlock.x);
-  gpu_computeNonlinearDerivativeN0<<<n0NumBlocks,n0ThreadsPerBlock>>>(vars.dXidt.getCurrent(), vars.xi.getCurrent(), vars.psi.getCurrent());
+  gpu_computeNonlinearDerivativeN0<<<numBlocks1D,threadsPerBlock1D>>>(vars.dXidt.getCurrent(), vars.xi.getCurrent(), vars.psi.getCurrent());
 
   // Calculate other gpu_modes
-  dim3 threadsPerBlock(c.threadsPerBlock_x,c.threadsPerBlock_y);
-  dim3 numBlocks((c.nN + threadsPerBlock.x - 1)/threadsPerBlock.x, (c.nZ - 2 + threadsPerBlock.y - 1)/threadsPerBlock.y);
-  gpu_computeNonlinearDerivative<<<numBlocks,threadsPerBlock>>>(vars.dXidt.getCurrent(), vars.xi.getCurrent(), vars.psi.getCurrent(), -1);
+  gpu_computeNonlinearDerivative<<<numBlocks2D,threadsPerBlock2D>>>(vars.dXidt.getCurrent(), vars.xi.getCurrent(), vars.psi.getCurrent(), -1);
 }
 
 void SimGPU::computeNonlinearVorticityDerivative() {
-  dim3 threadsPerBlock(c.threadsPerBlock_x,c.threadsPerBlock_y);
-  dim3 numBlocks((c.nN - 1 + threadsPerBlock.x - 1)/threadsPerBlock.x, (c.nZ - 2 + threadsPerBlock.y - 1)/threadsPerBlock.y);
-  gpu_computeNonlinearDerivative<<<numBlocks,threadsPerBlock>>>(vars.dOmgdt.getCurrent(), vars.omg.getCurrent(), vars.psi.getCurrent(), 1);
+  gpu_computeNonlinearDerivative<<<numBlocks2D,threadsPerBlock2D>>>(vars.dOmgdt.getCurrent(), vars.omg.getCurrent(), vars.psi.getCurrent(), 1);
 }
 
 void SimGPU::runNonLinearStep(real f) {
