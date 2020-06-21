@@ -29,6 +29,8 @@ class SimGPU {
 
     void computeNonlinearDerivativeSpectralTransform(VariableGPU &dVardt, const VariableGPU &var);
     void computeNonlinearDerivatives();
+    void computeNonlinearDerivativesGalerkin();
+    void computeNonlinearDerivativesSpectralTransform();
     void computeNonlinearTemperatureDerivative();
     void computeNonlinearXiDerivative();
     void computeNonlinearVorticityDerivative();

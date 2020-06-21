@@ -1,36 +1,38 @@
 #!/usr/bin/env bash
 
 save_folder="test/benchmark"
+constants_file=$save_folder/constants.json
+ic_file=$save_folder/initial_conditions.dat
+nN=51
+nZ=101
 
 mkdir -p $save_folder
 rm -f $save_folder/*
 
-cat << EOF > $save_folder/constants.json
+cat << EOF > $constants_file
 {
   "Pr":0.5,
-  "Ra":1000000,
+  "Ra":1e6,
   "aspectRatio":3,
-  "icFile":"$save_folder/ICn1nZ101nN51",
-  "initialDt":3e-06,
-  "nN":51,
-  "nZ":101,
+  "icFile":"$ic_file",
+  "initialDt":3e-6,
+  "nN":$nN,
+  "nZ":$nZ,
   "saveFolder":"$save_folder/",
   "timeBetweenSaves":0.01,
   "isNonlinear":true,
   "isDoubleDiffusion":false,
   "totalTime":0.05,
-
   "isCudaEnabled":true,
   "threadsPerBlock_x":16,
   "threadsPerBlock_y":32
 }
 EOF
 
-constants_file=$save_folder/constants.json
-python3 tools/make_initial_conditions.py --output $save_folder/ICn1nZ101nN51 --n_modes 51 --n_gridpoints 101 --modes 1
+python3 tools/make_initial_conditions.py --output $ic_file --n_modes $nN --n_gridpoints $nZ --modes 1
 
 echo "==================== Building program"
-make clean
+#make clean
 make gpu -j4
 
 echo "==================== Starting program"

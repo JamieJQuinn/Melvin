@@ -373,15 +373,15 @@ void SimGPU::runNonLinearStep(real f) {
   vars.psi.applyVerticalBoundaryConditions();
 }
 
-//void SimGPU::computeNonlinearDerivatives() {
-  //computeNonlinearTemperatureDerivative();
-  //computeNonlinearVorticityDerivative();
-  //if(c.isDoubleDiffusion) {
-    //computeNonlinearXiDerivative();
-  //}
-//}
+void SimGPU::computeNonlinearDerivativesGalerkin() {
+  computeNonlinearTemperatureDerivative();
+  computeNonlinearVorticityDerivative();
+  if(c.isDoubleDiffusion) {
+    computeNonlinearXiDerivative();
+  }
+}
 
-void SimGPU::computeNonlinearDerivatives() {
+void SimGPU::computeNonlinearDerivativesSpectralTransform() {
   vars.psi.toPhysical();
   vars.tmp.toPhysical();
   vars.omg.toPhysical();
@@ -396,6 +396,14 @@ void SimGPU::computeNonlinearDerivatives() {
     vars.xi.toPhysical();
     vars.xi.applyPhysicalHorizontalBoundaryConditions();
     computeNonlinearDerivativeSpectralTransform(vars.dXidt, vars.xi);
+  }
+}
+
+void SimGPU::computeNonlinearDerivatives() {
+  if(c.horizontalBoundaryConditions == BoundaryConditions::periodic) {
+    computeNonlinearDerivativesSpectralTransform();
+  } else {
+    computeNonlinearDerivativesGalerkin();
   }
 }
 
