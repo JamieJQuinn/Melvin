@@ -28,8 +28,8 @@ echo "Time: " $(echo $OUTPUT | grep -oh "[0-9]*\.[0-9]*user\s[0-9]*\.[0-9]*syste
 
 echo -e "\n==================================\n"
 
-echo "Test: nonlinear full convection"
-OUTPUT=$(test/full_convection_nonlinear_test.sh)
+echo "Test: nonlinear thermal convection with horizontal periodic boundary conditions"
+OUTPUT=$(test/nonlinear_horizontal_periodic_test.sh)
 STATUS=$?
 if [ $STATUS ]; then
   echo "PASSED"
