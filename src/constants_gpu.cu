@@ -9,6 +9,9 @@ __device__ __constant__ real oodz_d;
 __device__ __constant__ real oodx_d;
 __device__ __constant__ real oodz2_d;
 __device__ __constant__ real aspectRatio_d;
+__device__ __constant__ real wavelength_d;
+__device__ __constant__ gpu_mode xSinDerivativeFactor_d;
+__device__ __constant__ gpu_mode xCosDerivativeFactor_d;
 __device__ __constant__ real Ra_d;
 __device__ __constant__ real Pr_d;
 __device__ __constant__ real RaXi_d;
@@ -22,11 +25,16 @@ void copyConstantToGPU(const real &hostConstant, real &deviceConstant) {
   gpuErrchk(cudaMemcpyToSymbol(deviceConstant, &hostConstant, sizeof(hostConstant), 0, cudaMemcpyHostToDevice));
 }
 
+void copyConstantToGPU(const mode &hostConstant, gpu_mode &deviceConstant) {
+  gpuErrchk(cudaMemcpyToSymbol(deviceConstant, &hostConstant, sizeof(hostConstant), 0, cudaMemcpyHostToDevice));
+}
+
 
 void copyGPUConstants(
     int nG, int nX, int nN, int nZ,
     real oodz, real oodx, real oodz2,
-    real aspectRatio,
+    real aspectRatio, real wavelength,
+    mode xSinDerivativeFactor, mode xCosDerivativeFactor,
     real Ra, real Pr, real RaXi, real tau
   ) {
   copyConstantToGPU(nG, nG_d);
@@ -37,6 +45,9 @@ void copyGPUConstants(
   copyConstantToGPU(oodx, oodx_d);
   copyConstantToGPU(oodz2, oodz2_d);
   copyConstantToGPU(aspectRatio, aspectRatio_d);
+  copyConstantToGPU(wavelength, wavelength_d);
+  copyConstantToGPU(xSinDerivativeFactor, xSinDerivativeFactor_d);
+  copyConstantToGPU(xCosDerivativeFactor, xCosDerivativeFactor_d);
   copyConstantToGPU(Ra, Ra_d);
   copyConstantToGPU(Pr, Pr_d);
   copyConstantToGPU(tau, tau_d);

@@ -42,7 +42,7 @@ class SimGPU {
 
     void runNonLinear();
 
+    VariableGPU nonlinearTerm;
   private:
     ThomasAlgorithmGPU *thomasAlgorithm;
-    VariableGPU nonlinearTerm;
 };

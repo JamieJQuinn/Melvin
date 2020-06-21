@@ -40,10 +40,11 @@ void ThomasAlgorithmGPU::formTriDiagonalArraysForN (
   wk1[nZ-1] = 1.0/(dia[nZ-1] - sub[nZ-2]*wk2[nZ-2]);
 }
 
-ThomasAlgorithmGPU::ThomasAlgorithmGPU(const int nZ, const int nN, const int a, const real oodz2):
-  nZ(nZ),
-  nN(nN),
-  oodz2(oodz2)
+ThomasAlgorithmGPU::ThomasAlgorithmGPU(const Constants& c):
+  nZ(c.nZ),
+  nN(c.nN),
+  oodz2(c.oodz2),
+  wavelength(c.wavelength)
   {
   // Precalculate tridiagonal arrays
   real * dia = new real [nZ];
@@ -58,7 +59,7 @@ ThomasAlgorithmGPU::ThomasAlgorithmGPU(const int nZ, const int nN, const int a, 
   }
   for(int n=0; n<nN; ++n) {
     for(int k=0; k<nZ; ++k){
-      dia[k] = pow(M_PI/a*n, 2) + 2*oodz2;
+      dia[k] = pow(wavelength*n, 2) + 2.0*oodz2;
     }
     dia[0] = dia[nZ-1] = 1.0;
     subHost[nZ-2] = sup[0] = 0.0;

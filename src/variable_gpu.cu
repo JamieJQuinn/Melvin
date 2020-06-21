@@ -39,8 +39,27 @@ void normalise_fft(gpu_mode *data) {
     for(int k=k_index; k<nZ_d; k+=k_stride) {
       int i=calcIndex(n, k);
       data[i] = data[i]*(1.0/nX_d);
-      //data[i] = data[i]*0.0;
     }
+  }
+}
+
+__global__
+void gpu_applyPeriodicHorizontalBoundaryConditions(real *data) {
+  int index = threadIdx.x;
+  int stride = blockDim.x;
+  for(int k=index; k<nZ_d; k+=stride) {
+    data[calcIndex(-1, k)] = data[calcIndex(nX_d-1,k)];
+    data[calcIndex(nX_d, k)] = data[calcIndex(0,k)];
+  }
+}
+
+void VariableGPU::applyVerticalBoundaryConditions() {
+  if(verticalBoundaryConditions == BoundaryConditions::dirichlet) {
+    int stripSize = (nG+1)*rowSize();
+    gpuErrchk(cudaMemcpy(data_d, bottomBoundary, stripSize*sizeof(bottomBoundary[0]), cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMemcpy(data_d+varSize()-stripSize, topBoundary, stripSize*sizeof(topBoundary[0]), cudaMemcpyHostToDevice));
+  } else if (verticalBoundaryConditions == BoundaryConditions::periodic) {
+    // TODO copy top to bottom and bottom to top
   }
 }
 
@@ -67,7 +86,58 @@ void VariableGPU::update(const VariableGPU& dVardt, const real dt, const real f)
 void VariableGPU::readFromFile(std::ifstream& file) {
   Variable::readFromFile(file);
   copyToDevice();
+  fillVerticalBoundaryConditions();
 }
+
+void VariableGPU::fillVerticalBoundaryConditions() {
+  // Take all ghost rows and one regular row as boundary
+  int stripSize = (nG+1)*rowSize();
+  for(int i=0; i<stripSize; ++i) {
+    bottomBoundary[i] = data[i];
+    int dataIdx = varSize()-stripSize+i;
+    topBoundary[i] = data[dataIdx];
+  }
+}
+
+void VariableGPU::applyPhysicalHorizontalBoundaryConditions() {
+  if(horizontalBoundaryConditions == BoundaryConditions::periodic) {
+    dim3 threadsPerBlock(c.threadsPerBlock_x*c.threadsPerBlock_y);
+    dim3 numBlocks((c.nZ - 1 + threadsPerBlock.x)/threadsPerBlock.x);
+    gpu_applyPeriodicHorizontalBoundaryConditions<<<numBlocks,threadsPerBlock>>>(spatialData_d);
+  }
+}
+
+//void VariableGPU::applyPhysicalVerticalBoundaryConditions() {
+  //real nX = c.nX;
+  //if(c.horizontalBoundaryConditions == BoundaryConditions::impermeable) {
+    //for(int k=0; k<c.nZ; ++k) {
+      //// Non-conducting
+      //vars.tmp.spatial(-1,k) = vars.tmp.spatial(1, k);
+      //vars.tmp.spatial(nX,k) = vars.tmp.spatial(nX-2, k);
+
+      //// Impermeable
+      //vars.psi.spatial(0,k) = 0.0;
+      //vars.psi.spatial(nX-1,k) = 0.0;
+
+      //// Stress free
+      //vars.psi.spatial(-1,k) = 2.0*vars.psi.spatial(0,k) - vars.psi.spatial(1,k);
+      //vars.psi.spatial(nX,k) = 2.0*vars.psi.spatial(nX-1,k) - vars.psi.spatial(nX-2,k);
+      //vars.omg.spatial(0,k) = 0.0;
+      //vars.omg.spatial(nX-1,k) = 0.0;
+    //}
+  //} else if(c.horizontalBoundaryConditions == BoundaryConditions::periodic) {
+    //for(int k=0; k<c.nZ; ++k) {
+      //vars.tmp.spatial(-1,k) = vars.tmp.spatial(nX-1, k);
+      //vars.tmp.spatial(nX,k) = vars.tmp.spatial(0, k);
+
+      //vars.omg.spatial(-1,k) = vars.omg.spatial(nX-1, k);
+      //vars.omg.spatial(nX,k) = vars.omg.spatial(0, k);
+
+      //vars.psi.spatial(-1,k) = vars.psi.spatial(nX-1, k);
+      //vars.psi.spatial(nX,k) = vars.psi.spatial(0, k);
+    //}
+  //}
+//}
 
 void VariableGPU::writeToFile(std::ofstream& file) {
   copyToHost();
@@ -97,6 +167,8 @@ VariableGPU::VariableGPU(const Constants &c_in, int totalSteps_in, bool useSinTr
 {
   initialiseData();
   setupcuFFT();
+  topBoundary = new mode[(nG+1)*rowSize()];
+  bottomBoundary = new mode[(nG+1)*rowSize()];
 }
 
 VariableGPU::~VariableGPU() {
@@ -108,6 +180,8 @@ VariableGPU::~VariableGPU() {
     cudaFree(spatialData_d);
     data = nullptr;
   }
+  delete [] topBoundary;
+  delete [] bottomBoundary;
 }
 
 gpu_mode* VariableGPU::getCurrent() {
@@ -170,8 +244,8 @@ void VariableGPU::setupcuFFT() {
 
 void VariableGPU::postFFTNormalise() {
   dim3 threadsPerBlock(threadsPerBlock_x,threadsPerBlock_y);
-  dim3 numBlocks((nN + threadsPerBlock.x - 1)/threadsPerBlock.x, (nZ - 2 + threadsPerBlock.y - 1)/threadsPerBlock.y);
-  normalise_fft<<<numBlocks,threadsPerBlock>>>(data_d);
+  dim3 numBlocks((nN + threadsPerBlock.x - 1)/threadsPerBlock.x, (nZ + threadsPerBlock.y - 1)/threadsPerBlock.y);
+  normalise_fft<<<numBlocks,threadsPerBlock>>>(getCurrent());
 }
 
 void VariableGPU::toSpectral() {

@@ -18,6 +18,13 @@ class VariableGPU: public Variable {
     gpu_mode * data_d;
     real * spatialData_d;
 
+    mode * topBoundary;
+    mode * bottomBoundary;
+    void applyVerticalBoundaryConditions();
+    void applyPhysicalHorizontalBoundaryConditions();
+    void applyPhysicalVerticalBoundaryConditions();
+    void fillVerticalBoundaryConditions();
+
     void initialiseData(mode initialValue = 0.0);
     VariableGPU(const Constants &c_in, int totalSteps_in=1, bool useSinTransform_in = true);
     void update(const VariableGPU& dVardt, const real dt, const real f=1.0);

@@ -2,6 +2,7 @@
 
 #include <precision.hpp>
 #include <complex_gpu.hpp>
+#include <constants.hpp>
 
 class ThomasAlgorithmGPU {
   private:
@@ -11,6 +12,7 @@ class ThomasAlgorithmGPU {
     const int nZ;
     const int nN;
     const real oodz2;
+    const real wavelength;
 
   public:
     real *wk1;
@@ -18,6 +20,6 @@ class ThomasAlgorithmGPU {
     real *sub;
 
     void solve(gpu_mode *sol, const gpu_mode *rhs) const;
-    ThomasAlgorithmGPU(const int nZ, const int nN, const int a, const real oodz2);
+    ThomasAlgorithmGPU(const Constants& c);
     ~ThomasAlgorithmGPU();
 };
