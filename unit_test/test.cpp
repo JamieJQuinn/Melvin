@@ -405,8 +405,8 @@ TEST_CASE("Test spatial nonlinear derivative", "[]") {
       real domgdx = (2.0/3.0*x + 1.0)*(2.0*pow(z,2) + 3.0*z + 10.0);
       real domgdz = (pow(x,2)/3.0+x-2.0)*(4.0*z + 3.0);
 
-      require_within_error(sim.nonlinearSineTerm.spatial(i,k),
-          -(-dpsidz*domgdx + dpsidx*domgdz), 2e-2);
+      REQUIRE(sim.nonlinearSineTerm.spatial(i,k)
+        == Approx(-(-dpsidz*domgdx + dpsidx*domgdz)).margin(0.5));
     }
   }
 }

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-n_modes=170
-n_transform_points=512
-n_gridpoints=256
+n_modes=50
+n_transform_points=151
+n_gridpoints=101
 
 cat << EOF > test_constants.json
 {
@@ -19,13 +19,13 @@ cat << EOF > test_constants.json
   "isDoubleDiffusion":false,
   "totalTime":0.05,
 
-  "isCudaEnabled":true,
+  "isCudaEnabled":false,
   "threadsPerBlock_x":16,
   "threadsPerBlock_y":32
 }
 EOF
 
-cat << EOF > test_constants_cpu.json
+cat << EOF > test_constants_gpu.json
 {
   "Pr":0.5,
   "Ra":1000000,
@@ -40,7 +40,7 @@ cat << EOF > test_constants_cpu.json
   "isDoubleDiffusion":false,
   "totalTime":0.05,
 
-  "isCudaEnabled":false,
+  "isCudaEnabled":true,
   "threadsPerBlock_x":16,
   "threadsPerBlock_y":32
 }
@@ -115,6 +115,6 @@ cat << EOF > test_constants_ddc_gpu.json
 }
 EOF
 
-	python3 ../tools/make_initial_conditions.py --output initial_conditions_ddc.dat --salt_fingering --n_modes ${n_modes} --n_gridpoints ${n_gridpoints} --modes $(seq 1 63)
-	python3 ../tools/make_initial_conditions.py --output initial_conditions.dat --n_modes ${n_modes} --n_gridpoints ${n_gridpoints} --modes $(seq 1 63)
+	python3 ../tools/make_initial_conditions.py --output initial_conditions_ddc.dat --salt_fingering --n_modes ${n_modes} --n_gridpoints ${n_gridpoints} --modes $(seq 1 25)
+	python3 ../tools/make_initial_conditions.py --output initial_conditions.dat --n_modes ${n_modes} --n_gridpoints ${n_gridpoints} --modes $(seq 1 25)
 

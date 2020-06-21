@@ -25,60 +25,80 @@ using std::endl;
 using namespace std::complex_literals;
 
 
-//void test_main_vars(const Constants &c, const SimGPU &sGPU, const Sim &s) {
-  //for(int n=0; n<c.nN; ++n) {
-    //for(int k=0; k<c.nZ; ++k) {
-      //[>cout << n << ", " << k << endl;<]
-      //REQUIRE(is_equal(sGPU.vars.tmp(n,k), s.vars.tmp(n,k)));
-      //REQUIRE(is_equal(sGPU.vars.psi(n,k), s.vars.psi(n,k)));
-      //REQUIRE(is_equal(sGPU.vars.omg(n,k), s.vars.omg(n,k)));
-    //}
-  //}
-  //if(c.isDoubleDiffusion) {
-    //for(int n=0; n<c.nN; ++n) {
-      //for(int k=0; k<c.nZ; ++k) {
-        //REQUIRE(is_equal(sGPU.vars.xi(n,k), s.vars.xi(n,k)));
-      //}
-    //}
-  //}
-//}
+void test_main_vars(const Constants &c, const SimGPU &sGPU, const Sim &s, bool print=false) {
+  for(auto variable : sGPU.vars.variableList) {
+    variable->copyToHost();
+  }
+  for(int n=0; n<c.nN; ++n) {
+    for(int k=0; k<c.nZ; ++k) {
+      if(print) {
+        cout << n << " " << k << endl;
+      }
+      require_equal(sGPU.vars.tmp(n,k), s.vars.tmp(n,k));
+      require_equal(sGPU.vars.psi(n,k), s.vars.psi(n,k));
+      require_equal(sGPU.vars.omg(n,k), s.vars.omg(n,k));
+    }
+  }
+  if(c.isDoubleDiffusion) {
+    for(int n=0; n<c.nN; ++n) {
+      for(int k=0; k<c.nZ; ++k) {
+        if(print) {
+          cout << n << " " << k << endl;
+        }
+        require_equal(sGPU.vars.xi(n,k), s.vars.xi(n,k));
+      }
+    }
+  }
+}
 
-//void test_derivatives(const Constants &c, const SimGPU &sGPU, const Sim &s) {
-  //[>cout << "Testing derivatives" << endl;<]
-  //for(int n=0; n<c.nN; ++n) {
-    //for(int k=1; k<c.nZ-1; ++k) {
-      //REQUIRE(is_equal(sGPU.vars.dOmgdt(n,k), s.vars.dOmgdt(n,k)));
-      //REQUIRE(is_equal(sGPU.vars.dTmpdt(n,k), s.vars.dTmpdt(n,k)));
-    //}
-  //}
-  //if(c.isDoubleDiffusion) {
-    //for(int n=0; n<c.nN; ++n) {
-      //for(int k=1; k<c.nZ-1; ++k) {
-        //REQUIRE(is_equal(sGPU.vars.dXidt(n,k), s.vars.dXidt(n,k)));
-      //}
-    //}
-  //}
-  //[>cout << "Testing previous derivatives" << endl;<]
-  //for(int n=0; n<c.nN; ++n) {
-    //for(int k=1; k<c.nZ-1; ++k) {
-      //[>cout << n << ", " << k << endl;<]
-      //REQUIRE(is_equal(sGPU.vars.dOmgdt.getPrev(n,k), s.vars.dOmgdt.getPrev(n,k)));
-      //REQUIRE(is_equal(sGPU.vars.dTmpdt.getPrev(n,k), s.vars.dTmpdt.getPrev(n,k)));
-    //}
-  //}
-  //if(c.isDoubleDiffusion) {
-    //for(int n=0; n<c.nN; ++n) {
-      //for(int k=1; k<c.nZ-1; ++k) {
-        //REQUIRE(is_equal(sGPU.vars.dXidt.getPrev(n,k), s.vars.dXidt.getPrev(n,k)));
-      //}
-    //}
-  //}
-//}
+void test_derivatives(const Constants &c, const SimGPU &sGPU, const Sim &s, bool print=false) {
+  for(auto variable : sGPU.vars.variableList) {
+    variable->copyToHost();
+  }
+  for(int n=0; n<c.nN; ++n) {
+    for(int k=0; k<c.nZ; ++k) {
+      if(print) {
+        cout << n << " " << k << endl;
+      }
+      require_equal(sGPU.vars.dOmgdt(n,k), s.vars.dOmgdt(n,k));
+      require_equal(sGPU.vars.dTmpdt(n,k), s.vars.dTmpdt(n,k));
+    }
+  }
+  if(c.isDoubleDiffusion) {
+    for(int n=0; n<c.nN; ++n) {
+      for(int k=0; k<c.nZ; ++k) {
+        if(print) {
+          cout << n << " " << k << endl;
+        }
+        require_equal(sGPU.vars.dXidt(n,k), s.vars.dXidt(n,k));
+      }
+    }
+  }
+  for(int n=0; n<c.nN; ++n) {
+    for(int k=0; k<c.nZ; ++k) {
+      if(print) {
+        cout << n << " " << k << endl;
+      }
+      require_equal(sGPU.vars.dOmgdt.getPrev(n,k), s.vars.dOmgdt.getPrev(n,k));
+      require_equal(sGPU.vars.dTmpdt.getPrev(n,k), s.vars.dTmpdt.getPrev(n,k));
+    }
+  }
+  if(c.isDoubleDiffusion) {
+    for(int n=0; n<c.nN; ++n) {
+      for(int k=0; k<c.nZ; ++k) {
+        if(print) {
+          cout << n << " " << k << endl;
+        }
+        require_equal(sGPU.vars.dXidt.getPrev(n,k), s.vars.dXidt.getPrev(n,k));
+      }
+    }
+  }
+}
 
-//void test_all_vars(const Constants &c, const SimGPU &sGPU, const Sim &s) {
-  //test_main_vars(c, sGPU, s);
-  //test_derivatives(c, sGPU, s);
-//}
+void test_all_vars(const Constants &c, const SimGPU &sGPU, const Sim &s, bool print=false) {
+  test_main_vars(c, sGPU, s, print);
+  test_derivatives(c, sGPU, s, print);
+}
 
 //TEST_CASE( "GPU Thomas algorithm solves a system correctly", "[gpu]" ) {
   //int nZ = 10;
@@ -160,7 +180,7 @@ TEST_CASE("Make sure copy to and from device works", "[gpu]") {
 }
 
 TEST_CASE("GPU Variables class load from file", "[gpu]") {
-  Constants c("test_constants_ddc_gpu.json");
+  Constants c("test_constants_periodic_gpu.json");
 
   Sim s(c);
   SimGPU sGPU(c);
@@ -449,64 +469,263 @@ TEST_CASE("Test cuFFT discrete Fourier transform", "[gpu]") {
   }
 }
 
-//TEST_CASE("Double diffusive linear step calculates correctly", "[gpu]") {
-  //Constants c("test_constants_ddc.json");
+TEST_CASE("Test GPU spatial nonlinear derivative", "[]") {
+  Constants c("test_constants_periodic_gpu.json");
+
+  SimGPU sim(c);
+
+  for(int i=0; i<c.nX; ++i) {
+    for(int k=0; k<c.nZ; ++k) {
+      real z = k*c.dz;
+      real x = i*c.dx;
+      sim.vars.psi.spatial(i,k) = (pow(x,2)+2.0*x-3.0)*(pow(z,2) + 5.0*z + 7.0);
+      sim.vars.omg.spatial(i,k) = (pow(x,2)/3.0+x-2.0)*(2.0*pow(z,2) + 3.0*z + 10.0);
+    }
+  }
+
+  sim.vars.psi.copyToDevice(true);
+  sim.vars.omg.copyToDevice(true);
+
+  sim.computeNonlinearDerivativeSpectralTransform(sim.vars.dOmgdt, sim.vars.omg);
+
+  sim.nonlinearTerm.copyToHost(true);
+
+  for(int i=1; i<c.nX-1; ++i) {
+    for(int k=1; k<c.nZ-1; ++k) {
+      real z = k*c.dz;
+      real x = i*c.dx;
+      real dpsidx = (2.0*x + 2.0)*(pow(z,2) + 5.0*z + 7.0);
+      real dpsidz = (pow(x,2)+2.0*x-3.0)*(2.0*z + 5.0);
+      real domgdx = (2.0/3.0*x + 1.0)*(2.0*pow(z,2) + 3.0*z + 10.0);
+      real domgdz = (pow(x,2)/3.0+x-2.0)*(4.0*z + 3.0);
+
+      CHECK(sim.nonlinearTerm.spatial(i,k)
+        == Approx(-(-dpsidz*domgdx + dpsidx*domgdz)).margin(0.5));
+    }
+  }
+}
+
+TEST_CASE("Linear step calculates correctly", "[gpu]") {
+  Constants c("test_constants_periodic.json");
+  Constants cGPU("test_constants_periodic_gpu.json");
+
+  Sim s(c);
+  SimGPU sGPU(cGPU);
+
+  // Load both with same test data
+  for(int n=0; n<c.nN; ++n) {
+    for(int k=0; k<c.nZ; ++k) {
+      s.vars.omg(n,k) = (real)k + real(n)/c.nN*1.0i;
+      s.vars.tmp(n,k) = (real)k + real(n)/c.nN*1.0i;
+      s.vars.psi(n,k) = (real)k/c.nN;
+      s.vars.xi(n,k) = (real)k/c.nN;
+    }
+  }
+
+  for(int n=0; n<c.nN; ++n) {
+    for(int k=0; k<c.nZ; ++k) {
+      sGPU.vars.omg(n,k) = (real)k + real(n)/c.nN*1.0i;
+      sGPU.vars.tmp(n,k) = (real)k + real(n)/c.nN*1.0i;
+      sGPU.vars.psi(n,k) = (real)k/c.nN;
+      sGPU.vars.xi(n,k) = (real)k/c.nN;
+    }
+  }
+
+  sGPU.vars.omg.copyToDevice();
+  sGPU.vars.tmp.copyToDevice();
+  sGPU.vars.psi.copyToDevice();
+
+  for(int i=0; i<10; ++i) {
+    s.runLinearStep();
+    sGPU.runLinearStep();
+    cudaDeviceSynchronize();
+  }
+  test_main_vars(c, sGPU, s);
+}
+
+//TEST_CASE("Each stage of linear step calculates correctly", "[gpu]") {
+  //Constants c("test_constants_periodic.json");
+  //Constants cGPU("test_constants_periodic_gpu.json");
 
   //Sim s(c);
-  //SimGPU sGPU(c);
+  //SimGPU sGPU(cGPU);
 
-  //s.vars.load(c.icFile);
-  //sGPU.vars.load(c.icFile);
-
-  //for(int i=0; i<10; ++i) {
-    //s.runLinearStep();
-    //sGPU.runLinearStep();
-    //cudaDeviceSynchronize();
+  //// Load both with same test data
+  //for(int n=0; n<c.nN; ++n) {
+    //for(int k=0; k<c.nZ; ++k) {
+      //s.vars.omg(n,k) = (real)k + real(n)/c.nN*1.0i;
+      //s.vars.tmp(n,k) = (real)k + (real)n/c.nN*1.0i;
+      //s.vars.psi(n,k) = (real)k/c.nN;
+      //s.vars.xi(n,k) = (real)k/c.nN;
+    //}
   //}
 
-  //test_all_vars(c, sGPU, s);
+  //for(int n=0; n<c.nN; ++n) {
+    //for(int k=0; k<c.nZ; ++k) {
+      //sGPU.vars.omg(n,k) = (real)k + real(n)/c.nN*1.0i;
+      //sGPU.vars.tmp(n,k) = (real)k + (real)n/c.nN*1.0i;
+      //sGPU.vars.psi(n,k) = (real)k/c.nN;
+      //sGPU.vars.xi(n,k) = (real)k/c.nN;
+    //}
+  //}
+
+  //sGPU.vars.omg.copyToDevice();
+  //sGPU.vars.tmp.copyToDevice();
+  //sGPU.vars.psi.copyToDevice();
+
+  //for(int i=0; i<10; ++i) {
+    //s.computeLinearDerivatives();
+    //sGPU.computeLinearDerivatives();
+    //cudaDeviceSynchronize();
+    //test_derivatives(c, sGPU, s);
+
+    //cout << "Linear derivatives fine" << endl;
+
+    //s.addAdvectionApproximation();
+    //sGPU.addAdvectionApproximation();
+    //cudaDeviceSynchronize();
+    //test_derivatives(c, sGPU, s);
+
+    //cout << "Advection approximation fine" << endl;
+
+    //real dt = s.dt;
+    //s.vars.updateVars(dt);
+    //sGPU.vars.updateVars(dt);
+    //cudaDeviceSynchronize();
+    //test_main_vars(c, sGPU, s);
+
+    //cout << "updating variables fine" << endl;
+
+    //s.applyTemperatureBoundaryConditions();
+    //sGPU.vars.tmp.applyVerticalBoundaryConditions();
+    //cudaDeviceSynchronize();
+    //test_main_vars(c, sGPU, s);
+
+    //s.applyVorticityBoundaryConditions();
+    //sGPU.vars.omg.applyVerticalBoundaryConditions();
+    //cudaDeviceSynchronize();
+    //test_main_vars(c, sGPU, s);
+
+    //cout << "temp and vorticity bcs fine" << endl;
+
+    //s.vars.advanceDerivatives();
+    //sGPU.vars.advanceDerivatives();
+    //cudaDeviceSynchronize();
+    //test_derivatives(c, sGPU, s);
+
+    //cout << "Advancing derivatives fine" << endl;
+
+    //s.solveForPsi();
+    //sGPU.solveForPsi();
+    //cudaDeviceSynchronize();
+    //test_main_vars(c, sGPU, s);
+
+    //cout << "Solving for psi fine" << endl;
+
+    //s.applyPsiBoundaryConditions();
+    //sGPU.vars.psi.applyVerticalBoundaryConditions();
+    //cudaDeviceSynchronize();
+    //test_main_vars(c, sGPU, s);
+
+    //cout << "psi bcs fine" << endl;
+  //}
 //}
 
-//TEST_CASE("Double diffusive linear derivatives calculate correctly", "[gpu]") {
-  //Constants c("test_constants_ddc.json");
+TEST_CASE("Linear derivatives calculate correctly", "[gpu]") {
+  Constants c("test_constants_periodic.json");
+  Constants cGPU("test_constants_periodic_gpu.json");
 
-  //Sim s(c);
-  //SimGPU sGPU(c);
+  Sim s(c);
+  SimGPU sGPU(cGPU);
 
-  //s.vars.load(c.icFile);
-  //sGPU.vars.load(c.icFile);
+  // Load both with same test data
+  for(int n=0; n<c.nN; ++n) {
+    for(int k=0; k<c.nZ; ++k) {
+      s.vars.omg(n,k) = (real)k + real(n)/c.nN*1.0i;
+      s.vars.tmp(n,k) = (real)k + (real)n/c.nN*1.0i;
+      s.vars.psi(n,k) = (real)k/c.nN;
+      s.vars.xi(n,k) = (real)k/c.nN;
+    }
+  }
 
-  //s.computeLinearDerivatives();
-  //sGPU.computeLinearDerivatives();
-  //cudaDeviceSynchronize();
+  for(int n=0; n<c.nN; ++n) {
+    for(int k=0; k<c.nZ; ++k) {
+      sGPU.vars.omg(n,k) = (real)k + real(n)/c.nN*1.0i;
+      sGPU.vars.tmp(n,k) = (real)k + (real)n/c.nN*1.0i;
+      sGPU.vars.psi(n,k) = (real)k/c.nN;
+      sGPU.vars.xi(n,k) = (real)k/c.nN;
+    }
+  }
 
-  //test_all_vars(c, sGPU, s);
-//}
+  sGPU.vars.omg.copyToDevice();
+  sGPU.vars.tmp.copyToDevice();
+  sGPU.vars.psi.copyToDevice();
 
-//TEST_CASE("Double diffusive nonlinear step calculates correctly", "[gpu]") {
-  //Constants c("test_constants_ddc.json");
+  s.computeLinearDerivatives();
+  sGPU.computeLinearDerivatives();
+  cudaDeviceSynchronize();
 
-  //Sim s(c);
-  //SimGPU sGPU(c);
+  test_derivatives(c, sGPU, s);
+}
 
-  //s.vars.load(c.icFile);
-  //sGPU.vars.load(c.icFile);
+TEST_CASE("Nonlinear step calculates correctly", "[gpu]") {
+  Constants c("test_constants_periodic.json");
+  Constants cGPU("test_constants_periodic_gpu.json");
 
-  //time_point<Clock> start = Clock::now();
-  //s.runNonLinearStep();
-  //time_point<Clock> end = Clock::now();
-  //std::chrono::duration<int64_t, std::nano> diff = end-start;
-  //cout << "CPU version of full nonlinear step: " << diff.count() << endl;
+  Sim s(c);
+  SimGPU sGPU(cGPU);
 
-  //start = Clock::now();
-  //sGPU.runNonLinearStep();
-  //cudaDeviceSynchronize();
-  //end = Clock::now();
-  //diff = end-start;
-  //cout << "GPU version of full nonlinear step: " << diff.count() << endl;
+  s.vars.load(c.icFile);
+  sGPU.vars.load(c.icFile);
 
-  //test_main_vars(c, sGPU, s);
-//}
+  for(int i=0; i<2; ++i) {
+    //cout << i << endl;
+
+    //cout << "computing linear derivatives" << endl;
+    s.computeLinearDerivatives();
+    sGPU.computeLinearDerivatives();
+    test_derivatives(c, sGPU, s);
+
+    //cout << "computing nonlinear derivatives" << endl;
+    s.computeNonlinearDerivatives();
+    sGPU.computeNonlinearDerivatives();
+    test_derivatives(c, sGPU, s);
+
+    //cout << "updating vars" << endl;
+    real f = 1.0;
+    real dt = s.dt;
+    s.vars.updateVars(dt, f);
+    sGPU.vars.updateVars(dt, f);
+    test_all_vars(c, sGPU, s);
+
+    //cout << "applying temp boundary conditions" << endl;
+    s.applyTemperatureBoundaryConditions();
+    sGPU.vars.tmp.applyVerticalBoundaryConditions();
+    test_all_vars(c, sGPU, s);
+
+    //cout << "applying vorticity boundary conditions" << endl;
+    s.applyVorticityBoundaryConditions();
+    sGPU.vars.omg.applyVerticalBoundaryConditions();
+    test_all_vars(c, sGPU, s);
+
+    //cout << "advancing derivatives" << endl;
+    s.vars.advanceDerivatives();
+    sGPU.vars.advanceDerivatives();
+    test_derivatives(c, sGPU, s);
+
+    //cout << "solving for psi" << endl;
+    s.solveForPsi();
+    sGPU.solveForPsi();
+    test_all_vars(c, sGPU, s);
+
+    //cout << "applying psi boundary conditions" << endl;
+    s.applyPsiBoundaryConditions();
+    sGPU.vars.psi.applyVerticalBoundaryConditions();
+    test_all_vars(c, sGPU, s);
+  }
+
+  test_all_vars(c, sGPU, s);
+}
 
 //TEST_CASE("Linear step calculates correctly", "[gpu]") {
   //Constants c("test_constants.json");
@@ -543,84 +762,219 @@ TEST_CASE("Test cuFFT discrete Fourier transform", "[gpu]") {
 //}
 
 //TEST_CASE("Nonlinear step calculates correctly", "[gpu]") {
-  //Constants c("test_constants.json");
+  //Constants cGPU("test_constants_periodic_gpu.json");
+  //Constants c("test_constants_periodic.json");
 
   //Sim s(c);
-  //SimGPU sGPU(c);
+  //SimGPU sGPU(cGPU);
 
   //s.vars.load(c.icFile);
   //sGPU.vars.load(c.icFile);
 
-  //time_point<Clock> start = Clock::now();
-  //s.runNonLinearStep();
-  //time_point<Clock> end = Clock::now();
-  //std::chrono::duration<int64_t, std::nano> diff = end-start;
-  //cout << "CPU version of full nonlinear step: " << diff.count() << endl;
-
-  //start = Clock::now();
-  //sGPU.runNonLinearStep();
-  //cudaDeviceSynchronize();
-  //end = Clock::now();
-  //diff = end-start;
-  //cout << "GPU version of full nonlinear step: " << diff.count() << endl;
+  //for(int i=0; i<10; ++i) {
+    //s.runNonLinearStep();
+    //sGPU.runNonLinearStep();
+  //}
 
   //test_all_vars(c, sGPU, s);
 //}
 
+TEST_CASE("GPU vertical boundary conditions work", "[gpu]") {
+  Constants c("test_constants_periodic_gpu.json");
+
+  SimGPU s(c);
+
+  s.vars.load(c.icFile);
+
+  s.vars.tmp(0,0) = 5.0;
+  s.vars.tmp(1,0) = 5.0;
+  s.vars.tmp(0,c.nZ-1) = 3.0;
+
+  s.vars.tmp.copyToDevice();
+
+  s.vars.tmp.applyVerticalBoundaryConditions();
+
+  s.vars.tmp.copyToHost();
+
+  require_equal(s.vars.tmp(0,0), 1.0);
+  require_equal(s.vars.tmp(1,0), 0.0);
+  require_equal(s.vars.tmp(0,c.nZ-1), 0.0);
+}
+
+TEST_CASE("CPU and GPU spatial boundary conditions match", "[gpu]") {
+  Constants c("test_constants_periodic.json");
+  Constants cGPU("test_constants_periodic_gpu.json");
+
+  Sim s(c);
+  SimGPU sGPU(cGPU);
+
+  // Load both with same test data
+  for(int n=0; n<c.nN; ++n) {
+    for(int k=0; k<c.nZ; ++k) {
+      s.vars.omg(n,k) = (real)k + real(n)/c.nN*1.0i;
+      s.vars.tmp(n,k) = (real)k + real(n)/c.nN*1.0i;
+      s.vars.psi(n,k) = (real)k/c.nN;
+      s.vars.xi(n,k) = (real)k/c.nN;
+    }
+  }
+
+  s.vars.tmp.toPhysical();
+  s.vars.omg.toPhysical();
+  s.vars.psi.toPhysical();
+  s.applyPhysicalBoundaryConditions();
+
+  for(int n=0; n<c.nN; ++n) {
+    for(int k=0; k<c.nZ; ++k) {
+      sGPU.vars.omg(n,k) = (real)k + real(n)/c.nN*1.0i;
+      sGPU.vars.tmp(n,k) = (real)k + (real)n/c.nN*1.0i;
+      sGPU.vars.psi(n,k) = (real)k/c.nN;
+      sGPU.vars.xi(n,k) = (real)k/c.nN;
+    }
+  }
+
+  sGPU.vars.omg.copyToDevice();
+  sGPU.vars.tmp.copyToDevice();
+  sGPU.vars.psi.copyToDevice();
+
+  sGPU.vars.omg.toPhysical();
+  sGPU.vars.tmp.toPhysical();
+  sGPU.vars.psi.toPhysical();
+
+  sGPU.vars.psi.applyPhysicalHorizontalBoundaryConditions();
+  sGPU.vars.tmp.applyPhysicalHorizontalBoundaryConditions();
+  sGPU.vars.omg.applyPhysicalHorizontalBoundaryConditions();
+
+  sGPU.vars.omg.copyToHost(true);
+  sGPU.vars.tmp.copyToHost(true);
+  sGPU.vars.psi.copyToHost(true);
+
+  for(int k=0; k<c.nZ; ++k) {
+    for(int i=-1; i<c.nX+1; ++i) {
+      require_equal(sGPU.vars.tmp.spatial(i,k), s.vars.tmp.spatial(i,k));
+      require_equal(sGPU.vars.omg.spatial(i,k), s.vars.omg.spatial(i,k));
+      require_equal(sGPU.vars.psi.spatial(i,k), s.vars.psi.spatial(i,k));
+    }
+  }
+}
+
+TEST_CASE("Nonlinear calculation matches pre-FFT", "[gpu]") {
+  Constants c("test_constants_periodic.json");
+  Constants cGPU("test_constants_periodic_gpu.json");
+
+  Sim s(c);
+  SimGPU sGPU(cGPU);
+
+  // Load both with same test data
+  for(int n=0; n<c.nN; ++n) {
+    for(int k=0; k<c.nZ; ++k) {
+      s.vars.omg(n,k) = (real)k + real(n)/c.nN*1.0i;
+      s.vars.tmp(n,k) = (real)k + real(n)/c.nN*1.0i;
+      s.vars.psi(n,k) = (real)k/c.nN;
+      s.vars.xi(n,k) = (real)k/c.nN;
+    }
+  }
+
+  s.vars.tmp.toPhysical();
+  s.vars.omg.toPhysical();
+  s.vars.psi.toPhysical();
+  s.applyPhysicalBoundaryConditions();
+  s.computeNonlinearVorticityDerivative();
+
+  for(int n=0; n<c.nN; ++n) {
+    for(int k=0; k<c.nZ; ++k) {
+      sGPU.vars.omg(n,k) = (real)k + real(n)/c.nN*1.0i;
+      sGPU.vars.tmp(n,k) = (real)k + real(n)/c.nN*1.0i;
+      sGPU.vars.psi(n,k) = (real)k/c.nN;
+      sGPU.vars.xi(n,k) = (real)k/c.nN;
+    }
+  }
+
+  sGPU.vars.omg.copyToDevice();
+  sGPU.vars.tmp.copyToDevice();
+  sGPU.vars.psi.copyToDevice();
+
+  sGPU.vars.omg.toPhysical();
+  sGPU.vars.tmp.toPhysical();
+  sGPU.vars.psi.toPhysical();
+
+  sGPU.vars.psi.applyPhysicalHorizontalBoundaryConditions();
+  sGPU.vars.tmp.applyPhysicalHorizontalBoundaryConditions();
+  sGPU.vars.omg.applyPhysicalHorizontalBoundaryConditions();
+  sGPU.computeNonlinearDerivativeSpectralTransform(sGPU.vars.dOmgdt, sGPU.vars.omg);
+
+  sGPU.nonlinearTerm.copyToHost(true);
+
+  for(int k=0; k<c.nZ; ++k) {
+    for(int i=0; i<c.nX; ++i) {
+      //cout << k << " " << i << endl;
+      require_equal(sGPU.nonlinearTerm.spatial(i,k), s.nonlinearSineTerm.spatial(i,k));
+    }
+  }
+}
+
 //TEST_CASE("Nonlinear temperature derivative calculates correctly", "[gpu]") {
-  //Constants c;
-  //c.nN = 64;
-  //c.nZ = 128;
-  //c.aspectRatio = 1.3;
-  //c.Pr = 1.0;
-  //c.Ra = 2.5;
-  //c.RaXi = 2.0;
-  //c.tau = 0.01;
-  //c.isDoubleDiffusion = true;
+  //Constants c("test_constants_periodic.json");
+  //Constants cGPU("test_constants_periodic_gpu.json");
+
+  //c.nN = 400;
+  //cGPU.nN = c.nN;
+  //c.nZ = 2*c.nN;
+  //cGPU.nZ = c.nZ;
+  //c.nX = 3*c.nN + 1;
+  //cGPU.nX = c.nX;
+
   //c.calculateDerivedConstants();
+  //cGPU.calculateDerivedConstants();
 
   //Sim s(c);
-
-  //c.isCudaEnabled = true;
-  //c.threadsPerBlock_x = 16;
-  //c.threadsPerBlock_y = 32;
-  //SimGPU sGPU(c);
+  //SimGPU sGPU(cGPU);
 
   //// Load both with same test data
   //for(int n=0; n<c.nN; ++n) {
     //for(int k=0; k<c.nZ; ++k) {
-      //s.vars.omg(n,k) = (float)k;
-      //s.vars.tmp(n,k) = (float)k;
-      //s.vars.psi(n,k) = (float)k/c.nN;
-      //s.vars.xi(n,k) = (float)k/c.nN;
+      //s.vars.omg(n,k) = (real)k;
+      //s.vars.tmp(n,k) = (real)k + (real)n/c.nN*1.0i;
+      //s.vars.psi(n,k) = (real)k/c.nN;
+      //s.vars.xi(n,k) = (real)k/c.nN;
     //}
   //}
 
   //for(int n=0; n<c.nN; ++n) {
     //for(int k=0; k<c.nZ; ++k) {
-      //sGPU.vars.omg(n,k) = (float)k;
-      //sGPU.vars.tmp(n,k) = (float)k;
-      //sGPU.vars.psi(n,k) = (float)k/c.nN;
-      //sGPU.vars.xi(n,k) = (float)k/c.nN;
+      //sGPU.vars.omg(n,k) = (real)k;
+      //sGPU.vars.tmp(n,k) = (real)k + (real)n/c.nN*1.0i;
+      //sGPU.vars.psi(n,k) = (real)k/c.nN;
+      //sGPU.vars.xi(n,k) = (real)k/c.nN;
     //}
   //}
 
+  //sGPU.vars.omg.copyToDevice();
+  //sGPU.vars.tmp.copyToDevice();
+  //sGPU.vars.psi.copyToDevice();
+
   //time_point<Clock> start = Clock::now();
-  //s.computeNonlinearTemperatureDerivative();
+  //s.computeNonlinearDerivatives();
   //time_point<Clock> end = Clock::now();
   //std::chrono::duration<int64_t, std::nano> diff = end-start;
   //cout << "CPU version of nonlinear derivatives calculation: " << diff.count() << endl;
 
   //start = Clock::now();
-  //sGPU.computeNonlinearTemperatureDerivative();
+  //sGPU.computeNonlinearDerivatives();
   //cudaDeviceSynchronize();
   //end = Clock::now();
   //diff = end-start;
   //cout << "GPU version of nonlinear derivatives calculation: " << diff.count() << endl;
 
-  //for(int n=0; n<c.nN; ++n) {
-    //for(int k=0; k<c.nZ; ++k) {
-      //REQUIRE(sGPU.vars.dTmpdt(n,k) == Approx(s.vars.dTmpdt(n,k)));
+  //sGPU.vars.dTmpdt.copyToHost();
+  //sGPU.vars.dOmgdt.copyToHost();
+
+  //for(int k=0; k<c.nZ; ++k) {
+    //for(int n=0; n<c.nN; ++n) {
+      //cout << k << " " << n << endl;
+      //cout << sGPU.vars.dTmpdt(n,k) << s.vars.dTmpdt(n,k) << endl;
+      //require_within_error(sGPU.vars.dTmpdt(n,k), s.vars.dTmpdt(n,k), 1e-10);
+      //cout << sGPU.vars.dOmgdt(n,k) << s.vars.dOmgdt(n,k) << endl;
+      //require_within_error(sGPU.vars.dOmgdt(n,k), s.vars.dOmgdt(n,k), 1e-10);
     //}
   //}
 //}
@@ -907,3 +1261,37 @@ TEST_CASE("Test cuFFT discrete Fourier transform", "[gpu]") {
   //cout << "GPU version of Thomas algorithm: " << diff.count() << endl;
 //}
 
+TEST_CASE("Test GPU complex poisson solver", "[]") {
+  Constants c("test_constants_periodic_gpu.json");
+
+  SimGPU sim(c);
+  VariableGPU psi(c);
+
+  for(int k=0; k<c.nZ; ++k) {
+    for(int n=0; n<c.nN; ++n) {
+      real z = c.dz*k;
+      psi(n,k) = 2.0*sin(M_PI*z)*(n+1) + 3.0i*sin(2.0*M_PI*z);
+    }
+  }
+
+  for(int n=0; n<c.nN; ++n) {
+    sim.vars.omg(n,0) = sim.vars.omg(n,c.nZ-1) = 0.0;
+    for(int k=1; k<c.nZ-1; ++k) {
+      sim.vars.omg(n,k) = -(psi.dfdz2(n,k) - pow(real(n)*c.wavelength, 2)*psi(n,k));
+    }
+  }
+
+  psi.copyToDevice();
+  sim.vars.omg.copyToDevice();
+
+  sim.solveForPsi();
+
+  sim.vars.psi.copyToHost();
+
+  for(int k=0; k<c.nZ; ++k) {
+    for(int n=0; n<c.nN; ++n) {
+      //cout << n << " " << k << endl;
+      require_within_error(sim.vars.psi(n,k), psi(n,k));
+    }
+  }
+}
