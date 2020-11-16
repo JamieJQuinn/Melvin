@@ -23,6 +23,7 @@ def main():
     parser.add_argument('--x_resolution', help='Resolution in x', type=int)
     parser.add_argument('--z_resolution', help='Resolution in z', type=int)
     parser.add_argument('--levels', help='Number of levels to round data to (0 to disable)', type=int, default=0)
+    parser.add_argument('--index', help='Index of variable to print', type=int, default=0)
     args = parser.parse_args()
 
     constants_file = open(args.constants, "r")
@@ -37,7 +38,7 @@ def main():
         constants["horizontalBoundaryConditions"] = "impermeable"
 
     data = np.fromfile(args.filename, dtype=np.dtype(np.cdouble))
-    temp = extract_variable(data, 0, n_modes, nZ_in)
+    temp = extract_variable(data, args.index, n_modes, nZ_in)
 
     nX_out = args.x_resolution
     nZ_out = args.z_resolution
