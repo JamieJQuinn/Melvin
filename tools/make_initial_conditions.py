@@ -39,7 +39,7 @@ def main():
                         help='number of modes in simulation')
     parser.add_argument('--n_gridpoints', type=int, required=True,
                         help='number of gridpoints in simulation')
-    parser.add_argument('--modes', type=int, nargs='+',
+    parser.add_argument('--modes', type=int, nargs='+', default=[],
                         help='modes to initialise')
     parser.add_argument('--periodic', action='store_true',
                         help='enables periodic conditions')
@@ -55,7 +55,7 @@ def main():
                         help='sets up linear stability conditions')
     parser.add_argument('--step_profile', action='store_true',
                         help='uses step function instead of linear background')
-    parser.add_argument('--amp', type=float,
+    parser.add_argument('--amp', type=float, default=0.01,
                         help='amplitude of initial disturbance')
     parser.add_argument('--perturb_vorticity', action='store_true',
                         help='Adds perturbation to 0th mode of vorticity')
@@ -87,20 +87,13 @@ def main():
         temp_grad = temperature_gradient(is_stable=True)
         xi_grad = xi_gradient(is_stable=True)
 
+    amp = args.amp
+    modes = args.modes
+
     if args.linear_stability:
         # initialise all modes with a large amplitude
         modes = range(1, args.n_modes)
         amp = 1.0
-    else:
-        # initialise chosen modes with a small amplitude
-        if args.modes:
-            modes = args.modes
-        else:
-            modes = []
-        if args.amp:
-            amp = args.amp
-        else:
-            amp = 0.01
 
     # Stored as temp|omg|psi contiguously
     data = np.zeros((n_vars, n_modes, n_gridpoints), dtype=np.cdouble)
@@ -125,7 +118,7 @@ def main():
         perturbation = np.zeros(n_gridpoints)
         perturbation[int(n_gridpoints/2)] = amp
     else:
-        perturbation = amp*np.sin(np.pi*np.linspace(0, 1, n_gridpoints))
+        perturbation = amp*np.cos(np.pi*np.linspace(0, 1, n_gridpoints))
 
     if args.perturb_vorticity:
         set_vorticity(data, 0, perturbation)

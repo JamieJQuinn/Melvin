@@ -20,6 +20,7 @@ def main():
                         help='Output file')
     parser.add_argument('--constants', help='constants file')
     parser.add_argument('--color', help='Base colour for shading')
+    parser.add_argument('--cmap', help='matplotlib cmap to use for plotting', default='magma_r')
     parser.add_argument('--x_resolution', help='Resolution in x', type=int)
     parser.add_argument('--z_resolution', help='Resolution in z', type=int)
     parser.add_argument('--levels', help='Number of levels to round data to (0 to disable)', type=int, default=0)
@@ -59,7 +60,7 @@ def main():
     if args.levels:
         upscaled_temp = 1.0/levels*np.round(upscaled_temp*levels)
 
-    cmap = cm.get_cmap('magma_r')
+    cmap = cm.get_cmap(args.cmap)
 
     im = Image.fromarray(cmap(upscaled_temp, bytes=True))
     im.save(args.output)

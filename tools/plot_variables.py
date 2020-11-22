@@ -70,7 +70,7 @@ def main():
 
     plot_index = 0
     set_plot_defaults(axes[plot_index], aspect_ratio)
-    axes[plot_index].pcolormesh(x_grid, z_grid, temp, cmap='RdBu_r')
+    axes[plot_index].pcolormesh(x_grid, z_grid, temp, shading='auto', cmap='RdBu_r')
     axes[plot_index].set_title(r'$T$')
 
     if args.plot_streamfunction:
@@ -83,13 +83,13 @@ def main():
         plot_index += 1
         set_plot_defaults(axes[plot_index], aspect_ratio)
         axes[plot_index].set_title(r"$\xi$")
-        axes[plot_index].pcolormesh(x_grid, z_grid, xi, cmap='Blues')
+        axes[plot_index].pcolormesh(x_grid, z_grid, xi, shading='auto', cmap='Blues')
 
     if args.plot_vorticity:
         plot_index += 1
         set_plot_defaults(axes[plot_index], aspect_ratio)
         axes[plot_index].set_title(r"$\omega$")
-        axes[plot_index].pcolormesh(x_grid, z_grid, omg, cmap='RdGy_r')
+        axes[plot_index].pcolormesh(x_grid, z_grid, omg, shading='auto', cmap='RdGy_r')
 
     axes[plot_index].set_xlabel(r"$x$")
 
