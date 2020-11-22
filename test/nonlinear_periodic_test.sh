@@ -10,24 +10,24 @@ rm -f $save_folder/*
 cat << EOF > $save_folder/constants.json
 {
   "Pr":0.5,
-  "Ra":1000000,
+  "Ra":1e6,
   "aspectRatio":3,
-  "icFile":"$save_folder/ICn1nZ101nN51",
-  "initialDt":3e-06,
+  "icFile":"$save_folder/initial_conditions.dat",
+  "initialDt":1e-06,
   "nN":$nN,
   "nZ":$nZ,
   "saveFolder":"$save_folder/",
-  "timeBetweenSaves":0.01,
+  "timeBetweenSaves":1e-5,
   "isNonlinear":true,
   "isDoubleDiffusion":false,
   "totalTime":0.05,
-  "boundaryConditions":"periodic",
+  "verticalBoundaryConditions":"periodic",
   "temperatureGradient":-1
 }
 EOF
 
 constants_file=$save_folder/constants.json
-python3 tools/make_initial_conditions.py --output $save_folder/ICn1nZ101nN51 --n_modes $nN --n_gridpoints $nZ --modes 2 --periodic
+python3 tools/make_initial_conditions.py --output $save_folder/initial_conditions.dat --n_modes $nN --n_gridpoints $nZ --modes 2 --periodic
 
 echo "==================== Building program"
 #make clean
