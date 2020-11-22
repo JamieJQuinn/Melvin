@@ -142,6 +142,23 @@ void Sim::applyPhysicalBoundaryConditions() {
       }
     }
   }
+  if (c.verticalBoundaryConditions == BoundaryConditions::periodic) {
+    for(int i=0; i<c.nX; ++i) {
+      vars.tmp.spatial(i, -1) = vars.tmp.spatial(i, c.nZ-1);
+      vars.tmp.spatial(i, c.nZ) = vars.tmp.spatial(i, 0);
+
+      vars.omg.spatial(i, -1) = vars.omg.spatial(i, c.nZ-1);
+      vars.omg.spatial(i, c.nZ) = vars.omg.spatial(i, 0);
+
+      vars.psi.spatial(i, -1) = vars.psi.spatial(i, c.nZ-1);
+      vars.psi.spatial(i, c.nZ) = vars.psi.spatial(i, 0);
+
+      if(c.isDoubleDiffusion) {
+        vars.xi.spatial(i, -1) = vars.xi.spatial(i, c.nZ-1);
+        vars.xi.spatial(i, c.nZ) = vars.xi.spatial(i, 0);
+      }
+    }
+  }
 }
 
 void Sim::computeNonlinearDerivatives() {
@@ -198,7 +215,7 @@ void Sim::computeNonlinearTemperatureDerivative() {
   computeNonlinearDerivative(vars.dTmpdt, vars.tmp);
   if(c.verticalBoundaryConditions == BoundaryConditions::periodic) {
     for(int k=0; k<c.nZ; ++k) {
-      vars.dTmpdt(0,k) = vars.tmp.topBoundary - vars.tmp.bottomBoundary;
+      vars.dTmpdt(0,k) = c.temperatureGradient;
     }
   }
 }
@@ -211,7 +228,7 @@ void Sim::computeNonlinearXiDerivative() {
   computeNonlinearDerivative(vars.dXidt, vars.xi);
   if(c.verticalBoundaryConditions == BoundaryConditions::periodic) {
     for(int k=0; k<c.nZ; ++k) {
-      vars.dXidt(0,k) = vars.xi.topBoundary - vars.xi.bottomBoundary;
+      vars.dXidt(0,k) = c.salinityGradient;
     }
   }
 }
