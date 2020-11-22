@@ -1,44 +1,47 @@
 #!/usr/bin/env bash
 
-save_folder="data/salt_fingering_nonsteady"
-nN=51
-nZ=101
+save_folder="data/double_periodic_test"
+constants_file=$save_folder/constants.json
+nN=85
+nZ=256
+nX=256
 
 mkdir -p $save_folder
 rm -f $save_folder/*
 
 cat << EOF > $save_folder/constants.json
 {
-  "Pr":1,
-  "Ra":1e6,
-  "RaXi":5e7,
+  "Pr":7,
+  "Ra":1.3e5,
+  "RaXi":1e7,
   "tau":1e-2,
-  "aspectRatio":1.41421356237,
-  "initialDt":3e-6,
+  "aspectRatio":0.5,
+  "initialDt":1e-7,
 
   "nN":$nN,
+  "nX":$nX,
   "nZ":$nZ,
 
-  "boundaryConditions":"periodic",
+  "verticalBoundaryConditions":"periodic",
+  "horizontalBoundaryConditions":"periodic",
   "temperatureGradient":1,
   "salinityGradient":1,
 
-  "icFile":"$save_folder/ICn1nZ101nN51_SF",
+  "icFile":"$save_folder/initial_conditions.dat",
   "saveFolder":"$save_folder/",
 
   "timeBetweenSaves":0.001,
-  "totalTime":1,
+  "totalTime":0.1,
 
   "isNonlinear":true,
   "isDoubleDiffusion":true
 }
 EOF
 
-constants_file=$save_folder/constants.json
-python tools/make_initial_conditions.py --output $save_folder/ICn1nZ101nN51_SF --n_modes $nN --n_gridpoints $nZ --modes 50 --amp 0.01 --salt_fingering --periodic
+python tools/make_initial_conditions.py --output $save_folder/initial_conditions.dat --n_modes $nN --n_gridpoints $nZ --modes 50 --amp 0.01 --salt_fingering --periodic
 
 echo "==================== Building program"
-make release
+make -j4 release
 
 echo "==================== Starting program"
 { time build/exe --constants $constants_file ; } 2>&1 | tee $save_folder/log.txt

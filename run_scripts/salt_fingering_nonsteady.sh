@@ -20,8 +20,8 @@ cat << EOF > $save_folder/constants.js
   "icFile":"$save_folder/ICn1nZ101nN51_SF",
   "saveFolder":"$save_folder/",
 
-  "timeBetweenSaves":0.001,
-  "totalTime":1,
+  "timeBetweenSaves":0.0001,
+  "totalTime":0.5,
 
   "isNonlinear":true,
   "isDoubleDiffusion":true
