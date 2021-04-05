@@ -39,9 +39,9 @@ To compile for GPU run `make gpu`. There is a corresponding `make gpu-debug` for
 
 ## Tests
 
-### Integration tests
+### Regression tests
 
-Currently the integration tests available are:
+Currently the regression tests available are:
 
 - Linear:
   - Standard Rayleigh-Benard convection
